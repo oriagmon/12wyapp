@@ -1,5 +1,6 @@
 import { formatScore, remainingToTarget, TARGET_SCORE } from '../lib/scoring';
 import styles from './CycleProgressCard.module.css';
+import { useTranslation } from '../i18n';
 
 const MEETINGS = [
   { month: 1, week: 4 },
@@ -21,6 +22,7 @@ function meetingStatus(currentWeek: number, meetingWeek: number) {
  * Stacked, they read as two competing versions of the same number.
  */
 export function CycleProgressCard({ currentWeek, weekScore }: { currentWeek: number; weekScore: number | null }) {
+  const { t } = useTranslation();
   const progress = Math.round((currentWeek / 12) * 100);
   const weeksLeft = 12 - currentWeek;
   const remaining = remainingToTarget(weekScore);
@@ -28,20 +30,20 @@ export function CycleProgressCard({ currentWeek, weekScore }: { currentWeek: num
   const nextMeeting = MEETINGS.find((meeting) => currentWeek <= meeting.week);
   const message =
     nextMeeting?.week === currentWeek
-      ? `השבוע פגישת הסיכום החודשית ${nextMeeting.month}. עוצרים, מסתכלים אחורה ומכוונים מחדש.`
+      ? t('dashboard.progress.meetingThisWeek', { month: nextMeeting.month })
       : nextMeeting?.week === currentWeek + 1
-        ? `בשבוע הבא פגישת הסיכום החודשית ${nextMeeting.month} — שווה לקבוע אותה ביומן כבר עכשיו.`
+        ? t('dashboard.progress.meetingNextWeek', { month: nextMeeting.month })
         : nextMeeting
-          ? `פגישת הסיכום החודשית הבאה בשבוע ${nextMeeting.week}.`
-          : 'זה השבוע האחרון במחזור — זמן לסכם, לחגוג ולתכנן את הבא.';
+          ? t('dashboard.progress.meetingLater', { week: nextMeeting.week })
+          : t('dashboard.progress.lastWeekOfCycle');
 
   return (
-    <section className={`card ${styles.card}`} aria-label="התקדמות">
+    <section className={`card ${styles.card}`} aria-label={t('dashboard.progress.label')}>
       <div className={styles.stats}>
         <div className={styles.stat}>
-          <span className={styles.eyebrow}>המחזור</span>
+          <span className={styles.eyebrow}>{t('dashboard.progress.eyebrow')}</span>
           <strong className={styles.statValue}>
-            שבוע {currentWeek}<span className={styles.statUnit}> מתוך 12</span>
+            {t('dashboard.progress.week', { week: currentWeek })}<span className={styles.statUnit}>{t('dashboard.progress.ofTwelve')}</span>
           </strong>
           <div
             className={styles.track}
@@ -49,7 +51,7 @@ export function CycleProgressCard({ currentWeek, weekScore }: { currentWeek: num
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={progress}
-            aria-label={`${progress}% מהמחזור מאחורינו`}
+            aria-label={t('dashboard.progress.barLabel', { percent: progress })}
           >
             <div className={styles.fill} style={{ width: `${progress}%` }} />
             {MEETINGS.map((meeting) => (
@@ -62,14 +64,19 @@ export function CycleProgressCard({ currentWeek, weekScore }: { currentWeek: num
             ))}
           </div>
           <span className={styles.statCaption}>
-            {progress}% מהדרך · {weeksLeft === 0 ? 'השבוע האחרון' : `נותרו ${weeksLeft} שבועות`}
+            {t('dashboard.progress.summary', {
+              percent: progress,
+              remaining: weeksLeft === 0
+                ? t('dashboard.progress.lastWeek')
+                : t('dashboard.progress.weeksLeft', { count: weeksLeft }),
+            })}
           </span>
         </div>
 
         <div className={styles.stat}>
-          <span className={styles.eyebrow}>ביצוע השבוע</span>
+          <span className={styles.eyebrow}>{t('dashboard.progress.scoreEyebrow')}</span>
           <strong key={weekScore} className={`${styles.statValue} ${onTarget ? styles.onTarget : ''}`}>
-            {formatScore(weekScore)}<span className={styles.statUnit}> מתוך יעד {TARGET_SCORE}%</span>
+            {formatScore(weekScore)}<span className={styles.statUnit}>{t('dashboard.progress.ofTarget', { target: TARGET_SCORE })}</span>
           </strong>
           <div
             className={styles.track}
@@ -77,8 +84,8 @@ export function CycleProgressCard({ currentWeek, weekScore }: { currentWeek: num
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={weekScore ?? 0}
-            aria-valuetext={weekScore === null ? 'אין טקטיקות מתוזמנות השבוע' : formatScore(weekScore)}
-            aria-label={`ביצוע השבוע מול יעד ${TARGET_SCORE}%`}
+            aria-valuetext={weekScore === null ? t('dashboard.progress.noTactics') : formatScore(weekScore)}
+            aria-label={t('dashboard.progress.scoreLabel', { target: TARGET_SCORE })}
           >
             <div
               className={`${styles.fill} ${onTarget ? styles.fillGold : ''}`}
@@ -88,10 +95,10 @@ export function CycleProgressCard({ currentWeek, weekScore }: { currentWeek: num
           </div>
           <span className={styles.statCaption}>
             {weekScore === null
-              ? 'אין טקטיקות מתוזמנות השבוע'
+              ? t('dashboard.progress.noTactics')
               : onTarget
-                ? '🏆 מעל היעד'
-                : `נותרו ${remaining}% ליעד`}
+                ? t('dashboard.progress.aboveTarget')
+                : t('dashboard.progress.toTarget', { percent: remaining })}
           </span>
         </div>
       </div>
@@ -111,12 +118,12 @@ export function CycleProgressCard({ currentWeek, weekScore }: { currentWeek: num
                 {status === 'done' ? '✓' : status === 'current' ? '●' : status === 'schedule' ? '!' : '○'}
               </span>
               <span>
-                <strong>סיכום חודש {meeting.month}</strong>
+                <strong>{t('dashboard.progress.monthSummary', { month: meeting.month })}</strong>
                 <small>
-                  שבוע {meeting.week}
-                  {status === 'schedule' ? ' · לקבוע עכשיו' : ''}
-                  {status === 'current' ? ' · השבוע' : ''}
-                  {status === 'done' ? ' · הושלם' : ''}
+                  {t('dashboard.progress.meetingWeek', { week: meeting.week })}
+                  {status === 'schedule' ? t('dashboard.progress.meetingSchedule') : ''}
+                  {status === 'current' ? t('dashboard.progress.meetingCurrent') : ''}
+                  {status === 'done' ? t('dashboard.progress.meetingDone') : ''}
                 </small>
               </span>
             </div>

@@ -3,6 +3,7 @@ import { useAsyncStatus } from '../hooks/useAsyncStatus';
 import { StatusBadge } from './StatusBadge';
 import type { Cycle } from '../lib/types';
 import styles from './CycleHeader.module.css';
+import { useTranslation } from '../i18n';
 
 export function CycleHeader({
   cycle,
@@ -17,6 +18,10 @@ export function CycleHeader({
   onWeekChange: (week: number) => Promise<void>;
   onReset: (name: string) => Promise<void>;
 }) {
+  const { t } = useTranslation();
+  // Split around the placeholder so the number can stay bold while each language keeps
+  // its own word order.
+  const currentWeekLabel = t('dashboard.cycle.currentWeek').split('{week}');
   const [name, setName] = useState(cycle.name);
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [resetName, setResetName] = useState('');
@@ -53,7 +58,7 @@ export function CycleHeader({
           disabled={!isOwner}
           onChange={(e) => setName(e.target.value)}
           onBlur={commitName}
-          aria-label="שם המחזור"
+          aria-label={t('dashboard.cycle.nameLabel')}
           className={styles.nameInput}
         />
         <StatusBadge status={rename.status} error={rename.error} />
@@ -65,19 +70,19 @@ export function CycleHeader({
           className="btn btn-ghost btn-sm"
           disabled={!isOwner || cycle.currentWeek <= 1}
           onClick={() => changeWeek(-1)}
-          aria-label="שבוע קודם"
+          aria-label={t('dashboard.cycle.prevWeek')}
         >
           <span className={styles.arrow} dir="ltr" aria-hidden="true">→</span>
         </button>
         <div className={styles.weekLabel}>
-          שבוע נוכחי: <strong>{cycle.currentWeek}</strong> מתוך 12
+          {currentWeekLabel[0]}<strong>{cycle.currentWeek}</strong>{currentWeekLabel[1]}
         </div>
         <button
           type="button"
           className="btn btn-ghost btn-sm"
           disabled={!isOwner || cycle.currentWeek >= 12}
           onClick={() => changeWeek(1)}
-          aria-label="שבוע הבא"
+          aria-label={t('dashboard.cycle.nextWeek')}
         >
           <span className={styles.arrow} dir="ltr" aria-hidden="true">←</span>
         </button>
@@ -88,27 +93,26 @@ export function CycleHeader({
         <div className={styles.resetSection}>
           {!confirmingReset ? (
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmingReset(true)}>
-              סיום מחזור והתחלת מחזור חדש
+              {t('dashboard.cycle.endAndStart')}
             </button>
           ) : (
-            <div className={styles.confirmBox} role="alertdialog" aria-label="אישור סיום מחזור">
+            <div className={styles.confirmBox} role="alertdialog" aria-label={t('dashboard.cycle.confirmLabel')}>
               <p className={styles.confirmText}>
-                המחזור הנוכחי (כולל כל המטרות, הטקטיקות והביצועים) יישמר לצמיתות כהיסטוריה לקריאה בלבד, וניתן יהיה
-                לצפות בו בכל עת בלשונית "מחזורים קודמים". שום דבר לא נמחק. שם למחזור החדש:
+                {t('dashboard.cycle.confirmBody')}
               </p>
               <input
                 type="text"
                 value={resetName}
                 onChange={(e) => setResetName(e.target.value)}
-                placeholder="לדוגמה: מחזור אביב 2026"
-                aria-label="שם המחזור החדש"
+                placeholder={t('dashboard.cycle.newNamePlaceholder')}
+                aria-label={t('dashboard.cycle.newNameLabel')}
               />
               <div className={styles.confirmActions}>
                 <button type="button" className="btn btn-primary btn-sm" onClick={submitReset}>
-                  אישור וסיום המחזור
+                  {t('dashboard.cycle.confirmEnd')}
                 </button>
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmingReset(false)}>
-                  ביטול
+                  {t('dashboard.cycle.cancel')}
                 </button>
                 <StatusBadge status={reset.status} error={reset.error} />
               </div>

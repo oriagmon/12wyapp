@@ -55,6 +55,39 @@ export const dashboard: AreaDict = {
       'No winning Duo week yet — once you both reach 85% or more in a finished weekly meeting, your shared streak starts here.',
     'dashboard.duo.stopped': 'The shared streak stopped — one winning Duo week restarts it.',
 
+    'dashboard.cycle.currentWeek': 'Current week: {week} of 12',
+    'dashboard.cycle.cancel': 'Cancel',
+
+    'dashboard.progress.label': 'Progress',
+    'dashboard.progress.eyebrow': 'The cycle',
+    'dashboard.progress.week': 'Week {week}',
+    'dashboard.progress.ofTwelve': ' of 12',
+    'dashboard.progress.barLabel': '{percent}% of the cycle behind you',
+    'dashboard.progress.summary': '{percent}% of the way · {remaining}',
+    'dashboard.progress.lastWeek': 'last week',
+    'dashboard.progress.weeksLeft_one': '{count} week to go',
+    'dashboard.progress.weeksLeft_other': '{count} weeks to go',
+
+    'dashboard.progress.scoreEyebrow': 'This week',
+    'dashboard.progress.ofTarget': ' of the {target}% target',
+    'dashboard.progress.noTactics': 'Nothing scheduled this week',
+    'dashboard.progress.scoreLabel': 'This week against the {target}% target',
+    'dashboard.progress.aboveTarget': '🏆 Above target',
+    'dashboard.progress.toTarget': '{percent}% to go',
+
+    'dashboard.progress.meetingThisWeek':
+      'The {month} monthly review is this week. Stop, look back, and point yourselves again.',
+    'dashboard.progress.meetingNextWeek':
+      'The {month} monthly review is next week — worth putting it in the calendar now.',
+    'dashboard.progress.meetingLater': 'The next monthly review is in week {week}.',
+    'dashboard.progress.lastWeekOfCycle':
+      'This is the last week of the cycle — time to wrap up, celebrate, and plan the next one.',
+    'dashboard.progress.monthSummary': '{month} review',
+    'dashboard.progress.meetingWeek': 'Week {week}',
+    'dashboard.progress.meetingSchedule': ' · schedule it now',
+    'dashboard.progress.meetingCurrent': ' · this week',
+    'dashboard.progress.meetingDone': ' · done',
+
     'dashboard.cycle.nameLabel': 'Cycle name',
     'dashboard.cycle.prevWeek': 'Previous week',
     'dashboard.cycle.nextWeek': 'Next week',
@@ -109,6 +142,39 @@ export const dashboard: AreaDict = {
     'dashboard.duo.never':
       'עדיין אין שבוע Duo מנצח — כששניכם תגיעו ל־85% ומעלה בפגישה שבועית שהושלמה, הרצף המשותף שלכם יתחיל כאן.',
     'dashboard.duo.stopped': 'הרצף המשותף נעצר — שבוע Duo מנצח אחד יחדש אותו.',
+
+    'dashboard.cycle.currentWeek': 'שבוע נוכחי: {week} מתוך 12',
+    'dashboard.cycle.cancel': 'ביטול',
+
+    'dashboard.progress.label': 'התקדמות',
+    'dashboard.progress.eyebrow': 'המחזור',
+    'dashboard.progress.week': 'שבוע {week}',
+    'dashboard.progress.ofTwelve': ' מתוך 12',
+    'dashboard.progress.barLabel': '{percent}% מהמחזור מאחורינו',
+    'dashboard.progress.summary': '{percent}% מהדרך · {remaining}',
+    'dashboard.progress.lastWeek': 'השבוע האחרון',
+    'dashboard.progress.weeksLeft_one': 'נותר {count} שבוע',
+    'dashboard.progress.weeksLeft_other': 'נותרו {count} שבועות',
+
+    'dashboard.progress.scoreEyebrow': 'ביצוע השבוע',
+    'dashboard.progress.ofTarget': ' מתוך יעד {target}%',
+    'dashboard.progress.noTactics': 'אין טקטיקות מתוזמנות השבוע',
+    'dashboard.progress.scoreLabel': 'ביצוע השבוע מול יעד {target}%',
+    'dashboard.progress.aboveTarget': '🏆 מעל היעד',
+    'dashboard.progress.toTarget': 'נותרו {percent}% ליעד',
+
+    'dashboard.progress.meetingThisWeek':
+      'השבוע פגישת הסיכום החודשית {month}. עוצרים, מסתכלים אחורה ומכוונים מחדש.',
+    'dashboard.progress.meetingNextWeek':
+      'בשבוע הבא פגישת הסיכום החודשית {month} — שווה לקבוע אותה ביומן כבר עכשיו.',
+    'dashboard.progress.meetingLater': 'פגישת הסיכום החודשית הבאה בשבוע {week}.',
+    'dashboard.progress.lastWeekOfCycle':
+      'זה השבוע האחרון במחזור — זמן לסכם, לחגוג ולתכנן את הבא.',
+    'dashboard.progress.monthSummary': 'סיכום חודש {month}',
+    'dashboard.progress.meetingWeek': 'שבוע {week}',
+    'dashboard.progress.meetingSchedule': ' · לקבוע עכשיו',
+    'dashboard.progress.meetingCurrent': ' · השבוע',
+    'dashboard.progress.meetingDone': ' · הושלם',
 
     'dashboard.cycle.nameLabel': 'שם המחזור',
     'dashboard.cycle.prevWeek': 'שבוע קודם',
