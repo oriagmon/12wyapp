@@ -7,6 +7,7 @@ import { StatusBadge } from './StatusBadge';
 import type { RitualLoadStatus, WeeklyPlanningDraftPatch, WeeklyPlanningRitual } from '../hooks/useWeeklyPlanningRitual';
 import styles from './WeeklyPlanningRitualPanel.module.css';
 import { useWeekdayLabels } from '../i18n/useWeekdayLabels';
+import { useTranslation } from '../i18n';
 
 interface WeeklyPlanningRitualPanelProps {
   cycle: Cycle;
@@ -42,6 +43,7 @@ export function WeeklyPlanningRitualPanel({
   onNavigateToTactics,
 }: WeeklyPlanningRitualPanelProps) {
   const weekdayLabels = useWeekdayLabels();
+  const { t } = useTranslation();
   const currentWeek = cycle.currentWeek;
   const targetWeek = currentWeek + 1;
   const cycleFinished = currentWeek >= 12;
@@ -80,17 +82,16 @@ export function WeeklyPlanningRitualPanel({
   if (cycleFinished) {
     return (
       <section className={`card ${styles.panel}`}>
-        <h2 className={styles.title}>תכנון אישי לשבוע הבא</h2>
+        <h2 className={styles.title}>{t('week.ritual.title')}</h2>
         <p className={styles.finishedMessage}>
-          המחזור הגיע לשבוע 12, השבוע האחרון שלו. במקום לתכנן שבוע 13 (שלא קיים במחזור בן 12 השבועות), זה הזמן לסיים
-          ולסקור את המחזור כולו — ואז לפתוח מחזור חדש כדי להמשיך את הטקס השבועי.
+          {t('week.ritual.finished')}
         </p>
       </section>
     );
   }
 
   if (loadStatus === 'loading' || loadStatus === 'idle') {
-    return <section className="card" style={{ padding: 24 }}>טוען את טקס התכנון השבועי...</section>;
+    return <section className="card" style={{ padding: 24 }}>{t('week.ritual.loading')}</section>;
   }
 
   if (loadStatus === 'error') {
@@ -106,9 +107,9 @@ export function WeeklyPlanningRitualPanel({
   // A bare greyed-out button gave no clue what was missing, and this screen is only opened
   // about twice a week — long enough to forget the rules between visits.
   const missingSteps = [
-    !tacticsReviewed && 'לסמן שעברתם על הטקטיקות',
-    weeklyFocus.trim().length === 0 && 'לכתוב מיקוד לשבוע',
-    commitment.trim().length === 0 && 'לכתוב מחויבות אחת',
+    !tacticsReviewed && t('week.ritual.missingTactics'),
+    weeklyFocus.trim().length === 0 && t('week.ritual.missingFocus'),
+    commitment.trim().length === 0 && t('week.ritual.missingCommitment'),
   ].filter((step): step is string => typeof step === 'string');
   const canComplete = missingSteps.length === 0;
 
@@ -118,20 +119,22 @@ export function WeeklyPlanningRitualPanel({
     <section className={`card ${styles.panel}`}>
       <div className={styles.header}>
         <div>
-          <h2 className={styles.title}>תכנון אישי — לקראת שבוע {targetWeek}</h2>
+          <h2 className={styles.title}>{t('week.ritual.headingTarget', { week: targetWeek })}</h2>
           <p className={styles.subtitle}>
-            זמן אישי לבחור מיקוד, טקטיקות וזמנים לשבוע הבא. מומלץ לקראת סוף שבוע {currentWeek}.
-            {' '}בהמשך אותו עמוד מסכמים יחד ביצועים ומחויבויות בפגישה המשותפת. התכנון האישי נשמר בנפרד.
+            {t('week.ritual.subtitle', { week: currentWeek })}
+            {' '}{t('week.ritual.subtitleShared')}
           </p>
         </div>
-        {isComplete && <span className={styles.completeBadge}>✓ הטקס הושלם</span>}
+        {isComplete && <span className={styles.completeBadge}>{t('week.ritual.completeBadge')}</span>}
       </div>
 
-      <section className={styles.step} aria-label="שלב 1">
-        <h3 className={styles.stepTitle}>שלב 1: סקירת השבוע הנוכחי (שבוע {currentWeek})</h3>
-        <p className={styles.stepScore}>ציון שבוע {currentWeek}: {formatScore(currentWeekScore)}</p>
+      <section className={styles.step} aria-label={t('week.ritual.step1Label')}>
+        <h3 className={styles.stepTitle}>{t('week.ritual.step1Title', { week: currentWeek })}</h3>
+        <p className={styles.stepScore}>
+          {t('week.ritual.weekScore', { week: currentWeek, score: formatScore(currentWeekScore) })}
+        </p>
         <label className={styles.field}>
-          <span className={styles.label}>מה עבד השבוע?</span>
+          <span className={styles.label}>{t('week.ritual.workedWell')}</span>
           <textarea
             ref={(el) => {
               if (el) autoResizeTextarea(el);
@@ -140,7 +143,7 @@ export function WeeklyPlanningRitualPanel({
             className={styles.textarea}
             value={workedWell}
             readOnly={!editable}
-            placeholder="מה תרם להצלחה השבוע?"
+            placeholder={t('week.ritual.workedWellPlaceholder')}
             onChange={(e) => {
               autoResizeTextarea(e.currentTarget);
               setWorkedWell(e.target.value);
@@ -148,7 +151,7 @@ export function WeeklyPlanningRitualPanel({
           />
         </label>
         <label className={styles.field}>
-          <span className={styles.label}>מה נשפר בשבוע הבא?</span>
+          <span className={styles.label}>{t('week.ritual.improveNext')}</span>
           <textarea
             ref={(el) => {
               if (el) autoResizeTextarea(el);
@@ -157,7 +160,7 @@ export function WeeklyPlanningRitualPanel({
             className={styles.textarea}
             value={improveNext}
             readOnly={!editable}
-            placeholder="מה כדאי לשנות או לשפר?"
+            placeholder={t('week.ritual.improveNextPlaceholder')}
             onChange={(e) => {
               autoResizeTextarea(e.currentTarget);
               setImproveNext(e.target.value);
@@ -166,10 +169,10 @@ export function WeeklyPlanningRitualPanel({
         </label>
       </section>
 
-      <section className={styles.step} aria-label="שלב 2">
-        <h3 className={styles.stepTitle}>שלב 2: סקירת טקטיקות לשבוע {targetWeek}</h3>
+      <section className={styles.step} aria-label={t('week.ritual.step2Label')}>
+        <h3 className={styles.stepTitle}>{t('week.ritual.step2Title', { week: targetWeek })}</h3>
         {targetTactics.length === 0 ? (
-          <p className={styles.emptyTactics}>אין טקטיקות מתוזמנות לשבוע {targetWeek}.</p>
+          <p className={styles.emptyTactics}>{t('week.ritual.noTactics', { week: targetWeek })}</p>
         ) : (
           <ul className={styles.tacticList}>
             {targetTactics.map((tactic) => (
@@ -182,7 +185,7 @@ export function WeeklyPlanningRitualPanel({
           </ul>
         )}
         <button type="button" className="btn btn-ghost btn-sm" onClick={onNavigateToTactics}>
-          מעבר למטרות וטקטיקות לעדכון
+          {t('week.ritual.goToTactics')}
         </button>
         <label className={styles.checkboxRow}>
           <input
@@ -191,14 +194,14 @@ export function WeeklyPlanningRitualPanel({
             disabled={!editable}
             onChange={(e) => setTacticsReviewed(e.target.checked)}
           />
-          <span>בדקתי והתאמתי את הטקטיקות לשבוע הבא</span>
+          <span>{t('week.ritual.tacticsReviewed')}</span>
         </label>
       </section>
 
-      <section className={styles.step} aria-label="שלב 3">
-        <h3 className={styles.stepTitle}>שלב 3: התחייבות לשבוע {targetWeek}</h3>
+      <section className={styles.step} aria-label={t('week.ritual.step3Label')}>
+        <h3 className={styles.stepTitle}>{t('week.ritual.step3Title', { week: targetWeek })}</h3>
         <label className={styles.field}>
-          <span className={styles.label}>המיקוד המרכזי</span>
+          <span className={styles.label}>{t('week.ritual.focusLabel')}</span>
           <textarea
             ref={(el) => {
               if (el) autoResizeTextarea(el);
@@ -207,7 +210,7 @@ export function WeeklyPlanningRitualPanel({
             className={styles.textarea}
             value={weeklyFocus}
             readOnly={!editable}
-            placeholder="מה הדבר האחד החשוב ביותר לשבוע הבא?"
+            placeholder={t('week.ritual.focusPlaceholder')}
             onChange={(e) => {
               autoResizeTextarea(e.currentTarget);
               setWeeklyFocus(e.target.value);
@@ -215,7 +218,7 @@ export function WeeklyPlanningRitualPanel({
           />
         </label>
         <label className={styles.field}>
-          <span className={styles.label}>ההתחייבות שלי לשבוע הבא</span>
+          <span className={styles.label}>{t('week.ritual.commitmentLabel')}</span>
           <textarea
             ref={(el) => {
               if (el) autoResizeTextarea(el);
@@ -224,7 +227,7 @@ export function WeeklyPlanningRitualPanel({
             className={styles.textarea}
             value={commitment}
             readOnly={!editable}
-            placeholder="מה אני מתחייב/ת לעשות?"
+            placeholder={t('week.ritual.commitmentPlaceholder')}
             onChange={(e) => {
               autoResizeTextarea(e.currentTarget);
               setCommitment(e.target.value);
@@ -240,7 +243,7 @@ export function WeeklyPlanningRitualPanel({
             className="btn btn-ghost"
             onClick={() => saveStatus.run(() => onSaveDraft(currentDraft))}
           >
-            שמירת טיוטה
+            {t('week.ritual.saveDraft')}
           </button>
           <button
             type="button"
@@ -254,13 +257,13 @@ export function WeeklyPlanningRitualPanel({
               })
             }
           >
-            השלמת הטקס
+            {t('week.ritual.complete')}
           </button>
           <StatusBadge status={saveStatus.status} error={saveStatus.error} />
           <StatusBadge status={completeStatus.status} error={completeStatus.error} />
           {!canComplete && (
             <p id="ritual-missing-steps" className={styles.missingSteps}>
-              {missingSteps.length === 1 ? 'נשאר רק ' : 'נשאר עוד: '}
+              {t('week.ritual.missingPrefix', { count: missingSteps.length })}
               {missingSteps.join(' · ')}
             </p>
           )}
@@ -270,13 +273,13 @@ export function WeeklyPlanningRitualPanel({
       {isOwner && isComplete && (
         <div className={styles.actions}>
           <button type="button" className="btn btn-ghost" onClick={() => onReopen()}>
-            פתיחה מחדש לעריכה
+            {t('week.ritual.reopen')}
           </button>
         </div>
       )}
 
       {!isOwner && (
-        <p className={styles.readOnlyNote}>צפייה בלבד — רק בעל/ת הלוח יכול/ה לערוך את טקס התכנון השבועי.</p>
+        <p className={styles.readOnlyNote}>{t('week.ritual.readOnly')}</p>
       )}
     </section>
   );

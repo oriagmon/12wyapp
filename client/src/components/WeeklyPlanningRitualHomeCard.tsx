@@ -1,6 +1,7 @@
 import type { Cycle } from '../lib/types';
 import type { RitualLoadStatus, WeeklyPlanningRitual } from '../hooks/useWeeklyPlanningRitual';
 import styles from './WeeklyPlanningRitualHomeCard.module.css';
+import { useTranslation } from '../i18n';
 
 interface WeeklyPlanningRitualHomeCardProps {
   cycle: Cycle;
@@ -18,6 +19,7 @@ interface WeeklyPlanningRitualHomeCardProps {
  *   read-only summary. No controls, and nothing rendered for an absent/draft ritual.
  */
 export function WeeklyPlanningRitualHomeCard({ cycle, isOwner, ritual, loadStatus, onOpen }: WeeklyPlanningRitualHomeCardProps) {
+  const { t } = useTranslation();
   const currentWeek = cycle.currentWeek;
   const targetWeek = currentWeek + 1;
   const cycleFinished = currentWeek >= 12;
@@ -26,9 +28,9 @@ export function WeeklyPlanningRitualHomeCard({ cycle, isOwner, ritual, loadStatu
     if (!isOwner) return null;
     return (
       <section className={`card ${styles.card}`}>
-        <h3 className={styles.title}>תכנון אישי לשבוע הבא</h3>
+        <h3 className={styles.title}>{t('week.ritual.title')}</h3>
         <p className={styles.text}>
-          המחזור בשבוע 12, השבוע האחרון — הגיע הזמן לסיים ולסקור את המחזור כולו, במקום לתכנן שבוע נוסף.
+          {t('week.ritual.homeFinished')}
         </p>
       </section>
     );
@@ -40,9 +42,9 @@ export function WeeklyPlanningRitualHomeCard({ cycle, isOwner, ritual, loadStatu
     if (!isComplete) return null;
     return (
       <section className={`card ${styles.card}`}>
-        <h3 className={styles.title}>תכנון אישי — שבוע {targetWeek}</h3>
-        <p className={styles.completeText}>✓ השותף/ה השלים/ה את טקס התכנון לשבוע הבא</p>
-        {ritual?.weeklyFocus && <p className={styles.summary}>מיקוד: {ritual.weeklyFocus}</p>}
+        <h3 className={styles.title}>{t('week.ritual.homeTitle', { week: targetWeek })}</h3>
+        <p className={styles.completeText}>{t('week.ritual.partnerDone')}</p>
+        {ritual?.weeklyFocus && <p className={styles.summary}>{t('week.ritual.focusSummary', { focus: ritual.weeklyFocus })}</p>}
       </section>
     );
   }
@@ -51,17 +53,17 @@ export function WeeklyPlanningRitualHomeCard({ cycle, isOwner, ritual, loadStatu
 
   return (
     <section className={`card ${styles.card}`}>
-      <h3 className={styles.title}>תכנון אישי — שבוע {targetWeek}</h3>
+      <h3 className={styles.title}>{t('week.ritual.homeTitle', { week: targetWeek })}</h3>
       {isComplete ? (
         <>
-          <p className={styles.completeText}>✓ הטקס הושלם</p>
-          {ritual?.weeklyFocus && <p className={styles.summary}>מיקוד: {ritual.weeklyFocus}</p>}
+          <p className={styles.completeText}>{t('week.ritual.completeBadge')}</p>
+          {ritual?.weeklyFocus && <p className={styles.summary}>{t('week.ritual.focusSummary', { focus: ritual.weeklyFocus })}</p>}
         </>
       ) : (
-        <p className={styles.pendingText}>המיקוד והטקטיקות שלך לשבוע הבא — באותו עמוד עם הפגישה המשותפת. התכנון האישי נשמר בנפרד.</p>
+        <p className={styles.pendingText}>{t('week.ritual.homePending')}</p>
       )}
       <button type="button" className="btn btn-ghost btn-sm" onClick={onOpen}>
-        פגישה משותפת
+        {t('week.ritual.homeCta')}
       </button>
     </section>
   );
