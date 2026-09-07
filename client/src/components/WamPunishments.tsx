@@ -3,6 +3,7 @@ import type { WamDetail, WamPartnershipMeta, WamPunishment } from '../lib/types'
 import { useAsyncStatus } from '../hooks/useAsyncStatus';
 import { StatusBadge } from './StatusBadge';
 import styles from './WamPunishments.module.css';
+import { useTranslation } from '../i18n';
 
 const MAX_LABEL_LENGTH = 300;
 
@@ -41,6 +42,7 @@ export function WamPunishments({
   onReassign: (id: number, assignedUserId: number) => Promise<unknown>;
   onDelete: (id: number) => Promise<unknown>;
 }) {
+  const { t } = useTranslation();
   const { partnership, punishments } = wam;
   const partnerId = otherUserId(partnership, myUserId);
   const [newLabel, setNewLabel] = useState('');
@@ -60,8 +62,8 @@ export function WamPunishments({
 
   return (
     <div className={`card ${styles.wrap}`}>
-      <h3 className={styles.title}>עונשים</h3>
-      {punishments.length === 0 && <p className={styles.empty}>עדיין לא נכתבו עונשים בפגישה זו.</p>}
+      <h3 className={styles.title}>{t('wams.punishments.title')}</h3>
+      {punishments.length === 0 && <p className={styles.empty}>{t('wams.punishments.empty')}</p>}
       <ul className={styles.list}>
         {punishments.map((p) => (
           <PunishmentRow
@@ -80,7 +82,7 @@ export function WamPunishments({
         <div className={styles.addRow}>
           <input
             type="text"
-            placeholder="עונש חדש..."
+            placeholder={t('wams.punishments.placeholder')}
             value={newLabel}
             maxLength={MAX_LABEL_LENGTH}
             disabled={adding}
@@ -88,19 +90,19 @@ export function WamPunishments({
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !adding) submitAdd();
             }}
-            aria-label="טקסט עונש חדש"
+            aria-label={t('wams.punishments.newLabel')}
           />
           <select
             value={assignTo}
             disabled={adding}
             onChange={(e) => setAssignTo(e.target.value as 'me' | 'partner')}
-            aria-label="על מי מוטל העונש"
+            aria-label={t('wams.punishments.assignLabel')}
           >
-            <option value="me">עליי</option>
-            <option value="partner">על השותף/ה</option>
+            <option value="me">{t('wams.punishments.onMe')}</option>
+            <option value="partner">{t('wams.punishments.onPartner')}</option>
           </select>
           <button type="button" className="btn btn-primary btn-sm" onClick={submitAdd} disabled={adding}>
-            הוספה
+            {t('wams.punishments.add')}
           </button>
           <StatusBadge status={addStatus.status} error={addStatus.error} />
         </div>
@@ -109,8 +111,7 @@ export function WamPunishments({
           could never be checked off — its would-be next WAM is already frozen. */}
       {!canAdd && sourceEditable && (
         <p className={styles.blockedHint}>
-          לא ניתן להוסיף עונש חדש כרגע — הפגישה הבאה שאליה הוא ישויך כבר הושלמה או נעולה
-          כהיסטוריה. ניתן לפתוח אותה מחדש כדי לאפשר הוספת עונשים.
+          {t('wams.punishments.blocked')}
         </p>
       )}
     </div>
@@ -139,6 +140,7 @@ function PunishmentRow({
   // whichever ran most recently is what's shown, so an older "saved" badge can never mask a
   // newer error, and — since `busy` below gates every control — no two actions on the same
   // row can ever overlap (e.g. a reassign firing mid-label-save).
+  const { t } = useTranslation();
   const rowStatus = useAsyncStatus();
   const busy = rowStatus.status === 'saving';
   // A completed item's reassignment (and, for consistency, its deletion) requires an explicit
@@ -204,15 +206,15 @@ function PunishmentRow({
             e.currentTarget.blur();
           }
         }}
-        aria-label="טקסט העונש"
+        aria-label={t('wams.punishments.text')}
       />
-      <span className={styles.metaTag}>מאת {punishment.authorLabel}</span>
+      <span className={styles.metaTag}>{t('wams.punishments.by', { name: punishment.authorLabel })}</span>
       {/* The assignee is always visible, profile-aware, and unambiguous — even when the
           author also gets a reassign control right next to it. */}
-      <span className={styles.metaTag}>על {punishment.assigneeLabel}</span>
+      <span className={styles.metaTag}>{t('wams.punishments.on', { name: punishment.assigneeLabel })}</span>
       {punishment.done && (
         <span className={styles.doneStatus} role="status">
-          ✔️ בוצע
+          {t('wams.punishments.done')}
         </span>
       )}
       {punishment.canEdit && (
@@ -221,10 +223,10 @@ function PunishmentRow({
           value={punishment.assignedUserId === myUserId ? 'me' : 'partner'}
           disabled={busy}
           onChange={(e) => handleReassignChange(e.target.value as 'me' | 'partner')}
-          aria-label="שיוך מחדש של העונש"
+          aria-label={t('wams.punishments.reassign')}
         >
-          <option value="me">עליי</option>
-          <option value="partner">על השותף/ה</option>
+          <option value="me">{t('wams.punishments.onMe')}</option>
+          <option value="partner">{t('wams.punishments.onPartner')}</option>
         </select>
       )}
       {punishment.canEdit && (
@@ -233,25 +235,25 @@ function PunishmentRow({
           className="btn btn-ghost btn-sm"
           onClick={handleDeleteClick}
           disabled={busy}
-          aria-label="מחיקת עונש"
+          aria-label={t('wams.punishments.deleteLabel')}
         >
-          מחיקה
+          {t('wams.punishments.delete')}
         </button>
       )}
       <StatusBadge status={rowStatus.status} error={rowStatus.error} />
       {pending && (
-        <div className={styles.confirmBox} role="alertdialog" aria-label="אישור פעולה על עונש שהושלם">
+        <div className={styles.confirmBox} role="alertdialog" aria-label={t('wams.punishments.confirmLabel')}>
           <p>
             {pending.type === 'reassign'
-              ? 'העונש הזה כבר סומן כבוצע. שינוי מי שהעונש מוטל עליו יאפס את סימון הביצוע. לאשר?'
-              : 'העונש הזה כבר סומן כבוצע. למחוק אותו בכל זאת?'}
+              ? t('wams.punishments.confirmReassign')
+              : t('wams.punishments.confirmDelete')}
           </p>
           <div className={styles.confirmActions}>
             <button type="button" className="btn btn-danger btn-sm" onClick={confirmPending}>
-              אישור
+              {t('wams.punishments.confirmYes')}
             </button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPending(null)}>
-              ביטול
+              {t('wams.punishments.confirmNo')}
             </button>
           </div>
         </div>
