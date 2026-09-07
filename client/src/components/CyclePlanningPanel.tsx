@@ -4,6 +4,7 @@ import { useAsyncStatus } from '../hooks/useAsyncStatus';
 import { StatusBadge } from './StatusBadge';
 import { autoResizeTextarea } from '../lib/autoResizeTextarea';
 import styles from './CyclePlanningPanel.module.css';
+import { useTranslation } from '../i18n';
 
 type Planning = Pick<
   Cycle,
@@ -17,15 +18,15 @@ type Planning = Pick<
   | 'notes'
 >;
 
-const fields: { key: keyof Planning; label: string; placeholder: string }[] = [
-  { key: 'vision', label: 'חזון המחזור', placeholder: 'לאן אני רוצה להגיע ב־12 השבועות?' },
-  { key: 'successDefinition', label: 'איך נראית הצלחה', placeholder: 'תוצאה ברורה שאדע לזהות בסוף המחזור' },
-  { key: 'whyItMatters', label: 'למה זה חשוב לי', placeholder: 'הסיבה שתעזור לי להמשיך גם כשקשה' },
-  { key: 'blockers', label: 'מה עלול לעכב אותי', placeholder: 'חסמים צפויים ואיך אתמודד איתם' },
-  { key: 'risks', label: 'סיכונים והנחות', placeholder: 'מה צריך לבדוק או לעקוב אחריו' },
-  { key: 'lagMeasures', label: 'מדדי תוצאה (Lag)', placeholder: 'מדד תוצאה אחד בכל שורה' },
-  { key: 'leadMeasures', label: 'מדדי ביצוע (Lead)', placeholder: 'פעולת ביצוע מדידה אחת בכל שורה' },
-  { key: 'notes', label: 'הערות', placeholder: 'מחשבות, החלטות ותזכורות למחזור' },
+const fields: { key: keyof Planning }[] = [
+  { key: 'vision' },
+  { key: 'successDefinition' },
+  { key: 'whyItMatters' },
+  { key: 'blockers' },
+  { key: 'risks' },
+  { key: 'lagMeasures' },
+  { key: 'leadMeasures' },
+  { key: 'notes' },
 ];
 
 function valuesFrom(cycle: Cycle): Planning {
@@ -43,6 +44,7 @@ export function CyclePlanningPanel({
 }) {
   const [values, setValues] = useState<Planning>(() => valuesFrom(cycle));
   const saveStatus = useAsyncStatus();
+  const { t } = useTranslation();
 
   useEffect(() => setValues(valuesFrom(cycle)), [cycle]);
 
@@ -50,24 +52,24 @@ export function CyclePlanningPanel({
     <section className={`card ${styles.panel}`}>
       <div className={styles.header}>
         <div>
-          <h2 className={styles.title}>תכנון המחזור</h2>
+          <h2 className={styles.title}>{t('dashboard.planning.title')}</h2>
           <p className={styles.subtitle}>
-            המפה שלכם ל־12 השבועות. השדות נשמרים ביציאה מהם.
+            {t('dashboard.planning.subtitle')}
           </p>
         </div>
         {isOwner && <StatusBadge status={saveStatus.status} error={saveStatus.error} />}
       </div>
       <div className={styles.grid}>
-        {fields.map(({ key, label, placeholder }) => (
+        {fields.map(({ key }) => (
           <label key={key} className={`${styles.field} ${key === 'notes' ? styles.wide : ''}`}>
-            <span className={styles.label}>{label}</span>
+            <span className={styles.label}>{t(`dashboard.planning.${key}`)}</span>
             <textarea
               ref={(element) => {
                 if (element) autoResizeTextarea(element);
               }}
               rows={1}
               value={values[key]}
-              placeholder={placeholder}
+              placeholder={t(`dashboard.planning.${key}Placeholder`)}
               readOnly={!isOwner}
               onChange={(event) => {
                 autoResizeTextarea(event.currentTarget);

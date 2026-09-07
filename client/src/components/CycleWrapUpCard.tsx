@@ -1,6 +1,7 @@
 import type { WeekScore } from '../lib/types';
 import { TARGET_SCORE } from '../lib/scoring';
 import styles from './CycleWrapUpCard.module.css';
+import { useTranslation, type Translator } from '../i18n';
 
 /** From which week the wrap-up starts appearing. The last WAM of a cycle is the moment this
  *  is actually read, and that meeting happens during week 11 or 12 — not after the cycle has
@@ -42,12 +43,13 @@ function summarize(weekScores: WeekScore[]): WrapUp | null {
   };
 }
 
-function trendLine(wrap: WrapUp): string | null {
+function trendLine(wrap: WrapUp, t: Translator): string | null {
   if (wrap.firstHalf === null || wrap.secondHalf === null) return null;
+  const params = { first: wrap.firstHalf, second: wrap.secondHalf };
   const delta = wrap.secondHalf - wrap.firstHalf;
-  if (delta >= 5) return `החצי השני היה חזק יותר: ${wrap.firstHalf}% בשישה הראשונים מול ${wrap.secondHalf}% בשישה האחרונים.`;
-  if (delta <= -5) return `ההתחלה הייתה חזקה יותר: ${wrap.firstHalf}% בשישה הראשונים מול ${wrap.secondHalf}% בשישה האחרונים.`;
-  return `הקצב נשמר יציב לאורך המחזור — ${wrap.firstHalf}% בשישה הראשונים מול ${wrap.secondHalf}% בשישה האחרונים.`;
+  if (delta >= 5) return t('dashboard.wrap.trendStronger', params);
+  if (delta <= -5) return t('dashboard.wrap.trendWeaker', params);
+  return t('dashboard.wrap.trendSteady', params);
 }
 
 /**
@@ -55,56 +57,59 @@ function trendLine(wrap: WrapUp): string | null {
  * dashboard already loaded, so it costs no extra request and stores nothing new.
  */
 export function CycleWrapUpCard({ currentWeek, weekScores }: CycleWrapUpCardProps) {
+  const { t } = useTranslation();
   if (currentWeek < WRAP_UP_FROM_WEEK) return null;
   const wrap = summarize(weekScores);
   if (!wrap) return null;
 
-  const trend = trendLine(wrap);
+  const trend = trendLine(wrap, t);
   const finished = currentWeek >= 12;
 
   return (
     <section className={`card ${styles.card}`} aria-labelledby="cycle-wrap-up-title">
       <div className={styles.header}>
         <h2 id="cycle-wrap-up-title" className={styles.title}>
-          {finished ? '🏁 סיכום המחזור' : '🏁 מתקרבים לסיום — הנה איך נראה המחזור'}
+          {finished ? t('dashboard.wrap.titleDone') : t('dashboard.wrap.titleSoon')}
         </h2>
         <p className={styles.subtitle}>
           {finished
-            ? 'זה הזמן לעבור על זה יחד ב‑WAM האחרון, ואז לפתוח מחזור חדש.'
-            : `נותרו ${12 - currentWeek + 1} שבועות. שווה להסתכל על התמונה המלאה כבר עכשיו.`}
+            ? t('dashboard.wrap.subtitleDone')
+            : t('dashboard.wrap.subtitleSoon', { count: 12 - currentWeek + 1 })}
         </p>
       </div>
 
       <dl className={styles.stats}>
         <div className={styles.stat}>
-          <dt className={styles.statLabel}>ממוצע ביצוע</dt>
+          <dt className={styles.statLabel}>{t('dashboard.wrap.average')}</dt>
           <dd className={styles.statValue}>
             {wrap.average}<span className={styles.unit}>%</span>
           </dd>
           <p className={styles.statCaption}>
-            {wrap.average >= TARGET_SCORE ? `מעל היעד של ${TARGET_SCORE}%` : `${TARGET_SCORE - wrap.average}% מתחת ליעד`}
+            {wrap.average >= TARGET_SCORE
+              ? t('dashboard.wrap.aboveTarget', { target: TARGET_SCORE })
+              : t('dashboard.wrap.belowTarget', { gap: TARGET_SCORE - wrap.average })}
           </p>
         </div>
         <div className={styles.stat}>
-          <dt className={styles.statLabel}>שבועות מעל היעד</dt>
+          <dt className={styles.statLabel}>{t('dashboard.wrap.weeksAbove')}</dt>
           <dd className={styles.statValue}>
             {wrap.onTarget}<span className={styles.unit}>/{wrap.scored.length}</span>
           </dd>
-          <p className={styles.statCaption}>שבועות שנמדדו עד כה</p>
+          <p className={styles.statCaption}>{t('dashboard.wrap.weeksMeasured')}</p>
         </div>
         <div className={styles.stat}>
-          <dt className={styles.statLabel}>השבוע הכי חזק</dt>
+          <dt className={styles.statLabel}>{t('dashboard.wrap.bestWeek')}</dt>
           <dd className={styles.statValue}>
             {wrap.best.score}<span className={styles.unit}>%</span>
           </dd>
-          <p className={styles.statCaption}>שבוע {wrap.best.week}</p>
+          <p className={styles.statCaption}>{t('dashboard.wrap.bestWeekCaption', { week: wrap.best.week })}</p>
         </div>
         <div className={styles.stat}>
-          <dt className={styles.statLabel}>טקטיקות שבוצעו</dt>
+          <dt className={styles.statLabel}>{t('dashboard.wrap.tacticsDone')}</dt>
           <dd className={styles.statValue}>
             {wrap.completed}<span className={styles.unit}>/{wrap.scheduled}</span>
           </dd>
-          <p className={styles.statCaption}>מתוך כל מה שתוכנן</p>
+          <p className={styles.statCaption}>{t('dashboard.wrap.tacticsCaption')}</p>
         </div>
       </dl>
 
