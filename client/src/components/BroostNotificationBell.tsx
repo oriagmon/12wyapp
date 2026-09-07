@@ -4,6 +4,7 @@ import { MAX_CUSTOM_MESSAGE_LENGTH, useBroostUnread, type Broost } from '../hook
 import { useAsyncStatus } from '../hooks/useAsyncStatus';
 import { StatusBadge } from './StatusBadge';
 import styles from './BroostNotificationBell.module.css';
+import { useTranslation } from '../i18n';
 
 /**
  * TopBar unread BROOST badge + a small notification popover. Refreshes on mount, on window
@@ -13,6 +14,7 @@ import styles from './BroostNotificationBell.module.css';
  * siblings in App.tsx) — replies stay inline; the full history lives in the BROOST tab.
  */
 export function BroostNotificationBell() {
+  const { t } = useTranslation();
   const { count, recent, loadStatus, loadError, markRead, markAllRead, reply } = useBroostUnread();
   const [open, setOpen] = useState(false);
   const actionStatus = useAsyncStatus();
@@ -104,7 +106,7 @@ export function BroostNotificationBell() {
     if (replyingRef.current || !replyTarget) return;
     const message = replyDraft.trim();
     if (!message || message.length > MAX_CUSTOM_MESSAGE_LENGTH) {
-      setReplyError(`יש לכתוב הודעה באורך 1–${MAX_CUSTOM_MESSAGE_LENGTH} תווים`);
+      setReplyError(t('social.broost.replyLength', { max: MAX_CUSTOM_MESSAGE_LENGTH }));
       return;
     }
     const target = replyTarget;
@@ -116,7 +118,7 @@ export function BroostNotificationBell() {
         await reply(target.id, message);
         setReplyDraft('');
         setReplyTarget(null);
-        setReplySuccess(`התגובה נשלחה ל${target.sender.label}`);
+        setReplySuccess(t('social.broost.replySent', { name: target.sender.label }));
       });
     } finally {
       replyingRef.current = false;
@@ -133,20 +135,20 @@ export function BroostNotificationBell() {
         aria-haspopup="dialog"
         aria-controls={open ? popoverId : undefined}
         aria-expanded={open}
-        aria-label={count > 0 ? `BROOST — ${count} התראות שלא נקראו` : 'BROOST — אין התראות חדשות'}
+        aria-label={count > 0 ? t('social.broost.bellUnread', { count }) : t('social.broost.bellEmpty')}
       >
         💪{count > 0 && <span className={styles.badge}>{count}</span>}
       </button>
       {open && createPortal(
-        <div ref={popoverRef} id={popoverId} className={styles.popover} role="dialog" aria-label="התראות BROOST"
+        <div ref={popoverRef} id={popoverId} className={styles.popover} role="dialog" aria-label={t('social.broost.popoverLabel')}
           style={{ ...position, visibility: position ? undefined : 'hidden' }}>
-          {loadStatus === 'loading' && <p className={styles.emptyText}>טוען...</p>}
+          {loadStatus === 'loading' && <p className={styles.emptyText}>{t('common.loading')}</p>}
           {loadStatus === 'error' && (
             <p className={styles.errorText} role="alert">
-              {loadError ?? 'שגיאה בטעינת התראות BROOST'}
+              {loadError ?? t('social.broost.loadError')}
             </p>
           )}
-          {loadStatus === 'ready' && visibleItems.length === 0 && <p className={styles.emptyText}>אין BROOSTs חדשים</p>}
+          {loadStatus === 'ready' && visibleItems.length === 0 && <p className={styles.emptyText}>{t('social.broost.empty')}</p>}
           {visibleItems.length > 0 && (
             <ul className={styles.list}>
               {visibleItems.map((item) => (
@@ -155,7 +157,7 @@ export function BroostNotificationBell() {
                   <p className={styles.message}>{item.message}</p>
                   <div className={styles.itemActions}>
                     <button type="button" className="btn btn-ghost btn-sm" disabled={busy || replyTarget?.id === item.id} onClick={() => handleMarkRead(item.id)}>
-                      סימון כנקרא
+                      {t('social.broost.markRead')}
                     </button>
                     <button
                       type="button"
@@ -171,7 +173,7 @@ export function BroostNotificationBell() {
                         replyInputRef.current?.focus();
                       }}
                     >
-                      השבה בהודעה
+                      {t('social.broost.reply')}
                     </button>
                   </div>
                   {replyTarget?.id === item.id && (
@@ -184,7 +186,7 @@ export function BroostNotificationBell() {
                         void handleReply();
                       }}
                     >
-                      <label htmlFor={`${popoverId}-reply-text`}>תגובה ל{item.sender.label}</label>
+                      <label htmlFor={`${popoverId}-reply-text`}>{t('social.broost.replyTo', { name: item.sender.label })}</label>
                       <textarea
                         id={`${popoverId}-reply-text`}
                         ref={replyInputRef}
@@ -198,12 +200,12 @@ export function BroostNotificationBell() {
                           setReplyError(null);
                           setReplyAttempted(false);
                         }}
-                        placeholder="כתבו הודעה אישית..."
+                        placeholder={t('social.broost.replyPlaceholder')}
                       />
                       {replyError && <p className={styles.errorText} role="alert">{replyError}</p>}
                       <div className={styles.itemActions}>
                         <button type="submit" className="btn btn-primary btn-sm" disabled={busy || !replyDraft.trim()}>
-                          {replyStatus.status === 'saving' ? 'שולח...' : 'שליחת תגובה'}
+                          {replyStatus.status === 'saving' ? t('social.broost.sending') : t('social.broost.send')}
                         </button>
                         <button
                           type="button"
@@ -217,7 +219,7 @@ export function BroostNotificationBell() {
                             buttonRef.current?.focus();
                           }}
                         >
-                          ביטול
+                          {t('common.action.cancel')}
                         </button>
                       </div>
                     </form>
@@ -228,13 +230,13 @@ export function BroostNotificationBell() {
           )}
           {count > 0 && (
             <button type="button" className="btn btn-ghost btn-sm" disabled={busy || replyTarget !== null} onClick={handleMarkAllRead}>
-              סימון הכל כנקרא
+              {t('social.broost.markAllRead')}
             </button>
           )}
           <StatusBadge status={actionStatus.status} error={actionStatus.error} />
           {replyAttempted && replyStatus.status === 'error' && <p className={styles.errorText} role="alert">{replyStatus.error}</p>}
           {replySuccess && <p className={styles.hint} role="status">{replySuccess}</p>}
-          <p className={styles.hint}>לצפייה בהיסטוריה המלאה יש לעבור לטאב BROOST</p>
+          <p className={styles.hint}>{t('social.broost.historyHint')}</p>
         </div>,
         document.body,
       )}
