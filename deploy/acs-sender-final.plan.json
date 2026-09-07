@@ -10,7 +10,7 @@
   },
   "bindings": {
     "COMM_ID": "Exact parent-allowlisted ARM resource ID ending /Microsoft.Communication/communicationServices/ori-12week-comm; do not guess its resource group.",
-    "EMAIL_ID": "Exact parent-allowlisted ARM resource ID ending /Microsoft.Communication/emailServices/ori-12week-email; do not discover other resources.",
+    "EMAIL_ID": "Exact parent-allowlisted ARM resource ID ending /Microsoft.Communication/emailServices/<your-email-service>; do not discover other resources.",
     "DOMAIN_ID": "Existing child of EMAIL_ID returned by domains-list, with properties.fromSenderDomain exactly equal to intendedDomain.",
     "CURRENT_SENDER_ID": "Existing child of DOMAIN_ID returned by senders-list whose properties.username matches the effective working EMAIL_SENDER_ADDRESS local part.",
     "DESIRED_SENDER_ID": "Existing child of DOMAIN_ID returned by senders-list whose properties.username is exactly 12wyapp.",
