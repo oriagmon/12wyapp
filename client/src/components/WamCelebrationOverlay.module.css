@@ -83,6 +83,8 @@
 .particle {
   position: absolute;
   bottom: -10px;
+  /* Physical `left` on purpose: these are confetti specks spread across the whole overlay,
+     so there is no start or end edge to mirror. */
   left: calc(8% + (var(--i) * 9%));
   width: 7px;
   height: 7px;

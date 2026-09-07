@@ -72,7 +72,7 @@
 }
 
 .searchResultRow {
-  text-align: right;
+  text-align: start;
   background: transparent;
   border: none;
   padding: 6px 4px;

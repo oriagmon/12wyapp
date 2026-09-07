@@ -2,8 +2,10 @@ import type { AreaDict, Dict, Locale } from '../core.js';
 import { LOCALES } from '../core.js';
 import { errors } from './errors.js';
 import { emails } from './emails.js';
+import { wams } from './wams.js';
+import { api } from './api.js';
 
-const AREAS: AreaDict[] = [errors, emails];
+const AREAS: AreaDict[] = [errors, emails, wams, api];
 
 function merge(locale: Locale): Dict {
   const merged: Dict = {};
@@ -22,4 +24,4 @@ export const dictionaries: Record<Locale, Dict> = Object.fromEntries(
   LOCALES.map((locale) => [locale, merge(locale)])
 ) as Record<Locale, Dict>;
 
-export { errors, emails };
+export { errors, emails, wams, api };

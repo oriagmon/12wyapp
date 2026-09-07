@@ -26,11 +26,11 @@
 }
 
 .tacticHeader {
-  text-align: right;
+  text-align: start;
 }
 
 .tacticName {
-  text-align: right;
+  text-align: start;
   display: table-cell;
   vertical-align: middle;
   white-space: normal;

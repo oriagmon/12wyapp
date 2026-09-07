@@ -28,7 +28,7 @@
 .chip {
   position: absolute;
   bottom: -4px;
-  left: -4px;
+  inset-inline-end: -4px;
   min-width: 1.4em;
   padding: 0 0.3em;
   border-radius: 999px;
@@ -51,7 +51,7 @@
 .sm .chip {
   font-size: 0.62rem;
   bottom: -3px;
-  left: -3px;
+  inset-inline-end: -3px;
 }
 
 .md {
@@ -73,5 +73,5 @@
 .lg .chip {
   font-size: var(--text-sm);
   bottom: 0;
-  left: 0;
+  inset-inline-end: 0;
 }

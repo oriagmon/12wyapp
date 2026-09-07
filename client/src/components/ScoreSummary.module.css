@@ -35,7 +35,7 @@
 .remaining {
   color: var(--text-muted);
   font-size: var(--text-sm);
-  text-align: left;
+  text-align: end;
 }
 
 .goldText {

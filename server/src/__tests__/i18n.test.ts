@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { dictionaries, errors, emails } from '../lib/i18n/dict/index.js';
+import { dictionaries, errors, emails, wams, api } from '../lib/i18n/dict/index.js';
 import { LOCALES, negotiateLocale, t, type AreaDict } from '../lib/i18n/index.js';
 
 const AREAS: Array<[string, AreaDict]> = [
   ['errors', errors],
   ['emails', emails],
+  ['wams', wams],
+  ['api', api],
 ];
 
 function placeholders(value: string): string[] {

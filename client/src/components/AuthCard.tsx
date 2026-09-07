@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api, ApiError } from '../lib/api';
 import { useAuthPolicy } from '../hooks/useAuthPolicy';
+import { useTranslation } from '../i18n';
 import styles from './AuthCard.module.css';
 
 type Mode = 'login' | 'register' | 'forgot' | 'reset';
@@ -24,6 +25,7 @@ interface AuthCardProps {
 
 export function AuthCard({ initialMode = 'login', resetToken = null, onResetHandled }: AuthCardProps) {
   const { login, register, logout, error, clearError } = useAuth();
+  const { t } = useTranslation();
   const policy = useAuthPolicy();
   const [requestedMode, setMode] = useState<Mode>(initialMode);
   const mode = requestedMode === 'register' && !policy.registrationOpen ? 'login' : requestedMode;
@@ -83,7 +85,7 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
     } catch (e) {
       // A genuine network/server error (never an "account not found" — the endpoint never
       // reports that) — still safe to surface as-is.
-      setForgotError(e instanceof ApiError ? e.message : 'שגיאה בשליחת הבקשה');
+      setForgotError(e instanceof ApiError ? e.message : t('auth.forgot.failed'));
       setForgotStatus('idle');
     }
   };
@@ -92,7 +94,7 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
     e.preventDefault();
     setResetError(null);
     if (newPassword !== confirmPassword) {
-      setResetError('אימות הסיסמה החדשה אינו תואם');
+      setResetError(t('auth.reset.mismatch'));
       return;
     }
     setResetStatus('submitting');
@@ -107,10 +109,10 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
       // screen reliably appears next, with no stale AuthContext user left behind.
       await logout();
       setMode('login');
-      setLoginNotice('הסיסמה אופסה בהצלחה — ניתן להתחבר כעת עם הסיסמה החדשה.');
+      setLoginNotice(t('auth.reset.done'));
       onResetHandled?.();
     } catch (e) {
-      setResetError(e instanceof ApiError ? e.message : 'שגיאה באיפוס הסיסמה');
+      setResetError(e instanceof ApiError ? e.message : t('auth.reset.failed'));
     } finally {
       setResetStatus('idle');
     }
@@ -120,10 +122,10 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
     <div className={styles.authScreen}>
       <div className={`card ${styles.authCard}`}>
         <h1 className={styles.authTitle}><bdi dir="ltr">12wyapp</bdi></h1>
-        <p className={styles.authSubtitle}>ניהול מחזורי ביצוע, מטרות וטקטיקות שבועיות</p>
+        <p className={styles.authSubtitle}>{t('auth.subtitle')}</p>
 
         {(mode === 'login' || mode === 'register') && (
-          <div className={styles.tabRow} role="tablist" aria-label="בחירת מצב התחברות">
+          <div className={styles.tabRow} role="tablist" aria-label={t('auth.tabs.label')}>
             <button
               type="button"
               role="tab"
@@ -131,7 +133,7 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
               className={styles.tabButton}
               onClick={() => switchMode('login')}
             >
-              התחברות
+              {t('auth.login')}
             </button>
             {policy.registrationOpen && (
               <button
@@ -141,7 +143,7 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
                 className={styles.tabButton}
                 onClick={() => switchMode('register')}
               >
-                הרשמה
+                {t('auth.register')}
               </button>
             )}
           </div>
@@ -149,15 +151,17 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
 
         {(mode === 'login' || mode === 'register') && (
           <>
-            {policy.status === 'loading' && <p role="status">בודק את מדיניות ההרשמה...</p>}
+            {policy.status === 'loading' && <p role="status">{t('auth.policy.checking')}</p>}
             {policy.status === 'error' && (
               <div className={styles.errorBox} role="alert">
-                לא ניתן לבדוק אם ההרשמה פתוחה. אפשר לנסות שוב או לפנות למפעיל/ת המערכת.
-                <button type="button" className={styles.linkButton} onClick={policy.retry}>ניסיון נוסף</button>
+                {t('auth.policy.failed')}
+                <button type="button" className={styles.linkButton} onClick={policy.retry}>
+                  {t('auth.policy.retry')}
+                </button>
               </div>
             )}
             {policy.status === 'ready' && !policy.registrationOpen && (
-              <p role="status">ההרשמה הציבורית סגורה. לקבלת גישה יש לפנות למפעיל/ת המערכת.</p>
+              <p role="status">{t('auth.policy.closed')}</p>
             )}
             {mode === 'login' && loginNotice && (
               <div className={styles.successBox} role="status">
@@ -172,7 +176,7 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
 
             <form onSubmit={handleSubmit} noValidate>
               <div className={styles.field}>
-                <label htmlFor="email">אימייל</label>
+                <label htmlFor="email">{t('auth.email')}</label>
                 <input
                   id="email"
                   name="email"
@@ -184,7 +188,7 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
                 />
               </div>
               <div className={styles.field}>
-                <label htmlFor="password">סיסמה</label>
+                <label htmlFor="password">{t('auth.password')}</label>
                 <input
                   id="password"
                   name="password"
@@ -197,12 +201,12 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
                 />
               </div>
               <button type="submit" className={`btn btn-primary ${styles.submitBtn}`} disabled={submitting}>
-                {submitting ? 'רגע...' : mode === 'login' ? 'התחברות' : 'הרשמה'}
+                {submitting ? t('auth.submitting') : mode === 'login' ? t('auth.login') : t('auth.register')}
               </button>
             </form>
             {mode === 'login' && (
               <button type="button" className={styles.linkButton} onClick={() => switchMode('forgot')}>
-                שכחת סיסמה?
+                {t('auth.forgotLink')}
               </button>
             )}
           </>
@@ -211,7 +215,7 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
         {mode === 'forgot' && (
           <>
             <h2 className={styles.authSubtitle} style={{ margin: '0 0 16px', color: 'var(--text)' }}>
-              איפוס סיסמה
+              {t('auth.forgot.title')}
             </h2>
             {forgotError && (
               <div className={styles.errorBox} role="alert">
@@ -225,7 +229,7 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
             ) : (
               <form onSubmit={handleForgotSubmit} noValidate>
                 <div className={styles.field}>
-                  <label htmlFor="forgot-email">אימייל</label>
+                  <label htmlFor="forgot-email">{t('auth.email')}</label>
                   <input
                     id="forgot-email"
                     name="email"
@@ -241,12 +245,12 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
                   className={`btn btn-primary ${styles.submitBtn}`}
                   disabled={forgotStatus === 'submitting'}
                 >
-                  {forgotStatus === 'submitting' ? 'שולח...' : 'שליחת קישור לאיפוס'}
+                  {forgotStatus === 'submitting' ? t('auth.forgot.sending') : t('auth.forgot.submit')}
                 </button>
               </form>
             )}
             <button type="button" className={styles.linkButton} onClick={() => switchMode('login')}>
-              חזרה להתחברות
+              {t('auth.backToLogin')}
             </button>
           </>
         )}
@@ -254,7 +258,7 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
         {mode === 'reset' && (
           <>
             <h2 className={styles.authSubtitle} style={{ margin: '0 0 16px', color: 'var(--text)' }}>
-              קביעת סיסמה חדשה
+              {t('auth.reset.title')}
             </h2>
             {resetError && (
               <div className={styles.errorBox} role="alert">
@@ -263,7 +267,7 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
             )}
             <form onSubmit={handleResetSubmit} noValidate>
               <div className={styles.field}>
-                <label htmlFor="new-password">סיסמה חדשה</label>
+                <label htmlFor="new-password">{t('auth.reset.newPassword')}</label>
                 <input
                   id="new-password"
                   name="newPassword"
@@ -276,7 +280,7 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
                 />
               </div>
               <div className={styles.field}>
-                <label htmlFor="confirm-password">אימות סיסמה חדשה</label>
+                <label htmlFor="confirm-password">{t('auth.reset.confirmPassword')}</label>
                 <input
                   id="confirm-password"
                   name="confirmPassword"
@@ -292,11 +296,11 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
                 className={`btn btn-primary ${styles.submitBtn}`}
                 disabled={resetStatus === 'submitting'}
               >
-                {resetStatus === 'submitting' ? 'רגע...' : 'איפוס הסיסמה'}
+                {resetStatus === 'submitting' ? t('auth.submitting') : t('auth.reset.submit')}
               </button>
             </form>
             <button type="button" className={styles.linkButton} onClick={() => switchMode('login')}>
-              חזרה להתחברות
+              {t('auth.backToLogin')}
             </button>
           </>
         )}
