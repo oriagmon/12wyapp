@@ -3,14 +3,16 @@ import type { WamDetail } from '../lib/types';
 import { useAsyncStatus } from '../hooks/useAsyncStatus';
 import { StatusBadge } from './StatusBadge';
 import { israelWallTimeToUtcIso, nearestFridayWallTime, utcIsoToIsraelWallTime } from '../lib/israelTime';
+import { useDateFormat } from '../lib/relativeTime';
 import styles from './WamCompletionPanel.module.css';
+import { useTranslation, type Translator } from '../i18n';
 
 const DEFAULT_DURATION_MINUTES = 30;
 
-function invitationStatusLabel(status: 'sent' | 'failed' | null): string {
-  if (status === 'sent') return 'נשלחה הזמנה ✓';
-  if (status === 'failed') return 'שליחת ההזמנה נכשלה';
-  return 'טרם נשלחה הזמנה';
+function invitationStatusLabel(status: 'sent' | 'failed' | null, t: Translator): string {
+  if (status === 'sent') return t('wams.invite.sent');
+  if (status === 'failed') return t('wams.invite.failed');
+  return t('wams.invite.pending');
 }
 
 export function WamCompletionPanel({
@@ -26,6 +28,8 @@ export function WamCompletionPanel({
   onReopen: () => Promise<unknown>;
   readOnly?: boolean;
 }) {
+  const { t } = useTranslation();
+  const { formatAbsolute } = useDateFormat();
   const isDraft = wam.status === 'draft';
   const locked = readOnly || wam.isHistorical;
   const id = useId();
@@ -101,16 +105,16 @@ export function WamCompletionPanel({
     const nextWamAt = nextWamLocal === persistedLocal && wam.nextWam.at
       ? wam.nextWam.at : israelWallTimeToUtcIso(nextWamLocal);
     if (!nextWamAt) {
-      setDateError('מועד לא תקין (שעון ישראל) — ייתכן שמדובר בשעה שאינה קיימת עקב מעבר לשעון קיץ/חורף');
+      setDateError(t('wams.schedule.badDate'));
       return null;
     }
     if (new Date(nextWamAt).getTime() <= Date.now()) {
-      setDateError('מועד הפגישה הבאה חייב להיות בעתיד');
+      setDateError(t('wams.schedule.pastDate'));
       return null;
     }
     const duration = Number(durationMinutes);
     if (!Number.isInteger(duration) || duration < 1 || duration > 24 * 60) {
-      setDateError('משך הפגישה חייב להיות מספר שלם בין 1 ל־1440 דקות');
+      setDateError(t('wams.schedule.badDuration'));
       return null;
     }
     return { nextWamAt, nextWamDurationMinutes: duration };
@@ -122,7 +126,7 @@ export function WamCompletionPanel({
     if (locked || submittingRef.current || reopeningRef.current) return;
     setDateError(null);
     if (!hasChosenDate) {
-      setDateError('יש לבחור מועד לפגישה הבאה כדי לשלוח הזמנות');
+      setDateError(t('wams.schedule.needDate'));
       return;
     }
     const schedule = readSchedule();
@@ -136,7 +140,7 @@ export function WamCompletionPanel({
     if (!hasChosenDate) {
       if (hadExistingSchedule) {
         setDateError(
-          'לא ניתן לבטל תיאום קיים לפגישה הבאה — ניתן לשנות את המועד, אך לא למחוק אותו (אין תמיכה בביטול הזמנות יומן שכבר נשלחו).'
+          t('wams.schedule.cannotCancel')
         );
         return;
       }
@@ -158,46 +162,48 @@ export function WamCompletionPanel({
   return (
     <section className={`card ${styles.wrap}`} aria-labelledby={`${id}-title`} aria-busy={busy}>
       <header className={styles.heading}>
-        <h3 id={`${id}-title`}><span aria-hidden="true">📅 </span>ה-WAM הבא — קובעים יחד?</h3>
-        <span className={styles.optional}>{locked ? 'לצפייה בלבד' : 'תיאום אופציונלי'}</span>
+        <h3 id={`${id}-title`}><span aria-hidden="true">📅 </span>{t('wams.schedule.title')}</h3>
+        <span className={styles.optional}>{locked ? t('wams.schedule.readOnly') : t('wams.schedule.optional')}</span>
       </header>
       {wam.nextWam.at ? (
         <div className={styles.scheduleSummary}>
-          <p className={styles.scheduleSummaryTitle}>ה-WAM הבא נקבע ל:</p>
+          <p className={styles.scheduleSummaryTitle}>{t('wams.schedule.setFor')}</p>
           <p>
-            {new Intl.DateTimeFormat('he-IL', {
-              timeZone: 'Asia/Jerusalem',
-              dateStyle: 'medium',
-              timeStyle: 'short',
-            }).format(new Date(wam.nextWam.at))}{' '}
-            (שעון ישראל), למשך {wam.nextWam.durationMinutes} דקות
+            {t('wams.schedule.when', {
+              when: formatAbsolute(wam.nextWam.at),
+              minutes: wam.nextWam.durationMinutes ?? DEFAULT_DURATION_MINUTES,
+            })}
           </p>
           <ul className={styles.invitationStatusList}>
             <li>
-              <bdi>{wam.partnership.initiatorEmail}</bdi>: {invitationStatusLabel(wam.calendarInvitations.a.status)}
+              <bdi>{wam.partnership.initiatorEmail}</bdi>: {invitationStatusLabel(wam.calendarInvitations.a.status, t)}
             </li>
             <li>
-              <bdi>{wam.partnership.inviteeEmail}</bdi>: {invitationStatusLabel(wam.calendarInvitations.b.status)}
+              <bdi>{wam.partnership.inviteeEmail}</bdi>: {invitationStatusLabel(wam.calendarInvitations.b.status, t)}
             </li>
           </ul>
-          <p className={styles.hint}>מצב השליחה אינו אישור השתתפות או אישור שהאירוע נוסף ליומן.</p>
+          <p className={styles.hint}>{t('wams.schedule.statusHint')}</p>
         </div>
       ) : (
-        <p className={styles.hint}>עדיין לא נקבע מועד לפגישה הבאה.</p>
+        <p className={styles.hint}>{t('wams.schedule.none')}</p>
       )}
 
       {locked ? (
-        <p className={styles.hint}>התיאום ומצב ההזמנות מוצגים כפי שנשמרו. לא ניתן לשנות אותם בתצוגה זו.</p>
+        <p className={styles.hint}>{t('wams.schedule.lockedHint')}</p>
       ) : (
         <>
           <p className={styles.hint} id={`${id}-consent`}>
             {isDraft
-              ? 'אפשר לקבוע עכשיו מועד משותף ולשלוח הזמנות ליומנים של שניכם — בלי להשלים את הפגישה. השלמת הפגישה היא פעולה נפרדת שמקפיאה את הציונים.'
-              : 'אפשר לתאם או לעדכן את הפגישה הבאה בלי לפתוח מחדש את הפגישה שהושלמה. הציונים והתוכן השמורים לא ישתנו.'}
+              ? t('wams.schedule.draftHint')
+              : t('wams.schedule.doneHint')}
           </p>
           <div className={styles.scheduleField}>
             <label className={styles.scheduleLabel}>
-              תיאום ה-WAM הבא ({hadExistingSchedule ? 'ניתן לשנות, לא לבטל' : 'אופציונלי'}, שעון ישראל)
+              {t('wams.schedule.fieldLabel', {
+                changeability: hadExistingSchedule
+                  ? t('wams.schedule.changeable')
+                  : t('wams.schedule.optionalField'),
+              })}
               <input
                 type="datetime-local"
                 disabled={busy}
@@ -208,7 +214,7 @@ export function WamCompletionPanel({
               />
             </label>
             <label className={styles.durationLabel}>
-              משך (בדקות)
+              {t('wams.schedule.duration')}
               <input
                 type="number"
                 disabled={busy || !hasChosenDate}
@@ -224,8 +230,7 @@ export function WamCompletionPanel({
           {dateError && <p id={`${id}-error`} className={styles.dateError} role="alert">{dateError}</p>}
           {previousAttemptFailed && (
             <p className={styles.retryHint}>
-              חלק מההזמנות לא נשלחו. באישור ניסיון נוסף עם אותו מועד ומשך, נשלח רק למי שהשליחה אליו טרם הצליחה.
-              שינוי המועד או המשך ישלח עדכון לשניכם.
+              {t('wams.schedule.retryHint')}
             </p>
           )}
 
@@ -233,28 +238,28 @@ export function WamCompletionPanel({
             <>
               <div className={styles.confirmActions}>
                 <button type="button" className="btn btn-primary" disabled={busy || alreadySent} onClick={submitSchedule}>
-                  {alreadySent ? 'ההזמנות נשלחו — אפשר לעדכן את המועד'
-                    : scheduleUnchanged ? 'ניסיון נוסף לשליחת ההזמנות'
-                      : hadExistingSchedule ? 'עדכון המועד ושליחה ליומנים' : '📅 שלח הזמנה ליומנים'}
+                  {alreadySent ? t('wams.schedule.alreadySent')
+                    : scheduleUnchanged ? t('wams.schedule.retry')
+                      : hadExistingSchedule ? t('wams.schedule.update') : t('wams.schedule.send')}
                 </button>
               </div>
               {!confirmingComplete ? (
                 <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => setConfirmingComplete(true)}>
-                  ✓ סימון הפגישה כהושלמה
+                  {t('wams.complete.cta')}
                 </button>
               ) : (
                 <div className={styles.confirmBox}>
                   <p>
                     {hasChosenDate && !hadExistingSchedule
-                      ? 'השלמת הפגישה תקפיא את ציוני הביצוע הנוכחיים של שני הצדדים. המועד שבחרת לא יישמר ולא יישלחו הזמנות — לשליחתן יש ללחוץ קודם על "שלח הזמנה ליומנים". להמשיך?'
-                      : 'השלמת הפגישה תקפיא את ציוני הביצוע הנוכחיים של שני הצדדים. להמשיך?'}
+                      ? t('wams.complete.confirmWithDate')
+                      : t('wams.complete.confirm')}
                   </p>
                   <div className={styles.confirmActions}>
                     <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={submitComplete}>
-                      אישור השלמת הפגישה
+                      {t('wams.complete.yes')}
                     </button>
                     <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setConfirmingComplete(false)}>
-                      ביטול
+                      {t('wams.complete.no')}
                     </button>
                   </div>
                 </div>
@@ -263,12 +268,12 @@ export function WamCompletionPanel({
           ) : (
             <div className={styles.confirmActions}>
               <button type="button" className="btn btn-primary" disabled={busy || alreadySent} onClick={submitSchedule}>
-                {alreadySent ? 'ההזמנות נשלחו — אפשר לעדכן את המועד'
-                  : scheduleUnchanged ? 'ניסיון נוסף לשליחת ההזמנות'
-                    : hadExistingSchedule ? 'עדכון המועד ושליחה ליומנים' : '📅 שלח הזמנה ליומנים'}
+                {alreadySent ? t('wams.schedule.alreadySent')
+                  : scheduleUnchanged ? t('wams.schedule.retry')
+                    : hadExistingSchedule ? t('wams.schedule.update') : t('wams.schedule.send')}
               </button>
               <button type="button" className="btn btn-ghost" disabled={busy} onClick={runReopen}>
-                ↺ פתיחה מחדש לעריכה
+                {t('wams.complete.reopen')}
               </button>
             </div>
           )}

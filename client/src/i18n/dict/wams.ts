@@ -62,6 +62,78 @@ export const wams: AreaDict = {
     'wams.punishments.confirmYes': 'Confirm',
     'wams.punishments.confirmNo': 'Cancel',
 
+    'wams.invite.sent': 'Invitation sent ✓',
+    'wams.invite.failed': 'Invitation failed to send',
+    'wams.invite.pending': 'No invitation sent yet',
+
+    'wams.schedule.badDate':
+      'Invalid date (Israel time) — that hour may not exist because of the daylight-saving switch',
+    'wams.schedule.pastDate': 'The next meeting has to be in the future',
+    'wams.schedule.badDuration': 'The meeting length must be a whole number between 1 and 1440 minutes',
+    'wams.schedule.needDate': 'Pick a time for the next meeting before sending invitations',
+    'wams.schedule.cannotCancel':
+      "You can't cancel an existing time for the next meeting — you can change it, but not remove it (there's no support for cancelling calendar invitations already sent).",
+
+    'wams.schedule.title': 'The next WAM — shall we set a time?',
+    'wams.schedule.readOnly': 'View only',
+    'wams.schedule.optional': 'Optional',
+    'wams.schedule.setFor': 'The next WAM is set for:',
+    'wams.schedule.when': '{when} (Israel time), for {minutes} minutes',
+    'wams.schedule.statusHint': 'Sending status is not an RSVP, and not confirmation the event landed in a calendar.',
+    'wams.schedule.none': 'No time set for the next meeting yet.',
+    'wams.schedule.lockedHint': 'The time and invitation status are shown as they were saved. They cannot be changed from this view.',
+    'wams.schedule.draftHint':
+      "You can set a shared time now and send invitations to both calendars — without completing the meeting. Completing it is a separate action that freezes the scores.",
+    'wams.schedule.doneHint':
+      "You can set or update the next meeting without reopening the completed one. The saved scores and content stay as they are.",
+    'wams.schedule.fieldLabel': 'Time for the next WAM ({changeability}, Israel time)',
+    'wams.schedule.changeable': 'can be changed, not cancelled',
+    'wams.schedule.optionalField': 'optional',
+    'wams.schedule.duration': 'Length (minutes)',
+    'wams.schedule.retryHint':
+      "Some invitations didn't go out. Retrying with the same time and length only sends to whoever hasn't received one yet. Changing the time or length sends an update to both of you.",
+
+    'wams.schedule.alreadySent': 'Invitations sent — you can still update the time',
+    'wams.schedule.retry': 'Try sending the invitations again',
+    'wams.schedule.update': 'Update the time and send to calendars',
+    'wams.schedule.send': '📅 Send calendar invitations',
+
+    'wams.complete.cta': '✓ Mark the meeting as done',
+    'wams.complete.confirmWithDate':
+      'Completing the meeting freezes both of your current execution scores. The time you picked will not be saved and no invitations will go out — to send them, press "Send calendar invitations" first. Continue?',
+    'wams.complete.confirm':
+      'Completing the meeting freezes both of your current execution scores. Continue?',
+    'wams.complete.yes': 'Yes, complete the meeting',
+    'wams.complete.no': 'Cancel',
+    'wams.complete.reopen': '↺ Reopen for editing',
+
+    'wams.detail.back': '→ Back to the meeting list',
+    'wams.detail.lockedBadge': '🔒 Locked history',
+    'wams.detail.print': '🖨️ Export / print',
+    'wams.detail.subtitle': 'Weekly accountability meeting — week {week} ({a} ↔ {b})',
+
+    'wams.notes.wins': 'Wins',
+    'wams.notes.winsPlaceholder': 'What went well this week?',
+    'wams.notes.misses': 'Misses',
+    'wams.notes.missesPlaceholder': "What didn't happen as planned?",
+    'wams.notes.blockers': 'Blockers for next week',
+    'wams.notes.blockersPlaceholder': 'What could derail next week?',
+    'wams.notes.lessons': 'Lessons',
+    'wams.notes.lessonsPlaceholder': 'What did we learn?',
+    'wams.notes.adjust': 'Should we adjust goals or tactics for next week?',
+    'wams.notes.adjustPlaceholder': 'Notes or questions about changing direction...',
+    'wams.notes.free': 'Anything else',
+    'wams.notes.freePlaceholder': 'Anything else worth writing down...',
+
+    'wams.adjust.title': 'Tuning for week {week} only',
+    'wams.adjust.body':
+      'Agreed that something about the coming week looks different? You can dial a tactic up or down, or add a one-off task — all for week {week} only. The rest of the cycle stays as planned.',
+
+    'wams.ownGoals.title': 'Update my goals and tactics',
+    'wams.ownGoals.body':
+      'You can only edit your own goals and tactics here — never your partner\'s.',
+    'wams.ownGoals.noCycle': 'You have no active cycle yet — go to the "This week" tab to create one.',
+
     'wams.list.complete': 'Completed',
     'wams.list.draft': 'Draft',
     'wams.list.historical': '🔒 History',
@@ -162,6 +234,78 @@ export const wams: AreaDict = {
     'wams.punishments.confirmDelete': 'העונש הזה כבר סומן כבוצע. למחוק אותו בכל זאת?',
     'wams.punishments.confirmYes': 'אישור',
     'wams.punishments.confirmNo': 'ביטול',
+
+    'wams.invite.sent': 'נשלחה הזמנה ✓',
+    'wams.invite.failed': 'שליחת ההזמנה נכשלה',
+    'wams.invite.pending': 'טרם נשלחה הזמנה',
+
+    'wams.schedule.badDate':
+      'מועד לא תקין (שעון ישראל) — ייתכן שמדובר בשעה שאינה קיימת עקב מעבר לשעון קיץ/חורף',
+    'wams.schedule.pastDate': 'מועד הפגישה הבאה חייב להיות בעתיד',
+    'wams.schedule.badDuration': 'משך הפגישה חייב להיות מספר שלם בין 1 ל־1440 דקות',
+    'wams.schedule.needDate': 'יש לבחור מועד לפגישה הבאה כדי לשלוח הזמנות',
+    'wams.schedule.cannotCancel':
+      'לא ניתן לבטל תיאום קיים לפגישה הבאה — ניתן לשנות את המועד, אך לא למחוק אותו (אין תמיכה בביטול הזמנות יומן שכבר נשלחו).',
+
+    'wams.schedule.title': 'ה-WAM הבא — קובעים יחד?',
+    'wams.schedule.readOnly': 'לצפייה בלבד',
+    'wams.schedule.optional': 'תיאום אופציונלי',
+    'wams.schedule.setFor': 'ה-WAM הבא נקבע ל:',
+    'wams.schedule.when': '{when} (שעון ישראל), למשך {minutes} דקות',
+    'wams.schedule.statusHint': 'מצב השליחה אינו אישור השתתפות או אישור שהאירוע נוסף ליומן.',
+    'wams.schedule.none': 'עדיין לא נקבע מועד לפגישה הבאה.',
+    'wams.schedule.lockedHint': 'התיאום ומצב ההזמנות מוצגים כפי שנשמרו. לא ניתן לשנות אותם בתצוגה זו.',
+    'wams.schedule.draftHint':
+      'אפשר לקבוע עכשיו מועד משותף ולשלוח הזמנות ליומנים של שניכם — בלי להשלים את הפגישה. השלמת הפגישה היא פעולה נפרדת שמקפיאה את הציונים.',
+    'wams.schedule.doneHint':
+      'אפשר לתאם או לעדכן את הפגישה הבאה בלי לפתוח מחדש את הפגישה שהושלמה. הציונים והתוכן השמורים לא ישתנו.',
+    'wams.schedule.fieldLabel': 'תיאום ה-WAM הבא ({changeability}, שעון ישראל)',
+    'wams.schedule.changeable': 'ניתן לשנות, לא לבטל',
+    'wams.schedule.optionalField': 'אופציונלי',
+    'wams.schedule.duration': 'משך (בדקות)',
+    'wams.schedule.retryHint':
+      'חלק מההזמנות לא נשלחו. באישור ניסיון נוסף עם אותו מועד ומשך, נשלח רק למי שהשליחה אליו טרם הצליחה. שינוי המועד או המשך ישלח עדכון לשניכם.',
+
+    'wams.schedule.alreadySent': 'ההזמנות נשלחו — אפשר לעדכן את המועד',
+    'wams.schedule.retry': 'ניסיון נוסף לשליחת ההזמנות',
+    'wams.schedule.update': 'עדכון המועד ושליחה ליומנים',
+    'wams.schedule.send': '📅 שלח הזמנה ליומנים',
+
+    'wams.complete.cta': '✓ סימון הפגישה כהושלמה',
+    'wams.complete.confirmWithDate':
+      'השלמת הפגישה תקפיא את ציוני הביצוע הנוכחיים של שני הצדדים. המועד שבחרת לא יישמר ולא יישלחו הזמנות — לשליחתן יש ללחוץ קודם על "שלח הזמנה ליומנים". להמשיך?',
+    'wams.complete.confirm':
+      'השלמת הפגישה תקפיא את ציוני הביצוע הנוכחיים של שני הצדדים. להמשיך?',
+    'wams.complete.yes': 'אישור השלמת הפגישה',
+    'wams.complete.no': 'ביטול',
+    'wams.complete.reopen': '↺ פתיחה מחדש לעריכה',
+
+    'wams.detail.back': '→ חזרה לרשימת הפגישות',
+    'wams.detail.lockedBadge': '🔒 היסטוריה נעולה',
+    'wams.detail.print': '🖨️ ייצוא / הדפסה',
+    'wams.detail.subtitle': 'פגישת אחריותיות שבועית — שבוע {week} ({a} ↔ {b})',
+
+    'wams.notes.wins': 'ניצחונות / הישגים',
+    'wams.notes.winsPlaceholder': 'מה עבד טוב השבוע?',
+    'wams.notes.misses': 'החמצות',
+    'wams.notes.missesPlaceholder': 'מה לא בוצע כמתוכנן?',
+    'wams.notes.blockers': 'חסמים / מגבלות לשבוע הבא',
+    'wams.notes.blockersPlaceholder': 'מה עלול להכשיל את השבוע הבא?',
+    'wams.notes.lessons': 'לקחים',
+    'wams.notes.lessonsPlaceholder': 'מה למדנו?',
+    'wams.notes.adjust': 'האם כדאי להתאים מטרות/טקטיקות לשבוע הבא?',
+    'wams.notes.adjustPlaceholder': 'הערות/שאלות לגבי שינוי כיוון...',
+    'wams.notes.free': 'הערות חופשיות',
+    'wams.notes.freePlaceholder': 'כל דבר נוסף...',
+
+    'wams.adjust.title': 'כוונון לשבוע {week} בלבד',
+    'wams.adjust.body':
+      'סיכמתם שמשהו בשבוע הקרוב נראה אחרת? אפשר להעלות או להוריד את העומס של טקטיקה, או להוסיף משימה חד־פעמית — הכול לשבוע {week} בלבד. התוכנית לשאר המחזור לא משתנה.',
+
+    'wams.ownGoals.title': 'עדכון המטרות והטקטיקות שלי',
+    'wams.ownGoals.body':
+      'ניתן לערוך כאן ישירות רק את המטרות והטקטיקות שלך — לעולם לא את אלו של השותף/ה.',
+    'wams.ownGoals.noCycle': 'אין לך עדיין מחזור פעיל — עברו ללשונית "לוח השבוע" כדי ליצור אחד.',
 
     'wams.list.complete': 'הושלמה',
     'wams.list.draft': 'טיוטה',

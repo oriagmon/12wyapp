@@ -13,6 +13,7 @@ import { DuoStreakCard } from './DuoStreakCard';
 import { GoalsPanel } from './GoalsPanel';
 import type { useDashboard } from '../hooks/useDashboard';
 import styles from './WamDetailView.module.css';
+import { useTranslation } from '../i18n';
 
 type OwnDashboard = ReturnType<typeof useDashboard>;
 
@@ -57,6 +58,7 @@ export function WamDetailView({
   onToggleDuePunishment: (id: number, done: boolean) => Promise<unknown>;
   ownDash: OwnDashboard;
 }) {
+  const { t } = useTranslation();
   const myScope: 'a' | 'b' = wam.partnership.initiatorId === myUserId ? 'a' : 'b';
   const isDraft = wam.status === 'draft';
   const locked = wam.isHistorical;
@@ -108,21 +110,25 @@ export function WamDetailView({
     <div className={styles.wrap} ref={wrapperRef}>
       <div className={styles.topBar}>
         <button type="button" className="btn btn-ghost btn-sm" data-wam-return-focus onClick={onBack}>
-          → חזרה לרשימת הפגישות
+          {t('wams.detail.back')}
         </button>
         <div className={styles.topBarRight}>
           <span className={`${styles.statusBadge} ${isDraft ? styles.draft : styles.complete}`}>
-            {isDraft ? 'טיוטה' : 'הושלמה'}
+            {isDraft ? t('wams.list.draft') : t('wams.list.complete')}
           </span>
-          {locked && <span className={`${styles.statusBadge} ${styles.historical}`}>🔒 היסטוריה נעולה</span>}
+          {locked && <span className={`${styles.statusBadge} ${styles.historical}`}>{t('wams.detail.lockedBadge')}</span>}
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => window.print()}>
-            🖨️ ייצוא / הדפסה
+            {t('wams.detail.print')}
           </button>
         </div>
       </div>
 
       <div className={styles.printTitle}>
-        פגישת אחריותיות שבועית — שבוע {wam.week} ({wam.partnership.initiatorEmail} ↔ {wam.partnership.inviteeEmail})
+        {t('wams.detail.subtitle', {
+          week: wam.week,
+          a: wam.partnership.initiatorEmail,
+          b: wam.partnership.inviteeEmail,
+        })}
       </div>
 
       <DuoStreakCard duoStreak={wam.duoStreak} />
@@ -140,45 +146,45 @@ export function WamDetailView({
 
       <div className={`card ${styles.contentGrid}`}>
         <AutoSaveTextarea
-          label="ניצחונות / הישגים"
+          label={t('wams.notes.wins')}
           value={wam.wins}
           disabled={!editable}
-          placeholder="מה עבד טוב השבוע?"
+          placeholder={t('wams.notes.winsPlaceholder')}
           onSave={(v) => onUpdateContent({ wins: v })}
         />
         <AutoSaveTextarea
-          label="החמצות"
+          label={t('wams.notes.misses')}
           value={wam.misses}
           disabled={!editable}
-          placeholder="מה לא בוצע כמתוכנן?"
+          placeholder={t('wams.notes.missesPlaceholder')}
           onSave={(v) => onUpdateContent({ misses: v })}
         />
         <AutoSaveTextarea
-          label="חסמים / מגבלות לשבוע הבא"
+          label={t('wams.notes.blockers')}
           value={wam.blockers}
           disabled={!editable}
-          placeholder="מה עלול להכשיל את השבוע הבא?"
+          placeholder={t('wams.notes.blockersPlaceholder')}
           onSave={(v) => onUpdateContent({ blockers: v })}
         />
         <AutoSaveTextarea
-          label="לקחים"
+          label={t('wams.notes.lessons')}
           value={wam.lessonsLearned}
           disabled={!editable}
-          placeholder="מה למדנו?"
+          placeholder={t('wams.notes.lessonsPlaceholder')}
           onSave={(v) => onUpdateContent({ lessonsLearned: v })}
         />
         <AutoSaveTextarea
-          label="האם כדאי להתאים מטרות/טקטיקות לשבוע הבא?"
+          label={t('wams.notes.adjust')}
           value={wam.adjustmentNotes}
           disabled={!editable}
-          placeholder="הערות/שאלות לגבי שינוי כיוון..."
+          placeholder={t('wams.notes.adjustPlaceholder')}
           onSave={(v) => onUpdateContent({ adjustmentNotes: v })}
         />
         <AutoSaveTextarea
-          label="הערות חופשיות"
+          label={t('wams.notes.free')}
           value={wam.notes}
           disabled={!editable}
-          placeholder="כל דבר נוסף..."
+          placeholder={t('wams.notes.freePlaceholder')}
           onSave={(v) => onUpdateContent({ notes: v })}
         />
       </div>
@@ -212,10 +218,9 @@ export function WamDetailView({
           this section only ever writes the upcoming week. Deeper edits stay in the panel below. */}
       {ownDash.loadStatus === 'ready' && ownDash.bundle?.cycle?.isActive && nextWeek !== null && (
         <div className={`card ${styles.ownGoalsSection}`}>
-          <h3 className={styles.ownGoalsTitle}>כוונון לשבוע {nextWeek} בלבד</h3>
+          <h3 className={styles.ownGoalsTitle}>{t('wams.adjust.title', { week: nextWeek })}</h3>
           <p className={styles.ownGoalsHint}>
-            סיכמתם שמשהו בשבוע הקרוב נראה אחרת? אפשר להעלות או להוריד את העומס של טקטיקה,
-            או להוסיף משימה חד־פעמית — הכול לשבוע {nextWeek} בלבד. התוכנית לשאר המחזור לא משתנה.
+            {t('wams.adjust.body', { week: nextWeek })}
           </p>
           <NextWeekTacticAdjuster
             targetWeek={nextWeek}
@@ -232,9 +237,9 @@ export function WamDetailView({
       )}
 
       <div className={`card ${styles.ownGoalsSection}`}>
-        <h3 className={styles.ownGoalsTitle}>עדכון המטרות והטקטיקות שלי</h3>
+        <h3 className={styles.ownGoalsTitle}>{t('wams.ownGoals.title')}</h3>
         <p className={styles.ownGoalsHint}>
-          ניתן לערוך כאן ישירות רק את המטרות והטקטיקות שלך — לעולם לא את אלו של השותף/ה.
+          {t('wams.ownGoals.body')}
         </p>
         {ownDash.loadStatus === 'ready' && ownDash.bundle?.cycle ? (
           <GoalsPanel
@@ -249,7 +254,7 @@ export function WamDetailView({
             onDeleteTactic={(tacticId) => ownDash.deleteTactic(tacticId)}
           />
         ) : (
-          <p className={styles.ownGoalsHint}>אין לך עדיין מחזור פעיל — עברו ללשונית "לוח השבוע" כדי ליצור אחד.</p>
+          <p className={styles.ownGoalsHint}>{t('wams.ownGoals.noCycle')}</p>
         )}
       </div>
 
