@@ -12,6 +12,7 @@ import type {
   RecoveryLoadStatus,
 } from '../hooks/useExecutionRecovery';
 import styles from './ExecutionRecoveryCard.module.css';
+import { useTranslation } from '../i18n';
 
 interface ExecutionRecoveryCardProps {
   isOwner: boolean;
@@ -29,27 +30,32 @@ interface ExecutionRecoveryCardProps {
 
 type Mode = 'summary' | 'choose' | 'reduce' | 'maneuver';
 
-const STRATEGY_LABEL_HE: Record<ExecutionRecoveryPlan['strategy'], string> = {
-  reduce_next_week: 'צמצום השבוע הבא',
-  maneuver: 'מהלך חילוץ לשבוע הנוכחי',
+const STRATEGY_KEY: Record<ExecutionRecoveryPlan['strategy'], string> = {
+  reduce_next_week: 'week.recovery.strategyReduce',
+  maneuver: 'week.recovery.strategyManeuver',
 };
 
 function RiskExplanation({ risk }: { risk: ExecutionRiskAssessment }) {
+  const { t } = useTranslation();
   return (
     <ul className={styles.numbers}>
       <li>
         {risk.dueScheduled === 0
-          ? 'עדיין לא הגיע מועד לאף פעולה מתוכננת השבוע.'
-          : `השלמת הפעולות שהיו אמורות להתבצע עד היום: ${risk.dueCompleted} מתוך ${risk.dueScheduled} (${risk.dueCompletionRate}%).`}
+          ? t('week.recovery.noneDue')
+          : t('week.recovery.dueProgress', {
+              done: risk.dueCompleted,
+              due: risk.dueScheduled,
+              rate: risk.dueCompletionRate ?? '—',
+            })}
       </li>
       <li>
         {risk.remainingScheduled === 0
-          ? `כל הפעולות המתוכננות השבוע כבר עברו את מועדן — הציון הסופי האפשרי לשבוע הוא ${
-              risk.maximumAchievableScore ?? '—'
-            }%.`
-          : `גם אם יושלמו כל ${risk.remainingScheduled} הפעולות שנותרו השבוע, הציון המרבי האפשרי הוא ${
-              risk.maximumAchievableScore ?? '—'
-            }% מתוך ${risk.totalScheduled} פעולות מתוכננות בסך הכול.`}
+          ? t('week.recovery.allPastDue', { max: risk.maximumAchievableScore ?? '—' })
+          : t('week.recovery.remaining', {
+              remaining: risk.remainingScheduled,
+              max: risk.maximumAchievableScore ?? '—',
+              total: risk.totalScheduled,
+            })}
       </li>
     </ul>
   );
@@ -64,6 +70,7 @@ function ManeuverEditor({
   onSubmit: (note: string) => Promise<unknown>;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   const [note, setNote] = useState(initialNote);
   const status = useAsyncStatus();
   const canSubmit = note.trim().length > 0;
@@ -77,7 +84,7 @@ function ManeuverEditor({
   return (
     <div className={styles.editor}>
       <label className={styles.editorLabel} htmlFor="maneuver-note">
-        ההתחייבות הקונקרטית שלי להצלת השבוע
+        {t('week.recovery.maneuverLabel')}
       </label>
       <textarea
         id="maneuver-note"
@@ -87,7 +94,7 @@ function ManeuverEditor({
         className={styles.textarea}
         rows={2}
         value={note}
-        placeholder="לדוגמה: אבצע היום ומחר את שתי הפעולות שפספסתי מוקדם בבוקר, לפני שאר היום"
+        placeholder={t('week.recovery.maneuverPlaceholder')}
         onChange={(e) => {
           autoResizeTextarea(e.currentTarget);
           setNote(e.target.value);
@@ -95,10 +102,10 @@ function ManeuverEditor({
       />
       <div className={styles.actions}>
         <button type="button" className="btn btn-primary btn-sm" disabled={!canSubmit} onClick={submit}>
-          שמירת מהלך החילוץ
+          {t('week.recovery.saveManeuver')}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>
-          ביטול
+          {t('common.action.cancel')}
         </button>
         <StatusBadge status={status.status} error={status.error} />
       </div>
@@ -117,13 +124,14 @@ function ReduceNextWeekEditor({
   onSubmit: (input: ReduceNextWeekInput) => Promise<unknown>;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   const targetWeek = currentWeek + 1;
   const effectiveNextWeekTactics = useMemo(
     () =>
       goals
         .flatMap((g) => g.tactics)
-        .filter((t) => targetWeek >= t.startWeek && targetWeek <= t.endWeek)
-        .map((t) => ({ tactic: t, effective: effectiveTacticForWeek(t, targetWeek) })),
+        .filter((tactic) => targetWeek >= tactic.startWeek && targetWeek <= tactic.endWeek)
+        .map((tactic) => ({ tactic, effective: effectiveTacticForWeek(tactic, targetWeek) })),
     [goals, targetWeek]
   );
 
@@ -154,9 +162,9 @@ function ReduceNextWeekEditor({
   if (effectiveNextWeekTactics.length === 0) {
     return (
       <div className={styles.editor}>
-        <p className={styles.text}>אין טקטיקות מתוכננות לשבוע {targetWeek} כרגע, אין מה לצמצם.</p>
+        <p className={styles.text}>{t('week.recovery.nothingToReduce', { week: targetWeek })}</p>
         <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>
-          חזרה
+          {t('week.recovery.back')}
         </button>
       </div>
     );
@@ -165,8 +173,7 @@ function ReduceNextWeekEditor({
   return (
     <div className={styles.editor}>
       <p className={styles.text}>
-        בחרו את הימים הפעילים לכל טקטיקה בשבוע {targetWeek} (השבוע הבא). ניתן להסיר טקטיקה כליל לשבוע זה בלבד —
-        השבוע הנוכחי, שבועות קודמים והגדרת הטקטיקה הבסיסית לא ישתנו.
+        {t('week.recovery.reduceHint', { week: targetWeek })}
       </p>
       {effectiveNextWeekTactics.map(({ tactic, effective }) => (
         <div key={tactic.id} className={styles.tacticRow}>
@@ -175,7 +182,7 @@ function ReduceNextWeekEditor({
         </div>
       ))}
       <label className={styles.editorLabel} htmlFor="reduce-note">
-        הערה (רשות)
+        {t('week.recovery.noteOptional')}
       </label>
       <textarea
         id="reduce-note"
@@ -191,17 +198,17 @@ function ReduceNextWeekEditor({
         }}
       />
       {!decreased && (
-        <p className={styles.validationText}>יש להפחית את סך הפעולות המתוכננות לשבוע הבא לעומת המצב הנוכחי ({totalBefore}).</p>
+        <p className={styles.validationText}>{t('week.recovery.mustDecrease', { total: totalBefore })}</p>
       )}
       {decreased && !atLeastOneRemains && (
-        <p className={styles.validationText}>חייבת להישאר לפחות פעולה מתוכננת אחת לשבוע הבא.</p>
+        <p className={styles.validationText}>{t('week.recovery.mustKeepOne')}</p>
       )}
       <div className={styles.actions}>
         <button type="button" className="btn btn-primary btn-sm" disabled={!canSubmit} onClick={submit}>
-          שמירת הצמצום ({totalBefore} ← {totalAfter})
+          {t('week.recovery.saveReduction', { before: totalBefore, after: totalAfter })}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>
-          ביטול
+          {t('common.action.cancel')}
         </button>
         <StatusBadge status={status.status} error={status.error} />
       </div>
@@ -236,6 +243,7 @@ export function ExecutionRecoveryCard({
   onResolve,
   onReopen,
 }: ExecutionRecoveryCardProps) {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>('summary');
   const resolveStatus = useAsyncStatus();
   const reopenStatus = useAsyncStatus();
@@ -245,7 +253,7 @@ export function ExecutionRecoveryCard({
   const errorBanner =
     loadStatus === 'error' ? (
       <p className={styles.loadErrorText} role="alert">
-        שגיאה בטעינת נתוני קצב הביצוע{loadError ? ` — ${loadError}` : ''}
+        {t('week.recovery.loadError')}{loadError ? ` — ${loadError}` : ''}
       </p>
     ) : null;
 
@@ -264,11 +272,11 @@ export function ExecutionRecoveryCard({
     return (
       <section className={`card ${styles.card}`} role="status">
         {errorBanner}
-        <h3 className={styles.title}>⚠ תוכנית חילוץ — שבוע {plan.week}</h3>
-        <p className={styles.text}>אסטרטגיה: {STRATEGY_LABEL_HE[plan.strategy]}</p>
+        <h3 className={styles.title}>{t('week.recovery.planTitleWeek', { week: plan.week })}</h3>
+        <p className={styles.text}>{t('week.recovery.strategyLine', { strategy: t(STRATEGY_KEY[plan.strategy]) })}</p>
         {plan.note && <p className={styles.summary}>{plan.note}</p>}
         <p className={plan.status === 'resolved' ? styles.completeText : styles.pendingText}>
-          {plan.status === 'resolved' ? '✓ טופל' : 'בטיפול'}
+          {plan.status === 'resolved' ? t('week.recovery.resolved') : t('week.recovery.pending')}
         </p>
       </section>
     );
@@ -281,22 +289,22 @@ export function ExecutionRecoveryCard({
   if (!hasPlan) {
     // risk.triggered, no plan yet — explain + offer the two CTAs (or the chosen editor inline).
     return (
-      <section className={`card ${styles.card}`} aria-label="התראת קצב ביצוע">
+      <section className={`card ${styles.card}`} aria-label={t('week.recovery.alertLabel')}>
         {errorBanner}
-        <h3 className={styles.title}>⚠ קצב הביצוע השבוע דורש תשומת לב</h3>
+        <h3 className={styles.title}>{t('week.recovery.alertTitle')}</h3>
         <RiskExplanation risk={risk} />
         {mode === 'summary' && (
           <div className={styles.ctaRow}>
             <button type="button" className="btn btn-primary btn-sm" onClick={() => setMode('reduce')} disabled={currentWeek >= 12}>
-              צמצום המחויבות לשבוע הבא
+              {t('week.recovery.ctaReduce')}
             </button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMode('maneuver')}>
-              יצירת מהלך חילוץ לשבוע הנוכחי
+              {t('week.recovery.ctaManeuver')}
             </button>
           </div>
         )}
         {currentWeek >= 12 && mode === 'summary' && (
-          <p className={styles.text}>המחזור בשבוע 12 — אין שבוע הבא לצמצם; ניתן רק ליצור מהלך חילוץ.</p>
+          <p className={styles.text}>{t('week.recovery.week12')}</p>
         )}
         {mode === 'reduce' && (
           <ReduceNextWeekEditor goals={goals} currentWeek={currentWeek} onSubmit={onReduceNextWeek} onCancel={() => setMode('summary')} />
@@ -321,12 +329,17 @@ export function ExecutionRecoveryCard({
   return (
     <section className={`card ${styles.card}`}>
       {errorBanner}
-      <h3 className={styles.title}>{plan.status === 'resolved' ? '✓ תוכנית חילוץ טופלה' : '⚠ תוכנית חילוץ פעילה'}</h3>
-      <p className={styles.text}>אסטרטגיה: {STRATEGY_LABEL_HE[plan.strategy]}</p>
+      <h3 className={styles.title}>
+        {plan.status === 'resolved' ? t('week.recovery.planResolvedTitle') : t('week.recovery.planActiveTitle')}
+      </h3>
+      <p className={styles.text}>{t('week.recovery.strategyLine', { strategy: t(STRATEGY_KEY[plan.strategy]) })}</p>
       {plan.strategy === 'reduce_next_week' && plan.adjustment && (
         <p className={styles.summary}>
-          צומצמו {plan.adjustment.before.reduce((s, b) => s + b.weekdays.length, 0)} פעולות מתוכננות לשבוע{' '}
-          {plan.adjustment.targetWeek} ל-{plan.adjustment.after.reduce((s, a) => s + a.weekdays.length, 0)}.
+          {t('week.recovery.reducedSummary', {
+            before: plan.adjustment.before.reduce((sum, b) => sum + b.weekdays.length, 0),
+            week: plan.adjustment.targetWeek,
+            after: plan.adjustment.after.reduce((sum, a) => sum + a.weekdays.length, 0),
+          })}
         </p>
       )}
       {plan.note && !activeManeuver && <p className={styles.summary}>{plan.note}</p>}
@@ -336,10 +349,10 @@ export function ExecutionRecoveryCard({
           <p className={styles.summary}>{plan.note}</p>
           <div className={styles.ctaRow}>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMode('maneuver')}>
-              עריכת המהלך
+              {t('week.recovery.editManeuver')}
             </button>
             <button type="button" className="btn btn-primary btn-sm" onClick={() => resolveStatus.run(onResolve)}>
-              סימון כטופל
+              {t('week.recovery.markResolved')}
             </button>
             <StatusBadge status={resolveStatus.status} error={resolveStatus.error} />
           </div>
@@ -352,7 +365,7 @@ export function ExecutionRecoveryCard({
       {activeReductionNeedingResolve && (
         <div className={styles.ctaRow}>
           <button type="button" className="btn btn-primary btn-sm" onClick={() => resolveStatus.run(onResolve)}>
-            סימון כטופל
+            {t('week.recovery.markResolved')}
           </button>
           <StatusBadge status={resolveStatus.status} error={resolveStatus.error} />
         </div>
@@ -364,7 +377,7 @@ export function ExecutionRecoveryCard({
       {isManeuver && plan.status === 'resolved' && (
         <div className={styles.ctaRow}>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => reopenStatus.run(onReopen)}>
-            פתיחה מחדש
+            {t('week.recovery.reopen')}
           </button>
           <StatusBadge status={reopenStatus.status} error={reopenStatus.error} />
         </div>
