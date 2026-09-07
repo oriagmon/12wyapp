@@ -3,14 +3,16 @@ import { useWeekEvidence, downloadWeekEvidenceFile, fetchWeekEvidenceFile, type 
 import { useAsyncStatus } from '../hooks/useAsyncStatus';
 import { StatusBadge } from './StatusBadge';
 import { FilePicker } from './FilePicker';
-import { WEEKDAY_LABELS_HE } from '../lib/scoring';
+
 import styles from './WeekEvidenceAlbum.module.css';
+import { useWeekdayLabels } from '../i18n/useWeekdayLabels';
 
 export function WeekEvidenceCard({ item, onSave, onRemove }: {
   item: WeekEvidenceItem;
   onSave?: (input: { note: string; link: string }) => Promise<void>;
   onRemove?: (fileOnly?: boolean) => Promise<void>;
 }) {
+  const weekdayLabels = useWeekdayLabels();
   const [editing, setEditing] = useState(false);
   const [note, setNote] = useState(item.note ?? '');
   const [link, setLink] = useState(item.link ?? '');
@@ -26,7 +28,7 @@ export function WeekEvidenceCard({ item, onSave, onRemove }: {
     };
   }, []);
   const label = item.scope === 'week' ? 'צרופה לשבוע' :
-    `עדות קודמת · ${item.tacticTitle ?? 'טקטיקה'}${item.weekday === null ? '' : ` · ${WEEKDAY_LABELS_HE[item.weekday]}`}`;
+    `עדות קודמת · ${item.tacticTitle ?? 'טקטיקה'}${item.weekday === null ? '' : ` · ${weekdayLabels.short[item.weekday]}`}`;
   const showPreview = () => status.run(async () => {
     const blob = await fetchWeekEvidenceFile(item);
     if (!alive.current) return;

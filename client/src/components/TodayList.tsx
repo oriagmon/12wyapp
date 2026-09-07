@@ -1,8 +1,9 @@
 import type { Goal } from '../lib/types';
-import { effectiveTacticForWeek, WEEKDAY_LABELS_HE, todayWeekday } from '../lib/scoring';
+import { effectiveTacticForWeek, todayWeekday } from '../lib/scoring';
 import { GOAL_COLOR_HEX } from '../lib/colors';
 import { useCompletionFeedback } from '../hooks/useCompletionFeedback';
 import styles from './TodayList.module.css';
+import { useWeekdayLabels } from '../i18n/useWeekdayLabels';
 
 export function TodayList({
   goals,
@@ -15,6 +16,7 @@ export function TodayList({
   isOwner: boolean;
   onToggle: (tacticId: number, weekday: number, done: boolean) => void | Promise<unknown>;
 }) {
+  const weekdayLabels = useWeekdayLabels();
   const today = todayWeekday();
   const feedback = useCompletionFeedback(`${currentWeek}:${isOwner}:${goals.map((goal) => goal.id).join(',')}`);
   const items = goals.flatMap((g) =>
@@ -62,7 +64,7 @@ export function TodayList({
                   </strong>
                 </div>
                 <div className={styles.days} aria-label={`ימי ביצוע עבור ${item.title}`}>
-                  {WEEKDAY_LABELS_HE.map((label, weekday) => {
+                  {weekdayLabels.short.map((label, weekday) => {
                     const scheduled = currentWeek >= item.startWeek && currentWeek <= item.endWeek && item.weekdays.includes(weekday);
                     const completion = item.completions.find(
                       (c) => c.week === currentWeek && c.weekday === weekday

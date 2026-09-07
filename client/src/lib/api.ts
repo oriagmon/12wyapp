@@ -1,3 +1,6 @@
+import { LOCALE_TAGS } from '../i18n/locales';
+import { getActiveLocale } from '../i18n/activeLocale';
+
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -18,6 +21,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     // fall back to the caller's raw, un-merged headers.
     headers: {
       'Content-Type': 'application/json',
+      // Lets the server localise its error messages to whatever the UI is currently showing,
+      // so a validation failure never comes back in the wrong language.
+      'Accept-Language': LOCALE_TAGS[getActiveLocale()],
       ...(options.headers ?? {}),
     },
   });

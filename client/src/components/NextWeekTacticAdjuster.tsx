@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { WeekdayPicker } from './WeekdayPicker';
 import { useAsyncStatus } from '../hooks/useAsyncStatus';
 import { StatusBadge } from './StatusBadge';
-import { WEEKDAY_LABELS_HE } from '../lib/scoring';
+
 import styles from './NextWeekTacticAdjuster.module.css';
+import { useWeekdayLabels } from '../i18n/useWeekdayLabels';
 
 export interface NextWeekTactic {
   id: number;
@@ -31,8 +32,8 @@ export interface NextWeekTacticAdjusterProps {
   onAddNextWeekTactic: (values: { goalId: number; title: string; weekdays: number[] }) => Promise<unknown>;
 }
 
-function daysLabel(weekdays: number[]): string {
-  return weekdays.map((day) => WEEKDAY_LABELS_HE[day]).join(' · ');
+function daysLabel(weekdays: number[], shortLabels: string[]): string {
+  return weekdays.map((day) => shortLabels[day]).join(' · ');
 }
 
 /**
@@ -44,6 +45,7 @@ function daysLabel(weekdays: number[]): string {
 export function NextWeekTacticAdjuster({
   targetWeek, tactics, goals, editable, onAdapt, onResetAdaptation, onAddNextWeekTactic,
 }: NextWeekTacticAdjusterProps) {
+  const weekdayLabels = useWeekdayLabels();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
 
@@ -73,7 +75,7 @@ export function NextWeekTacticAdjuster({
                 <>
                   <span className={styles.goal}>{tactic.goalTitle}</span>
                   <span className={styles.title}>{tactic.title}</span>
-                  <span className={styles.days}>{daysLabel(tactic.weekdays)}</span>
+                  <span className={styles.days}>{daysLabel(tactic.weekdays, weekdayLabels.short)}</span>
                   <span className={styles.tags}>
                     {tactic.nextWeekOnly && (
                       <span className={styles.tagOnce}>לשבוע {targetWeek} בלבד</span>
@@ -129,6 +131,7 @@ function AdaptForm({
   onReset: () => Promise<void>;
   onCancel: () => void;
 }) {
+  const weekdayLabels = useWeekdayLabels();
   const [title, setTitle] = useState(tactic.title);
   const [weekdays, setWeekdays] = useState<number[]>(tactic.weekdays);
   const status = useAsyncStatus();
@@ -167,7 +170,7 @@ function AdaptForm({
             disabled={resetStatus.status === 'saving'}
             onClick={() => resetStatus.run(onReset)}
           >
-            חזרה למקורי ({daysLabel(tactic.baseWeekdays)})
+            חזרה למקורי ({daysLabel(tactic.baseWeekdays, weekdayLabels.short)})
           </button>
         )}
         <StatusBadge status={status.status} error={status.error} />

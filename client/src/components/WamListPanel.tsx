@@ -4,7 +4,7 @@ import { useAsyncStatus } from '../hooks/useAsyncStatus';
 import { StatusBadge } from './StatusBadge';
 import { DuoStreakCard } from './DuoStreakCard';
 import { TimeAgo } from './TimeAgo';
-import { formatAbsolute } from '../lib/relativeTime';
+import { useDateFormat } from '../lib/relativeTime';
 import styles from './WamListPanel.module.css';
 
 /** Starting a new cycle restarts the week numbering, so an archive can legitimately hold
@@ -39,6 +39,7 @@ export function WamListPanel({
   selectedWeek?: number;
   onWeekChange?: (week: number) => void;
 }) {
+  const { formatAbsolute } = useDateFormat();
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<WamSummary[] | null>(null);
   const searchStatus = useAsyncStatus();

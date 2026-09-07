@@ -1,5 +1,6 @@
-import { WEEKDAY_LABELS_HE } from '../lib/scoring';
+
 import styles from './WeekdayPicker.module.css';
+import { useWeekdayLabels } from '../i18n/useWeekdayLabels';
 
 export function WeekdayPicker({
   value,
@@ -10,6 +11,7 @@ export function WeekdayPicker({
   onChange: (next: number[]) => void;
   disabled?: boolean;
 }) {
+  const weekdayLabels = useWeekdayLabels();
   const toggle = (day: number) => {
     if (disabled) return;
     if (value.includes(day)) {
@@ -21,7 +23,7 @@ export function WeekdayPicker({
 
   return (
     <div className={styles.row} role="group" aria-label="ימי השבוע">
-      {WEEKDAY_LABELS_HE.map((label, day) => {
+      {weekdayLabels.short.map((label, day) => {
         const active = value.includes(day);
         return (
           <button

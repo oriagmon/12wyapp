@@ -1,9 +1,10 @@
 import type { Goal } from '../lib/types';
-import { effectiveTacticForWeek, WEEKDAY_LABELS_HE, WEEKDAY_LABELS_FULL_HE } from '../lib/scoring';
+import { effectiveTacticForWeek } from '../lib/scoring';
 import { israelWeekday } from '../lib/israelTime';
 import { GOAL_COLOR_HEX } from '../lib/colors';
 import { useCompletionFeedback } from '../hooks/useCompletionFeedback';
 import styles from './WeeklyGrid.module.css';
+import { useWeekdayLabels } from '../i18n/useWeekdayLabels';
 
 function isScheduled(tactic: { weekdays: number[]; startWeek: number; endWeek: number }, week: number, weekday: number): boolean {
   return week >= tactic.startWeek && week <= tactic.endWeek && tactic.weekdays.includes(weekday);
@@ -24,6 +25,7 @@ export function WeeklyGrid({
   isOwner: boolean;
   onToggle: (tacticId: number, weekday: number, done: boolean) => void | Promise<unknown>;
 }) {
+  const weekdayLabels = useWeekdayLabels();
   const today = currentWeek === week ? israelWeekday() : null;
   const feedback = useCompletionFeedback(`${week}:${isOwner}:${goals.map((goal) => goal.id).join(',')}`);
   const allTactics = goals.flatMap((g) =>
@@ -50,7 +52,7 @@ export function WeeklyGrid({
         <thead>
           <tr>
             <th className={styles.tacticHeader}>טקטיקה</th>
-            {WEEKDAY_LABELS_HE.map((label, weekday) => (
+            {weekdayLabels.short.map((label, weekday) => (
               <th key={label} scope="col" className={weekday === today ? styles.todayColumn : undefined}>
                 {label}
                 {weekday === today && <span className={styles.todayBadge}>היום</span>}
@@ -73,7 +75,7 @@ export function WeeklyGrid({
                   <span className={styles.goalName}> · {tactic.goalTitle}</span>
                 </span>
               </th>
-              {WEEKDAY_LABELS_HE.map((_, weekday) => {
+              {weekdayLabels.short.map((_, weekday) => {
                 const scheduled = isScheduled(tactic, week, weekday);
                 const completion = tactic.completions.find((c) => c.week === week && c.weekday === weekday);
                 const done = Boolean(completion?.done);
@@ -95,7 +97,7 @@ export function WeeklyGrid({
                         disabled={!isOwner || feedback.pending.has(key)}
                         aria-busy={feedback.pending.has(key) || undefined}
                         aria-pressed={done}
-                        aria-label={`${tactic.title} — ${WEEKDAY_LABELS_HE[weekday]}, ${done ? 'בוצע' : 'לביצוע'}`}
+                        aria-label={`${tactic.title} — ${weekdayLabels.short[weekday]}, ${done ? 'בוצע' : 'לביצוע'}`}
                         onClick={() => void feedback.run(key, !done, () => onToggle(tactic.id, weekday, !done))}
                       >
                         {done ? '✓' : ''}
@@ -123,7 +125,7 @@ export function WeeklyGrid({
         {today !== null && (
           <span className={styles.legendItem}>
             <span className={`${styles.legendSwatch} ${styles.legendToday}`} aria-hidden="true" />
-            היום — יום {WEEKDAY_LABELS_FULL_HE[today]}
+            היום — יום {weekdayLabels.full[today]}
           </span>
         )}
       </p>

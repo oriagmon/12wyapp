@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="he" dir="rtl" data-theme="dark">
+<html lang="en" dir="ltr" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.svg" />
@@ -13,6 +13,29 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="12wyapp" />
     <title>12wyapp</title>
+    <script>
+      // Applies the saved language before first paint. Without this, a Hebrew user would
+      // see the page laid out left-to-right for a frame before React flips it back.
+      (function () {
+        try {
+          var stored = localStorage.getItem('12wy.locale');
+          var locale =
+            stored === 'he' || stored === 'en'
+              ? stored
+              : (navigator.languages || [navigator.language] || [])
+                  .map(function (tag) {
+                    return String(tag || '').toLowerCase().split('-')[0];
+                  })
+                  .filter(function (base) {
+                    return base === 'he' || base === 'en';
+                  })[0] || 'en';
+          document.documentElement.lang = locale === 'he' ? 'he-IL' : 'en';
+          document.documentElement.dir = locale === 'he' ? 'rtl' : 'ltr';
+        } catch (err) {
+          /* Blocked storage just means we keep the English default. */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

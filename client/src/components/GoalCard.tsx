@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import type { Goal, Tactic } from '../lib/types';
 import { GOAL_COLOR_HEX } from '../lib/colors';
-import { WEEKDAY_LABELS_HE } from '../lib/scoring';
+
 import { TacticForm, type TacticFormValues } from './TacticForm';
 import { useAsyncStatus } from '../hooks/useAsyncStatus';
 import { StatusBadge } from './StatusBadge';
 import styles from './GoalCard.module.css';
+import { useWeekdayLabels } from '../i18n/useWeekdayLabels';
 
 function TacticRow({
   tactic,
@@ -20,6 +21,7 @@ function TacticRow({
   onUpdate: (values: TacticFormValues) => Promise<unknown>;
   onDelete: () => Promise<unknown>;
 }) {
+  const weekdayLabels = useWeekdayLabels();
   const [editing, setEditing] = useState(false);
   // Deleting a tactic also drops every completion and piece of evidence recorded against it,
   // so it gets the same two-step confirmation a goal already had instead of firing on the
@@ -47,13 +49,13 @@ function TacticRow({
       <div className={styles.tacticInfo}>
         <span className={styles.tacticTitle}>{tactic.title}</span>
         <span className={styles.tacticMeta}>
-          {tactic.weekdays.map((d) => WEEKDAY_LABELS_HE[d]).join(', ')} · שבועות {tactic.startWeek}–
+          {tactic.weekdays.map((d) => weekdayLabels.short[d]).join(', ')} · שבועות {tactic.startWeek}–
           {tactic.endWeek}
         </span>
         {nextWeekOverride && (
           <span className={styles.adaptation}>
             שבוע {nextWeekOverride.week}: {nextWeekOverride.title} ·{' '}
-            {nextWeekOverride.weekdays.map((day) => WEEKDAY_LABELS_HE[day]).join(', ')}
+            {nextWeekOverride.weekdays.map((day) => weekdayLabels.short[day]).join(', ')}
           </span>
         )}
       </div>

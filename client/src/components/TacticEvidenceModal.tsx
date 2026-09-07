@@ -4,8 +4,9 @@ import { useAsyncStatus } from '../hooks/useAsyncStatus';
 import { StatusBadge } from './StatusBadge';
 import { FilePicker } from './FilePicker';
 import { autoResizeTextarea } from '../lib/autoResizeTextarea';
-import { WEEKDAY_LABELS_HE } from '../lib/scoring';
+
 import styles from './TacticEvidenceModal.module.css';
+import { useWeekdayLabels } from '../i18n/useWeekdayLabels';
 
 const MAX_NOTE_LENGTH = 2000;
 
@@ -18,10 +19,11 @@ function formatBytes(bytes: number | null): string {
 }
 
 function LegacyEvidence({ evidence }: { evidence: TacticEvidence }) {
+  const weekdayLabels = useWeekdayLabels();
   const status = useAsyncStatus();
   return (
     <li className={styles.legacyItem}>
-      <h4 className={styles.legacyTitle}>עדות קודמת · {WEEKDAY_LABELS_HE[evidence.weekday!]}</h4>
+      <h4 className={styles.legacyTitle}>עדות קודמת · {weekdayLabels.short[evidence.weekday!]}</h4>
       {evidence.note && <p className={styles.readOnlyField}>{evidence.note}</p>}
       {evidence.link && (
         <a href={evidence.link} target="_blank" rel="noreferrer noopener" className={styles.link}>{evidence.link}</a>
@@ -33,7 +35,7 @@ function LegacyEvidence({ evidence }: { evidence: TacticEvidence }) {
             type="button"
             className="btn btn-ghost btn-sm"
             disabled={status.status === 'saving'}
-            aria-label={`הורדת קובץ קודם · ${WEEKDAY_LABELS_HE[evidence.weekday!]}`}
+            aria-label={`הורדת קובץ קודם · ${weekdayLabels.short[evidence.weekday!]}`}
             onClick={() => status.run(() => downloadTacticEvidenceFile(evidence.tacticId, evidence.week, evidence.weekday, evidence.fileOriginalName))}
           >
             הורדה

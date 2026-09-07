@@ -6,9 +6,12 @@ import { AuthCard } from './components/AuthCard';
 import { TopBar } from './components/TopBar';
 import { DashboardPage } from './pages/DashboardPage';
 import { readAndClearResetTokenFromUrl } from './lib/resetToken';
+import { LocaleProvider, useTranslation, type Locale } from './i18n';
+import { persistLocalePreference } from './lib/localePreference';
 
 function AppContent() {
   const { user, loading } = useAuth();
+  const { t } = useTranslation();
   const [resetToken, setResetToken] = useState<string | null>(null);
 
   // Runs once, on mount, regardless of auth state — this is deliberately *not* gated behind
@@ -29,7 +32,7 @@ function AppContent() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        טוען...
+        {t('common.loading')}
       </div>
     );
   }
@@ -48,12 +51,14 @@ function AppContent() {
 
 export function App() {
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <MotionProvider>
-          <AppContent />
-        </MotionProvider>
-      </ThemeProvider>
-    </AuthProvider>
+    <LocaleProvider onLocaleChange={persistLocalePreference}>
+      <AuthProvider>
+        <ThemeProvider>
+          <MotionProvider>
+            <AppContent />
+          </MotionProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </LocaleProvider>
   );
 }

@@ -4,6 +4,7 @@ import { useGlobalSaveStatus } from '../hooks/useGlobalSaveStatus';
 import { StatusBadge } from './StatusBadge';
 import { Avatar } from './Avatar';
 import { BroostNotificationBell } from './BroostNotificationBell';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import styles from './TopBar.module.css';
 
 export function TopBar() {
@@ -34,6 +35,7 @@ export function TopBar() {
       </div>
       <div className={styles.brand}><bdi dir="ltr">12wyapp</bdi></div>
       <div className={`${styles.side} ${styles.right}`}>
+        <LanguageSwitcher />
         <button
           type="button"
           className="btn btn-ghost btn-sm"

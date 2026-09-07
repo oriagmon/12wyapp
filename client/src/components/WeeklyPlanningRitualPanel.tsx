@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Cycle, Goal, WeekScore } from '../lib/types';
-import { effectiveTacticForWeek, formatScore, WEEKDAY_LABELS_HE } from '../lib/scoring';
+import { effectiveTacticForWeek, formatScore } from '../lib/scoring';
 import { autoResizeTextarea } from '../lib/autoResizeTextarea';
 import { useAsyncStatus } from '../hooks/useAsyncStatus';
 import { StatusBadge } from './StatusBadge';
 import type { RitualLoadStatus, WeeklyPlanningDraftPatch, WeeklyPlanningRitual } from '../hooks/useWeeklyPlanningRitual';
 import styles from './WeeklyPlanningRitualPanel.module.css';
+import { useWeekdayLabels } from '../i18n/useWeekdayLabels';
 
 interface WeeklyPlanningRitualPanelProps {
   cycle: Cycle;
@@ -40,6 +41,7 @@ export function WeeklyPlanningRitualPanel({
   onReopen,
   onNavigateToTactics,
 }: WeeklyPlanningRitualPanelProps) {
+  const weekdayLabels = useWeekdayLabels();
   const currentWeek = cycle.currentWeek;
   const targetWeek = currentWeek + 1;
   const cycleFinished = currentWeek >= 12;
@@ -174,7 +176,7 @@ export function WeeklyPlanningRitualPanel({
               <li key={tactic.id} className={styles.tacticItem}>
                 <span className={styles.tacticGoal}>{tactic.goalTitle}</span>
                 <span className={styles.tacticTitle}>{tactic.title}</span>
-                <span className={styles.tacticDays}>{tactic.weekdays.map((day) => WEEKDAY_LABELS_HE[day]).join(' · ')}</span>
+                <span className={styles.tacticDays}>{tactic.weekdays.map((day) => weekdayLabels.short[day]).join(' · ')}</span>
               </li>
             ))}
           </ul>

@@ -1,0 +1,39 @@
+.switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.option {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+  /* Each label is written in its own script, so keep every option upright and readable
+     regardless of the direction the surrounding page is currently running in. */
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.option:hover {
+  color: var(--text);
+}
+
+.option.active {
+  background: var(--accent);
+  color: var(--accent-contrast, #05201a);
+}
+
+.option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

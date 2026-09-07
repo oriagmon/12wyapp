@@ -16,17 +16,6 @@ export function formatScore(score: number | null): string {
   return score === null ? '—' : `${score}%`;
 }
 
-export const WEEKDAY_LABELS_HE = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
-export const WEEKDAY_LABELS_FULL_HE = [
-  'ראשון',
-  'שני',
-  'שלישי',
-  'רביעי',
-  'חמישי',
-  'שישי',
-  'שבת',
-];
-
 /** JS Date#getDay() already returns 0=Sunday..6=Saturday, matching our schema's weekday convention. */
 export function todayWeekday(): number {
   return new Date().getDay();
