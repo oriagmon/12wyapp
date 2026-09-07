@@ -9,6 +9,7 @@ import { publishSuccess } from '../lib/celebrations';
 import type { PartnerInfo } from '../lib/types';
 import { personLabel } from '../lib/people';
 import styles from './BroostPage.module.css';
+import { useTranslation, type Translator } from '../i18n';
 
 // Colour only. These cards used to carry a title as well ("ריספקט 🫡" above the message "יש
 // ביצועים ויש את זה. ריספקט 🫡"), which was just the message's own ending printed twice. The
@@ -34,25 +35,27 @@ function initialsFrom(label: string): string {
   return label.slice(0, 2).toUpperCase();
 }
 
-const EMAIL_STATUS_LABEL: Partial<Record<Broost['emailStatus'], string>> = {
-  sent: 'האימייל נשלח ✓',
-  failed: 'שליחת האימייל נכשלה סופית (ה-BROOST עצמו נשמר בהצלחה)',
-  pending: 'האימייל בדרך...',
-  sending: 'האימייל בדרך...',
-  cancelled: 'שליחת האימייל בוטלה (ה-BROOST עצמו נשמר בהצלחה)',
+const EMAIL_STATUS_KEY: Partial<Record<Broost['emailStatus'], string>> = {
+  sent: 'social.broostPage.emailSent',
+  failed: 'social.broostPage.emailFailed',
+  pending: 'social.broostPage.emailPending',
+  sending: 'social.broostPage.emailPending',
+  cancelled: 'social.broostPage.emailCancelled',
 };
 
 /** Returns the status line for a "sent" item, distinguishing a retryable failure (still
  *  scheduled for an automatic retry) from a truly terminal one — never exposes the raw
  *  provider error or internal retry timestamp, only this derived, safe wording. */
-function emailStatusLabel(item: Broost): string | undefined {
+function emailStatusLabel(item: Broost, t: Translator): string | undefined {
   if (item.emailStatus === 'failed' && item.emailWillRetry) {
-    return 'שליחת האימייל נכשלה, ינסה שוב אוטומטית (ה-BROOST עצמו נשמר בהצלחה)';
+    return t('social.broostPage.emailRetrying');
   }
-  return EMAIL_STATUS_LABEL[item.emailStatus];
+  const key = EMAIL_STATUS_KEY[item.emailStatus];
+  return key ? t(key) : undefined;
 }
 
 function BroostHistoryItem({ item, onMarkRead }: { item: Broost; onMarkRead: (id: number) => Promise<unknown> }) {
+  const { t } = useTranslation();
   const readStatus = useAsyncStatus();
   const other = item.direction === 'sent' ? item.recipient : item.sender;
   const isUnreadReceived = item.direction === 'received' && !item.isRead;
@@ -64,14 +67,17 @@ function BroostHistoryItem({ item, onMarkRead }: { item: Broost; onMarkRead: (id
       </span>
       <div className={styles.itemBody}>
         <p className={styles.itemMeta}>
-          {item.direction === 'sent' ? `נשלח ל${other.label}` : `התקבל מ${other.label}`} · <TimeAgo iso={item.createdAt} />
+          {item.direction === 'sent'
+            ? t('social.broostPage.sentTo', { name: other.label })
+            : t('social.broostPage.receivedFrom', { name: other.label })}{' '}
+          · <TimeAgo iso={item.createdAt} />
         </p>
         <p className={styles.itemMessage}>{item.message}</p>
-        {item.direction === 'sent' && <p className={styles.itemStatus}>{emailStatusLabel(item)}</p>}
+        {item.direction === 'sent' && <p className={styles.itemStatus}>{emailStatusLabel(item, t)}</p>}
       </div>
       {isUnreadReceived && (
         <button type="button" className="btn btn-ghost btn-sm" disabled={readStatus.status === 'saving'} onClick={() => readStatus.run(() => onMarkRead(item.id))}>
-          סימון כנקרא
+          {t('social.broost.markRead')}
         </button>
       )}
       <StatusBadge status={readStatus.status} error={readStatus.error} />
@@ -84,6 +90,7 @@ function BroostHistoryItem({ item, onMarkRead }: { item: Broost; onMarkRead: (id
  *  (the "no partner" empty state is handled by DashboardPage, mirroring the WAM tab's own
  *  pattern) — reachable with no active cycle at all. */
 export function BroostPage({ partner }: { partner: PartnerInfo }) {
+  const { t, dir } = useTranslation();
   const composerId = useId();
   const { user } = useAuth();
   const accountId = user?.id ?? null;
@@ -140,22 +147,24 @@ export function BroostPage({ partner }: { partner: PartnerInfo }) {
   };
 
   return (
-    <div className={styles.page} dir="rtl">
+    <div className={styles.page} dir={dir}>
       <section className={`card ${styles.composer}`} aria-labelledby={composerId}>
         <header className={styles.composerHeader}>
           <div>
-            <span className={styles.eyebrow}>בלי נאומים</span>
-            <h2 id={composerId} className={styles.title}>איזה <bdi>BROOST</bdi> שולחים?</h2>
+            <span className={styles.eyebrow}>{t('social.broostPage.eyebrow')}</span>
+            <h2 id={composerId} className={styles.title}>
+              {t('social.broostPage.titlePrefix')}<bdi>BROOST</bdi>{t('social.broostPage.titleSuffix')}
+            </h2>
           </div>
           <p className={styles.recipient}>
-            <span className={styles.recipientLabel}>אל</span>
+            <span className={styles.recipientLabel}>{t('social.broostPage.to')}</span>
             <bdi dir="auto" className={styles.recipientAddress}>{personLabel(partner)}</bdi>
           </p>
         </header>
-        <p className={styles.subtitle}>בוחרים משפט, והוא נשלח כלשונו — גם במייל.</p>
+        <p className={styles.subtitle}>{t('social.broostPage.subtitle')}</p>
 
         {presetsStatus === 'ready' && (
-          <div className={styles.presetGrid} role="group" aria-label="הודעות מוכנות">
+          <div className={styles.presetGrid} role="group" aria-label={t('social.broostPage.presetsLabel')}>
             {presets.map((preset) => {
               const selected = !usingCustom && selectedPreset === preset.key;
               return (
@@ -177,8 +186,8 @@ export function BroostPage({ partner }: { partner: PartnerInfo }) {
             })}
           </div>
         )}
-        {presetsStatus === 'loading' && <p className={styles.text} role="status">טוען את המשפטים…</p>}
-        {presetsStatus === 'error' && <p className={styles.errorText} role="alert">המשפטים לא נטענו. אפשר לכתוב משהו משלך.</p>}
+        {presetsStatus === 'loading' && <p className={styles.text} role="status">{t('social.broostPage.presetsLoading')}</p>}
+        {presetsStatus === 'error' && <p className={styles.errorText} role="alert">{t('social.broostPage.presetsError')}</p>}
 
         <label className={styles.customToggle}>
           <input
@@ -189,7 +198,7 @@ export function BroostPage({ partner }: { partner: PartnerInfo }) {
               if (e.target.checked) setSelectedPreset(null);
             }}
           />
-          <span>במילים שלי</span>
+          <span>{t('social.broostPage.ownWords')}</span>
         </label>
         {usingCustom && (
           <div className={styles.customEditor}>
@@ -201,16 +210,16 @@ export function BroostPage({ partner }: { partner: PartnerInfo }) {
               rows={2}
               maxLength={MAX_CUSTOM_MESSAGE_LENGTH}
               value={customMessage}
-              placeholder="המשפט שרק הצד השני יבין…"
+              placeholder={t('social.broostPage.customPlaceholder')}
               onChange={(e) => {
                 autoResizeTextarea(e.currentTarget);
                 setCustomMessage(e.target.value);
               }}
-              aria-label="הודעה אישית"
+              aria-label={t('social.broostPage.customLabel')}
               aria-describedby={`${composerId}-count`}
             />
             <span className={styles.characterCount} id={`${composerId}-count`}>
-              {customMessage.length} מתוך {MAX_CUSTOM_MESSAGE_LENGTH} תווים
+              {t('social.broostPage.charCount', { used: customMessage.length, max: MAX_CUSTOM_MESSAGE_LENGTH })}
             </span>
           </div>
         )}
@@ -219,17 +228,17 @@ export function BroostPage({ partner }: { partner: PartnerInfo }) {
           <button type="button" className="btn btn-primary btn-sm"
             disabled={!canSubmit || sendStatus.status === 'saving'}
             aria-describedby={canSubmit ? undefined : `${composerId}-blocked`} onClick={submit}>
-            שליחת BROOST
+            {t('social.broostPage.send')}
           </button>
           {!canSubmit && (
             <span id={`${composerId}-blocked`} className={styles.blockedHint}>
-              {usingCustom ? 'כתבו משהו קודם' : 'בחרו משפט כדי לשלוח'}
+              {usingCustom ? t('social.broostPage.blockedCustom') : t('social.broostPage.blockedPreset')}
             </span>
           )}
           <StatusBadge status={sendStatus.status} error={sendStatus.error} />
           {justSent && (
             <span className={styles.sentAnimation} role="status">
-              נשלח 🫡
+              {t('social.broostPage.justSent')}
             </span>
           )}
         </div>
@@ -237,24 +246,24 @@ export function BroostPage({ partner }: { partner: PartnerInfo }) {
 
       <section className={`card ${styles.historyCard}`}>
         <div className={styles.historyHeader}>
-          <h3 className={styles.historyTitle}>מה נשלח ומה התקבל</h3>
+          <h3 className={styles.historyTitle}>{t('social.broostPage.historyTitle')}</h3>
           <button
             type="button"
             className="btn btn-ghost btn-sm"
             disabled={markAllStatus.status === 'saving'}
             onClick={() => markAllStatus.run(() => history.markAllRead())}
           >
-            סימון הכל כנקרא
+            {t('social.broost.markAllRead')}
           </button>
         </div>
         <StatusBadge status={markAllStatus.status} error={markAllStatus.error} />
-        {history.loadStatus === 'loading' && <p className={styles.text}>טוען...</p>}
+        {history.loadStatus === 'loading' && <p className={styles.text}>{t('common.loading')}</p>}
         {history.loadStatus === 'error' && (
           <p className={styles.errorText} role="alert">
             {history.loadError}
           </p>
         )}
-        {history.loadStatus === 'ready' && history.items.length === 0 && <p className={styles.text}>עדיין לא נשלח BROOST. הראשון תמיד הכי שווה.</p>}
+        {history.loadStatus === 'ready' && history.items.length === 0 && <p className={styles.text}>{t('social.broostPage.historyEmpty')}</p>}
         {history.items.length > 0 && (
           <ul className={styles.list}>
             {history.items.map((item) => (
@@ -264,7 +273,7 @@ export function BroostPage({ partner }: { partner: PartnerInfo }) {
         )}
         {history.hasMore && (
           <button type="button" className="btn btn-ghost btn-sm" onClick={history.loadMore}>
-            טעינת עוד
+            {t('social.broostPage.loadMore')}
           </button>
         )}
       </section>

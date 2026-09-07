@@ -7,6 +7,8 @@ import { StatusBadge } from '../components/StatusBadge';
 import { ExecutionHeatmap } from '../components/ExecutionHeatmap';
 import { autoResizeTextarea } from '../lib/autoResizeTextarea';
 import styles from './ProfilePage.module.css';
+import { useTranslation } from '../i18n';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
 const MAX_DISPLAY_NAME = 80;
 const MAX_BIO = 500;
@@ -17,6 +19,7 @@ const ALLOWED_AVATAR_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
  *  current/new/confirm password change form. Owner-only by construction — the whole
  *  /api/profile API is self-scoped from the session, so this page never takes a userId. */
 export function ProfilePage() {
+  const { t } = useTranslation();
   const profileState = useProfile();
   const { profile, loadStatus, loadError } = profileState;
 
@@ -43,12 +46,12 @@ export function ProfilePage() {
   const [passwordFormError, setPasswordFormError] = useState<string | null>(null);
 
   if (loadStatus === 'loading') {
-    return <div className="card" style={{ padding: 24 }}>טוען פרופיל...</div>;
+    return <div className="card" style={{ padding: 24 }}>{t('common.profile.loading')}</div>;
   }
   if (loadStatus === 'error' || !profile) {
     return (
       <div className="card" style={{ padding: 24, color: 'var(--danger)' }}>
-        {loadError ?? 'שגיאה בטעינת הפרופיל'}
+        {loadError ?? t('common.profile.loadError')}
       </div>
     );
   }
@@ -57,11 +60,11 @@ export function ProfilePage() {
     setAvatarError(null);
     if (!file) return;
     if (!ALLOWED_AVATAR_TYPES.has(file.type)) {
-      setAvatarError('ניתן להעלות תמונת PNG, JPEG או WebP בלבד');
+      setAvatarError(t('common.profile.avatarType'));
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      setAvatarError('התמונה גדולה מדי — הגודל המרבי הוא 2MB');
+      setAvatarError(t('common.profile.avatarTooLarge'));
       return;
     }
     avatarStatus.run(() => profileState.uploadAvatar(file));
@@ -70,7 +73,7 @@ export function ProfilePage() {
   function submitPasswordChange() {
     setPasswordFormError(null);
     if (newPassword !== confirmPassword) {
-      setPasswordFormError('אימות הסיסמה החדשה אינו תואם');
+      setPasswordFormError(t('common.profile.passwordMismatch'));
       return;
     }
     passwordStatus.run(async () => {
@@ -84,7 +87,7 @@ export function ProfilePage() {
   return (
     <div className={styles.page}>
       <section className={`card ${styles.section}`}>
-        <h2 className={styles.title}>הפרופיל שלי</h2>
+        <h2 className={styles.title}>{t('common.profile.title')}</h2>
         <div className={styles.avatarRow}>
           <Avatar
             userId={profile.id}
@@ -106,11 +109,11 @@ export function ProfilePage() {
                 handleFileChosen(file);
                 e.target.value = '';
               }}
-              aria-label="בחירת תמונת פרופיל"
+              aria-label={t('common.profile.pickAvatarLabel')}
             />
             <div className={styles.avatarButtons}>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => fileInputRef.current?.click()}>
-                בחירת תמונה
+                {t('common.profile.pickAvatar')}
               </button>
               {profile.hasAvatar && (
                 <button
@@ -118,15 +121,14 @@ export function ProfilePage() {
                   className="btn btn-ghost btn-sm"
                   onClick={() => avatarStatus.run(() => profileState.removeAvatar())}
                 >
-                  הסרת תמונה
+                  {t('common.profile.removeAvatar')}
                 </button>
               )}
               <StatusBadge status={avatarStatus.status} error={avatarStatus.error} />
             </div>
             {avatarError && <p className={styles.fieldError} role="alert">{avatarError}</p>}
             <p className={styles.streakExplainer}>
-              התג המספרי ליד תמונת הפרופיל מציג את רצף ההצלחות האישי שלך — מספר השבועות הרצופים
-              שבהם עמדת ביעד של 85% ומעלה.
+              {t('common.profile.streakExplainer')}
             </p>
           </div>
         </div>
@@ -135,19 +137,19 @@ export function ProfilePage() {
       <ExecutionHeatmap userId={profile.id} />
 
       <section className={`card ${styles.section}`}>
-        <h3 className={styles.subtitle}>פרטים אישיים</h3>
+        <h3 className={styles.subtitle}>{t('common.profile.details')}</h3>
         <label className={styles.field}>
-          <span className={styles.label}>שם תצוגה</span>
+          <span className={styles.label}>{t('common.profile.displayName')}</span>
           <input
             type="text"
             value={displayName}
             maxLength={MAX_DISPLAY_NAME}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="השם שיוצג עבורך באפליקציה"
+            placeholder={t('common.profile.displayNamePlaceholder')}
           />
         </label>
         <label className={styles.field}>
-          <span className={styles.label}>ביוגרפיה</span>
+          <span className={styles.label}>{t('common.profile.bio')}</span>
           <textarea
             ref={(el) => {
               if (el) autoResizeTextarea(el);
@@ -156,7 +158,7 @@ export function ProfilePage() {
             className={styles.textarea}
             value={bio}
             maxLength={MAX_BIO}
-            placeholder="כמה מילים על עצמך"
+            placeholder={t('common.profile.bioPlaceholder')}
             onChange={(e) => {
               autoResizeTextarea(e.currentTarget);
               setBio(e.target.value);
@@ -170,16 +172,23 @@ export function ProfilePage() {
             disabled={displayName.trim().length === 0}
             onClick={() => saveStatus.run(() => profileState.updateProfile({ displayName, bio }))}
           >
-            שמירת פרטים
+            {t('common.profile.saveDetails')}
           </button>
           <StatusBadge status={saveStatus.status} error={saveStatus.error} />
         </div>
       </section>
 
+
       <section className={`card ${styles.section}`}>
-        <h3 className={styles.subtitle}>שינוי סיסמה</h3>
+        <h3 className={styles.subtitle}>{t('common.profile.languageTitle')}</h3>
+        <LanguageSwitcher />
+        <p className={styles.note}>{t('common.profile.languageHint')}</p>
+      </section>
+
+      <section className={`card ${styles.section}`}>
+        <h3 className={styles.subtitle}>{t('common.profile.changePassword')}</h3>
         <label className={styles.field}>
-          <span className={styles.label}>סיסמה נוכחית</span>
+          <span className={styles.label}>{t('common.profile.currentPassword')}</span>
           <input
             type="password"
             value={currentPassword}
@@ -188,7 +197,7 @@ export function ProfilePage() {
           />
         </label>
         <label className={styles.field}>
-          <span className={styles.label}>סיסמה חדשה</span>
+          <span className={styles.label}>{t('common.profile.newPassword')}</span>
           <input
             type="password"
             value={newPassword}
@@ -197,7 +206,7 @@ export function ProfilePage() {
           />
         </label>
         <label className={styles.field}>
-          <span className={styles.label}>אימות סיסמה חדשה</span>
+          <span className={styles.label}>{t('common.profile.confirmPassword')}</span>
           <input
             type="password"
             value={confirmPassword}
@@ -213,11 +222,11 @@ export function ProfilePage() {
             disabled={currentPassword.length === 0 || newPassword.length === 0 || confirmPassword.length === 0}
             onClick={submitPasswordChange}
           >
-            עדכון סיסמה
+            {t('common.profile.updatePassword')}
           </button>
           <StatusBadge status={passwordStatus.status} error={passwordStatus.error} />
         </div>
-        <p className={styles.note}>עדכון הסיסמה ינתק את כל שאר החיבורים הפעילים שלך, מלבד החיבור הנוכחי.</p>
+        <p className={styles.note}>{t('common.profile.passwordNote')}</p>
       </section>
     </div>
   );
