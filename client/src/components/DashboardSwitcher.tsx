@@ -1,4 +1,5 @@
 import styles from './DashboardSwitcher.module.css';
+import { useTranslation } from '../i18n';
 
 export function DashboardSwitcher({
   ownLabel,
@@ -11,10 +12,16 @@ export function DashboardSwitcher({
   viewingOwn: boolean;
   onSwitch: (own: boolean) => void;
 }) {
+  const { t } = useTranslation();
+  // Split around the name so each language keeps its own word order while the name
+  // itself stays inside a <bdi>, which is what stops a Latin name from reordering
+  // the Hebrew sentence around it.
+  const partnerBoardLabel = t('common.board.partner').split('{name}');
+
   if (!partnerLabel) return null;
 
   return (
-    <div className={styles.wrap} role="tablist" aria-label="בחירת לוח לצפייה">
+    <div className={styles.wrap} role="tablist" aria-label={t('common.board.picker')}>
       <button
         type="button"
         role="tab"
@@ -22,7 +29,7 @@ export function DashboardSwitcher({
         className={`${styles.tab} ${viewingOwn ? styles.active : ''}`}
         onClick={() => onSwitch(true)}
       >
-        הלוח שלי
+        {t('common.board.mine')}
       </button>
       <button
         type="button"
@@ -31,7 +38,7 @@ export function DashboardSwitcher({
         className={`${styles.tab} ${!viewingOwn ? styles.active : ''}`}
         onClick={() => onSwitch(false)}
       >
-        הלוח של <bdi>{partnerLabel}</bdi> · צפייה בלבד
+        {partnerBoardLabel[0]}<bdi>{partnerLabel}</bdi>{partnerBoardLabel[1]}
       </button>
     </div>
   );

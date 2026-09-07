@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './MobileNavigation.module.css';
+import { useTranslation } from '../i18n';
 
 export interface MobileNavigationItem {
   id: string;
@@ -20,18 +21,23 @@ export function MobileNavigation({
   mainId?: string;
   layout?: 'mobile' | 'desktop';
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const moreRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const sheetId = useId();
-  const primaryLabels: Record<string, string> = { home: 'בית', week: 'השבוע', goals: 'מטרות', wams: 'פגישה משותפת' };
+  const primaryLabels: Record<string, string> = {
+    home: t('common.nav.home'), week: t('common.nav.week'),
+    goals: t('common.nav.goals'), wams: t('common.nav.wams'),
+  };
+  const fallbackGroup = t('common.nav.moreGroup');
   const primaryIds = ['home', 'week', 'goals', 'wams'];
   const primary = primaryIds.map((id) => items.find((item) => item.id === id) ?? {
     id, label: primaryLabels[id], disabled: true,
   });
   const more = items.filter((item) => !primaryIds.includes(item.id));
-  const groups = [...new Set(more.map((item) => item.group ?? 'כלים נוספים'))];
+  const groups = [...new Set(more.map((item) => item.group ?? fallbackGroup))];
   const icons: Record<string, string> = { home: '⌂', week: '▦', goals: '◉', wams: '◎' };
   const previousActive = useRef(activeId);
 
@@ -86,7 +92,7 @@ export function MobileNavigation({
   return (
     <>
       <nav className={layout === 'desktop' ? styles.desktopNav : styles.nav}
-        aria-label={layout === 'desktop' ? 'ניווט ראשי' : 'ניווט ראשי בנייד'}>
+        aria-label={layout === 'desktop' ? t('common.nav.primary') : t('common.nav.primaryMobile')}>
         {primary.map((item) => (
           <button key={item.id} type="button" className={styles.item}
             aria-current={activeId === item.id ? 'page' : undefined}
@@ -100,7 +106,7 @@ export function MobileNavigation({
           aria-current={more.some((item) => item.id === activeId) ? 'page' : undefined}
           aria-expanded={open} aria-controls={sheetId} aria-haspopup="dialog"
           disabled={disabled || more.length === 0} onClick={() => setOpen(true)}>
-          <span className={styles.icon} aria-hidden="true">•••</span><span>עוד</span>
+          <span className={styles.icon} aria-hidden="true">•••</span><span>{t('common.nav.more')}</span>
         </button>
       </nav>
       {open && createPortal(
@@ -109,13 +115,13 @@ export function MobileNavigation({
           <div ref={sheetRef} id={sheetId} className={`${styles.sheet} ${layout === 'desktop' ? styles.desktopSheet : ''}`}
             role="dialog" aria-modal="true" aria-labelledby={titleId} dir="rtl">
             <div className={styles.heading}>
-              <h2 id={titleId}>לאן ממשיכים?</h2>
-              <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)} aria-label="סגירת תפריט ניווט">✕</button>
+              <h2 id={titleId}>{t('common.nav.moreTitle')}</h2>
+              <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)} aria-label={t('common.nav.closeMenu')}>✕</button>
             </div>
             {groups.map((group) => <section key={group} aria-label={group}>
               <h3 className={styles.groupTitle}>{group}</h3>
               <div className={styles.links}>
-              {more.filter((item) => (item.group ?? 'כלים נוספים') === group).map((item) => (
+              {more.filter((item) => (item.group ?? fallbackGroup) === group).map((item) => (
                 <button key={item.id} type="button" className={styles.link}
                   aria-current={item.id === activeId ? 'page' : undefined}
                   disabled={disabled || item.disabled} onClick={() => navigate(item)}>

@@ -12,6 +12,7 @@ export {
 } from './locales';
 
 export { getActiveLocale, setActiveLocale } from './activeLocale';
+export { translateActive } from './translateActive';
 
 export {
   LocaleProvider,

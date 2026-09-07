@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import styles from './DashboardTabs.module.css';
+import { useTranslation } from '../i18n';
 
 export interface DashboardTab {
   id: string;
@@ -8,12 +9,13 @@ export interface DashboardTab {
 }
 
 export function DashboardTabs({ tabs, initialTabId }: { tabs: DashboardTab[]; initialTabId?: string }) {
+  const { t } = useTranslation();
   const [activeId, setActiveId] = useState(initialTabId ?? tabs[0]?.id);
   const active = tabs.find((t) => t.id === activeId) ?? tabs[0];
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.tabRow} role="tablist" aria-label="ניווט בין אזורי הלוח">
+      <div className={styles.tabRow} role="tablist" aria-label={t('common.nav.tabs')}>
         {tabs.map((tab) => (
           <button
             key={tab.id}

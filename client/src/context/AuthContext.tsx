@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api, ApiError } from '../lib/api';
+import { translateActive } from '../i18n';
 
 /**
  * Profile-safe shape shared by /auth/register, /auth/login, /auth/me, and the whole
@@ -62,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const u = await api.post<AuthUser>('/auth/login', { email, password });
       setUser(u);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'שגיאה בהתחברות');
+      setError(e instanceof ApiError ? e.message : translateActive('common.error.login'));
       throw e;
     }
   }, []);
@@ -73,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const u = await api.post<AuthUser>('/auth/register', { email, password });
       setUser(u);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'שגיאה בהרשמה');
+      setError(e instanceof ApiError ? e.message : translateActive('common.error.register'));
       throw e;
     }
   }, []);

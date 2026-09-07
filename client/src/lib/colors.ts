@@ -7,9 +7,10 @@ export const GOAL_COLOR_HEX: Record<GoalColor, string> = {
   gold: '#d4a017',
 };
 
-export const GOAL_COLOR_LABEL_HE: Record<GoalColor, string> = {
-  emerald: 'אזמרגד',
-  blue: 'כחול',
-  purple: 'סגול',
-  gold: 'זהב',
+/** Translation keys, not labels - pass through `t()` before showing to anyone. */
+export const GOAL_COLOR_LABEL_KEYS: Record<GoalColor, string> = {
+  emerald: 'common.color.emerald',
+  blue: 'common.color.blue',
+  purple: 'common.color.purple',
+  gold: 'common.color.gold',
 };

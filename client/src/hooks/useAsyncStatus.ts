@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { publishSaveStatus } from '../lib/saveStatusBus';
+import { translateActive } from '../i18n';
 
 export type AsyncStatus = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -8,7 +9,7 @@ export type AsyncStatus = 'idle' | 'saving' | 'saved' | 'error';
  * `run` executes an async action, sets status to 'saving' immediately, then 'saved' briefly
  * on success (auto-reverting to 'idle') or 'error' (with a message) on failure — and never
  * reports 'saved' when the action throws. Every call also publishes to the global save-status
- * bus so the top status row can surface a single "saving.../נשמר" indicator for any mutation
+ * bus so the top status row can surface a single saving/saved indicator for any mutation
  * happening anywhere in the dashboard.
  */
 export function useAsyncStatus() {
@@ -28,7 +29,7 @@ export function useAsyncStatus() {
       timeoutRef.current = setTimeout(() => setStatus('idle'), 1800);
       return result;
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'שגיאה לא ידועה';
+      const message = e instanceof Error ? e.message : translateActive('common.error.unknown');
       setStatus('error');
       setError(message);
       publishSaveStatus('error', message);

@@ -81,6 +81,22 @@ describe('dictionary integrity', () => {
 
     expect(stranded.map(([key]) => key)).toEqual([]);
   });
+
+  it('leaves no untranslated English stranded in the Hebrew dictionary', () => {
+    const hebrew = /[\u0590-\u05FF]/;
+    // A Hebrew value with no Hebrew letters in it is almost always a copy-paste of the
+    // English one. The exceptions are values that are the same in every language.
+    const languageNeutral = /^[\s\d%✓✨🏆🔥⚪+\-–—·:.,()[\]{}/]*$/u;
+
+    const suspicious = Object.entries(dictionaries.he)
+      .filter(([, value]) => !hebrew.test(value))
+      .filter(([, value]) => !languageNeutral.test(value))
+      // Product names we deliberately keep in Latin script in both languages.
+      .filter(([, value]) => !/^(12wyapp|WAM|BROOST|Duo|English)$/.test(value.trim()))
+      .filter(([key]) => key !== 'common.language.en');
+
+    expect(suspicious.map(([key, value]) => `${key}: ${value}`)).toEqual([]);
+  });
 });
 
 describe('translator', () => {

@@ -1,4 +1,5 @@
 import type { DuoStreakSummary } from '../lib/types';
+import { useTranslation } from '../i18n';
 import { Avatar } from './Avatar';
 import styles from './DuoStreakCard.module.css';
 
@@ -8,6 +9,7 @@ import styles from './DuoStreakCard.module.css';
  * component itself holds no streak logic. Shown in both the WAM list and detail views.
  */
 export function DuoStreakCard({ duoStreak }: { duoStreak: DuoStreakSummary | null }) {
+  const { t } = useTranslation();
   if (!duoStreak) return null;
   const [a, b] = duoStreak.participants;
   const hasEverSucceeded = duoStreak.totalDuoWins > 0;
@@ -35,25 +37,24 @@ export function DuoStreakCard({ duoStreak }: { duoStreak: DuoStreakSummary | nul
           <span className={styles.statValue} aria-hidden="true">
             🔥 {duoStreak.currentStreak}
           </span>
-          <span className={styles.statLabel}>רצף Duo נוכחי</span>
+          <span className={styles.statLabel}>{t('dashboard.duo.current')}</span>
         </div>
         <div className={styles.stat}>
           <span className={styles.statValue}>🏆 {duoStreak.bestStreak}</span>
-          <span className={styles.statLabel}>השיא</span>
+          <span className={styles.statLabel}>{t('dashboard.duo.best')}</span>
         </div>
         <div className={styles.stat}>
           <span className={styles.statValue}>✅ {duoStreak.totalDuoWins}</span>
-          <span className={styles.statLabel}>שבועות מנצחים ביחד</span>
+          <span className={styles.statLabel}>{t('dashboard.duo.wins')}</span>
         </div>
       </div>
 
       {!hasEverSucceeded ? (
         <p className={styles.motivation}>
-          עדיין אין שבוע Duo מנצח — כששניכם תגיעו ל־85% ומעלה בפגישה שבועית שהושלמה,
-          הרצף המשותף שלכם יתחיל כאן.
+          {t('dashboard.duo.never')}
         </p>
       ) : duoStreak.currentStreak === 0 ? (
-        <p className={styles.motivation}>הרצף המשותף נעצר — שבוע Duo מנצח אחד יחדש אותו.</p>
+        <p className={styles.motivation}>{t('dashboard.duo.stopped')}</p>
       ) : null}
     </div>
   );

@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import type { AsyncStatus } from './useAsyncStatus';
+import { translateActive } from '../i18n';
 
 /**
  * Same idle/saving/saved/error lifecycle as useAsyncStatus, but scoped purely to the calling
@@ -27,7 +28,7 @@ export function useLocalAsyncStatus() {
       timeoutRef.current = setTimeout(() => setStatus('idle'), 1800);
       return result;
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'שגיאה לא ידועה';
+      const message = e instanceof Error ? e.message : translateActive('common.error.unknown');
       setStatus('error');
       setError(message);
       return undefined;

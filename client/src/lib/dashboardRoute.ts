@@ -1,4 +1,5 @@
 import type { ArchiveSearchTarget } from './archiveSearchTypes';
+import { translateActive } from '../i18n';
 
 export const DASHBOARD_SECTIONS = [
   'home', 'planning', 'week', 'goals', 'history', 'wams',
@@ -29,7 +30,7 @@ const ROUTE_KEYS = [
   'commitment', 'punishment', 'reminder',
 ] as const;
 const invalidRoute = (): ParsedDashboardRoute => ({
-  ok: false, error: 'הכתובת אינה תקינה או מכילה אפשרות ניווט שאינה נתמכת. אפשר לחזור ללוח האישי ולבחור יעד מחדש.',
+  ok: false, error: translateActive('common.route.invalid'),
 });
 const isId = (value: number) => Number.isSafeInteger(value) && value > 0;
 const isWeek = (value: number) => isId(value) && value <= 12;
@@ -128,11 +129,11 @@ export function resolveDashboardBoard(boardId: number | null, context: BoardRout
   if (context.partnershipsLoading) return { status: 'loading', userId: null, viewingOwn: false };
   if (context.partnershipsError) {
     return { status: 'unavailable', userId: null, viewingOwn: false,
-      error: 'לא ניתן לאמת כרגע גישה ללוח שבכתובת. נסו לטעון שוב את השותפות, או עברו במפורש ללוח האישי.' };
+      error: translateActive('common.route.unverifiable') };
   }
   if (boardId === context.partnerId) return { status: 'ready', userId: boardId, viewingOwn: false };
   return { status: 'unavailable', userId: null, viewingOwn: false,
-    error: 'הלוח שבכתובת אינו זמין במסגרת השותפות הנוכחית. לא הועברתם ללוח אחר; אפשר לבחור במפורש בלוח האישי.' };
+    error: translateActive('common.route.unavailable') };
 }
 
 export function archiveTargetFromRoute(route: DashboardRoute, userId: number, ownUserId: number): ArchiveSearchTarget | null {

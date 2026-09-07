@@ -1,5 +1,6 @@
 import { LOCALE_TAGS } from '../i18n/locales';
 import { getActiveLocale } from '../i18n/activeLocale';
+import { translateActive } from '../i18n';
 
 export class ApiError extends Error {
   status: number;
@@ -44,7 +45,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   if (!res.ok) {
     const message =
-      (body as { error?: string } | null)?.error ?? `שגיאת שרת (${res.status})`;
+      (body as { error?: string } | null)?.error ?? translateActive('common.error.server', { status: res.status });
     throw new ApiError(message, res.status);
   }
 
