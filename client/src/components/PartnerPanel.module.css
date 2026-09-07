@@ -1,0 +1,79 @@
+.wrap {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.errorState {
+  color: var(--danger);
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.partnerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hint {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
+
+.searchRow input {
+  width: 100%;
+}
+
+.errorText {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.empty {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 0.85rem;
+}
+
+.candidateList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.candidateRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--surface-alt);
+  border-radius: var(--radius-sm);
+  flex-wrap: wrap;
+}
+
+.candidateRow span {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+.subtle {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: 400;
+}

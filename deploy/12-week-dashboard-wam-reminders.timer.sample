@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the weekly WAM reminder email every Tuesday at 10:00 Asia/Jerusalem
+
+[Timer]
+OnCalendar=Tue *-*-* 10:00:00 Asia/Jerusalem
+# If the machine was off/asleep at the scheduled time, run once shortly after boot instead
+# of silently skipping that week.
+Persistent=true
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

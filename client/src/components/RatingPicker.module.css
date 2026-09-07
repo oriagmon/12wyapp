@@ -1,0 +1,39 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.pip {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.pip.filled {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.value {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}

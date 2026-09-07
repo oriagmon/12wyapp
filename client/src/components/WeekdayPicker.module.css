@@ -1,0 +1,22 @@
+.row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.day {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.day.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}

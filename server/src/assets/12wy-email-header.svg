@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420">
+  <defs>
+    <linearGradient id="bg" x1="70" y1="20" x2="1130" y2="400" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#24134F"/>
+      <stop offset="0.55" stop-color="#5030A7"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FDE68A"/>
+      <stop offset="1" stop-color="#F59E0B"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="420" rx="42" fill="url(#bg)"/>
+  <circle cx="1080" cy="70" r="180" fill="#FFFFFF" opacity="0.055"/>
+  <circle cx="1110" cy="360" r="250" fill="#FFFFFF" opacity="0.045"/>
+  <path d="M0 340 C220 260 340 410 570 330 C790 255 940 280 1200 165 V420 H0Z" fill="#FFFFFF" opacity="0.045"/>
+  <g transform="translate(106 92)">
+    <circle cx="118" cy="118" r="118" fill="#FFFFFF" opacity="0.13"/>
+    <circle cx="118" cy="118" r="94" fill="#FFFFFF" opacity="0.12"/>
+    <path d="M132 38 67 137h48l-11 69 67-103h-49z" fill="url(#bolt)"/>
+  </g>
+  <text x="405" y="194" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="132" font-weight="800" letter-spacing="4">12WY</text>
+  <text x="412" y="270" fill="#DDD6FE" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" letter-spacing="8">WEEKLY ACCOUNTABILITY</text>
+  <rect x="412" y="307" width="486" height="5" rx="2.5" fill="#FDE68A"/>
+</svg>

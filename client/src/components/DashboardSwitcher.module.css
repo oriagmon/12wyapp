@@ -1,0 +1,25 @@
+.wrap {
+  display: flex;
+  gap: 8px;
+  background: var(--surface-alt);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  width: fit-content;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: 0.5em 1em;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.tab.active {
+  background: var(--surface);
+  color: var(--accent-strong);
+}

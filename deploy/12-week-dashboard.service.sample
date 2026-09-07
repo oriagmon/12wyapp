@@ -1,0 +1,26 @@
+[Unit]
+Description=12-Week Year Dashboard (Node/Express + SQLite)
+After=network.target
+
+[Service]
+Type=simple
+# Adjust user/group and paths to match your deployment.
+User=copilot-agent
+Group=copilot-agent
+WorkingDirectory=/opt/12-week-dashboard/server
+EnvironmentFile=/opt/12-week-dashboard/server/.env
+ExecStart=/snap/node/current/bin/node dist/index.js
+Restart=on-failure
+RestartSec=5
+# Hardening (optional but recommended)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+# Covers both the SQLite database and (by default) tactic-evidence file uploads, since
+# EVIDENCE_DIR defaults to <DATA_DIR>/evidence — a subdirectory of the path below. If you set
+# EVIDENCE_DIR to somewhere else in .env, add that path here too (space-separated).
+ReadWritePaths=/var/lib/12-week-dashboard
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

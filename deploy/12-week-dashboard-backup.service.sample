@@ -1,0 +1,35 @@
+[Unit]
+Description=12-Week Dashboard complete local backup and monitoring receipt
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=root
+Group=copilot-agent
+UMask=0027
+WorkingDirectory=/opt/12-week-dashboard
+# Dedicated non-secret settings only. Never use the application's EnvironmentFile.
+Environment=PATH=/snap/node/current/bin:/usr/bin:/bin
+Environment=MONITORING_NODE_BIN=/snap/node/current/bin/node
+Environment=DB_FILE=app.sqlite
+ExecStart=/bin/bash /opt/12-week-dashboard/scripts/backup-with-monitoring.sh /opt/12-week-dashboard/server/data /var/lib/12-week-dashboard-backups /opt/12-week-dashboard/server/data/evidence /var/lib/12-week-dashboard-monitoring
+TimeoutStartSec=15min
+TimeoutStopSec=15s
+KillMode=control-group
+# Both directories are root:copilot-agent 0750; the application can read but not write.
+StateDirectory=12-week-dashboard-monitoring 12-week-dashboard-backups
+StateDirectoryMode=0750
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateDevices=true
+ReadWritePaths=/var/lib/12-week-dashboard-monitoring /var/lib/12-week-dashboard-backups
+# The accepted SQLite CLI backup can require source WAL/SHM bookkeeping.
+ReadWritePaths=/opt/12-week-dashboard/server/data
+RestrictAddressFamilies=AF_UNIX
+IPAddressDeny=any
+RestrictSUIDSGID=true
+LockPersonality=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true

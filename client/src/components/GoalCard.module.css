@@ -1,0 +1,117 @@
+.wrap {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.colorDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.titleInput {
+  flex: 1;
+  font-weight: 700;
+  font-size: 1.05rem;
+  border: none;
+  background: transparent;
+  padding: 2px 4px;
+}
+
+.confirmBox {
+  background: var(--danger-bg);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.confirmBox p {
+  margin: 0 0 10px;
+  font-size: 0.88rem;
+}
+
+.confirmActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tactics {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.emptyTactics {
+  color: var(--text-faint);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.tacticRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-alt);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+
+.tacticInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tacticTitle {
+  font-weight: 600;
+}
+
+.tacticMeta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.adaptation {
+  width: fit-content;
+  margin-top: 3px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: var(--text-xs);
+}
+
+.tacticActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.addTacticSection {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.inlineConfirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.inlineConfirmText {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}

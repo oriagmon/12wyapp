@@ -1,0 +1,55 @@
+.region {
+  position: fixed;
+  inset-inline-end: max(20px, env(safe-area-inset-right));
+  bottom: max(24px, env(safe-area-inset-bottom));
+  z-index: 35;
+  width: min(360px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.toast {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 8px 28px var(--accent-soft);
+  animation: toast-enter 540ms var(--motion-spring) both;
+}
+
+.toast strong { font-size: var(--text-base); }
+.toast p { margin: 4px 0 0; font-size: var(--text-sm); color: var(--text-muted); }
+.symbol { color: var(--accent-strong); font-size: 2rem; flex: 0 0 auto; }
+.particles { position: absolute; inset-inline-start: 32px; top: 50%; }
+.particles i {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0;
+  animation: spark 900ms var(--delay) ease-out both;
+}
+.particles i:nth-child(3n) { background: var(--accent-gold); border-radius: 50%; }
+
+@keyframes toast-enter {
+  from { opacity: 0; transform: translateY(22px) scale(.9) rotate(-2deg); }
+  65% { transform: translateY(-4px) scale(1.02) rotate(.5deg); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes spark {
+  10% { opacity: .9; }
+  to { opacity: 0; transform: rotate(var(--angle)) translateX(var(--distance)) rotate(120deg) scale(.2); }
+}
+@media (max-width: 720px) {
+  .region { bottom: calc(90px + env(safe-area-inset-bottom)); inset-inline-end: 16px; }
+  .particles i:nth-child(even) { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+  .particles { display: none; }
+}

@@ -1,0 +1,81 @@
+.wrap {
+  padding: 20px 24px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.currentWeekLabel {
+  margin: 2px 0 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.avg {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.svg {
+  width: 100%;
+  height: auto;
+}
+
+.targetLine {
+  stroke: var(--accent-gold);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  opacity: 0.6;
+}
+
+.targetLabel {
+  fill: var(--accent-gold);
+  font-size: 10px;
+}
+
+.trendPath {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.point {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 2;
+  cursor: pointer;
+  transition: r 120ms ease;
+}
+
+.point.gold {
+  fill: var(--accent-gold);
+  stroke: var(--accent-gold);
+}
+
+.point.empty {
+  fill: var(--surface-alt);
+  stroke: var(--text-faint);
+  stroke-dasharray: 2 2;
+}
+
+.point.selected {
+  stroke: var(--accent-blue);
+  stroke-width: 3;
+}
+
+.weekLabel {
+  fill: var(--text-faint);
+  font-size: 9px;
+}

@@ -1,0 +1,195 @@
+.wrap {
+  padding: 16px;
+  overflow-x: auto;
+  max-width: 100%;
+  overscroll-behavior-x: contain;
+}
+
+.emptyCard {
+  padding: 24px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 6px;
+  min-width: 560px;
+}
+
+.table th {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 4px;
+}
+
+.tacticHeader {
+  text-align: right;
+}
+
+.tacticName {
+  text-align: right;
+  display: table-cell;
+  vertical-align: middle;
+  white-space: normal;
+  min-width: 130px;
+  max-width: 260px;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.tacticName span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.colorDot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-inline-end: 4px;
+}
+
+.goalName {
+  color: var(--text-faint);
+  font-weight: 400;
+  font-size: 0.75rem;
+}
+
+.cell {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  font-weight: 700;
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.cell.pending:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.cell.done {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.cell:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.unscheduled {
+  width: 44px;
+  height: 44px;
+  text-align: center;
+  color: var(--text-faint);
+  vertical-align: middle;
+}
+
+.cellWrap {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.evidenceAction {
+  margin-top: 6px;
+}
+
+.evidenceButton {
+  min-height: 44px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.evidenceButton:hover {
+  opacity: 1;
+}
+
+.evidenceButtonActive {
+  opacity: 1;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.todayColumn {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.todayBadge {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.todayCell {
+  background: var(--accent-soft);
+  border-radius: var(--radius-sm);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  margin: 12px 2px 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legendSwatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.legendDone {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.legendUnscheduled {
+  border-style: dashed;
+  background: transparent;
+  color: var(--text-faint);
+}
+
+.legendToday {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}

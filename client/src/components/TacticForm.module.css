@@ -1,0 +1,79 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+.row {
+  display: flex;
+}
+
+.weekRange {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.weekRange label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.weekRange select {
+  padding: 0.4em 0.6em;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.82rem;
+}
+
+.scopeChoice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.scopeChoice input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.scopeChoice span {
+  display: grid;
+  gap: 3px;
+}
+
+.scopeChoice strong {
+  font-size: var(--text-sm);
+}
+
+.scopeChoice small {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

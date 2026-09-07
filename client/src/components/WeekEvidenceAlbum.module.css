@@ -1,0 +1,24 @@
+.album {
+  --cp-surface: var(--surface);
+  --cp-border: var(--border);
+  --cp-text: var(--text);
+  --cp-text-muted: var(--text-muted);
+  --cp-link: var(--accent-strong);
+  padding: 20px; min-width: 0; display: grid; gap: 12px;
+}
+.title { margin: 0; font-size: var(--text-lg); }
+.caption { margin: 0; color: var(--cp-text-muted); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.upload { display: grid; gap: 8px; }
+.upload input { max-width: 100%; min-height: 44px; }
+.items { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px; }
+.item { min-width: 0; padding: 16px; border: 1px solid var(--cp-border); border-radius: 10px; display: flex; flex-direction: column; align-items: stretch; gap: 8px; background: var(--cp-surface); }
+.preview { width: 100%; max-height: 320px; object-fit: contain; border-radius: 10px; }
+.note { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.link { color: var(--cp-link); overflow-wrap: anywhere; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.filename { overflow-wrap: anywhere; min-width: 0; }
+.editor { display: grid; gap: 8px; padding-top: 8px; }
+.editor label { display: grid; gap: 4px; }
+.editor input, .editor textarea { width: 100%; min-height: 44px; padding: 8px; border: 1px solid var(--cp-border); background: var(--cp-surface); color: var(--cp-text); border-radius: 10px; font: inherit; }
+.editor textarea { resize: vertical; min-height: 80px; }
+@media (max-width: 440px) { .album { padding: 16px 12px; } }

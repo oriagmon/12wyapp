@@ -1,0 +1,117 @@
+.wrap {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.empty {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 0.85rem;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--surface-alt);
+  border-radius: var(--radius-sm);
+  flex-wrap: wrap;
+}
+
+.itemInput {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  background: transparent;
+  padding: 4px 2px;
+}
+
+.metaTag {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.metaSelect {
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.addRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.addRow input[type='text'] {
+  flex: 1;
+  min-width: 160px;
+}
+
+.addRow select {
+  padding: 0.4em 0.6em;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+}
+
+.doneStatus {
+  font-size: 0.78rem;
+  color: var(--accent-strong);
+  white-space: nowrap;
+}
+
+.blockedHint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.confirmBox {
+  width: 100%;
+  background: var(--danger-bg);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+
+.confirmBox p {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+}
+
+.confirmActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

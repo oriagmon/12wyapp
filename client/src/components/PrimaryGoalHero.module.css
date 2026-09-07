@@ -1,0 +1,78 @@
+.hero {
+  position: relative;
+  padding: clamp(22px, 3.4vw, 34px);
+  overflow: hidden;
+  animation: hero-enter 550ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.accent {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-purple));
+}
+
+.label {
+  display: inline-flex;
+  width: fit-content;
+  padding: 7px 12px;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.headline {
+  max-width: 820px;
+  margin: 18px 0 0;
+  font-size: clamp(1.5rem, 3.2vw, 2.4rem);
+  line-height: 1.22;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+}
+
+/* A long vision is displayed whole, so the type scale steps down instead of the text being
+   cut. Keeps a five-line vision from swallowing the screen while still showing every word. */
+.long {
+  font-size: clamp(1.15rem, 2.1vw, 1.6rem);
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+}
+
+.context {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-base);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 20px;
+}
+
+.chips span {
+  padding: 7px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  background: var(--surface-alt);
+  font-size: var(--text-xs);
+  font-weight: 650;
+}
+
+@keyframes hero-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero {
+    animation: none;
+  }
+}

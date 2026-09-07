@@ -1,0 +1,120 @@
+.nav { display: none; }
+.desktopNav {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(64px, .6fr);
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+.item[aria-current] { color: var(--accent-strong); background: var(--accent-soft); }
+.item:hover:not(:disabled) { background: var(--surface-alt); }
+.item:active:not(:disabled) { transform: scale(.96); }
+.icon { font-size: 1.2rem; line-height: 1.1; }
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  background: var(--motion-scrim);
+}
+.sheet {
+  width: 100%;
+  max-height: calc(85dvh - env(safe-area-inset-top));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* When the list does overflow, a row must never come to rest half-clipped: its centre would
+     then sit outside the sheet, so a click on it lands on the backdrop and merely closes the
+     menu. That is what made the last entry look like a dead link. */
+  scroll-padding-block: 12px 24px;
+  padding: 16px max(16px, env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 22px 22px 0 0;
+  animation: sheet-enter 360ms var(--motion-ease) both;
+}
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.heading h2 { font-size: var(--text-lg); margin: 0; }
+.desktopBackdrop { align-items: center; justify-content: center; padding: 24px; }
+.desktopSheet { max-width: 760px; max-height: calc(100dvh - 48px); border-radius: var(--radius-lg); }
+.groupTitle { font-size: var(--text-sm); color: var(--text-muted); margin: 20px 0 8px; }
+.groupTitle:first-child { margin-block-start: 4px; }
+.links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+/* Three columns on a real screen keeps every destination inside the sheet, so the list does
+   not scroll and no row is ever cut in half. */
+@media (min-width: 721px) {
+  .desktopSheet .groupTitle { margin: 12px 0 6px; }
+  .desktopSheet .links { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .desktopSheet .link { min-height: 46px; }
+}
+.link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  min-width: 0;
+  padding: 12px;
+  text-align: start;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-alt);
+}
+.link[aria-current] { color: var(--accent-strong); border-color: var(--accent); }
+@keyframes sheet-enter { from { transform: translateY(35px); opacity: .6; } }
+@media (max-width: 720px) {
+  .desktopNav { display: none; }
+  .nav {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 30;
+    gap: 4px;
+    padding: 6px max(8px, env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 56px;
+    padding: 3px;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: clamp(10px, 2.8vw, 12px);
+    font-weight: 600;
+    transition: background var(--transition-fast), transform var(--transition-fast);
+  }
+  .item[aria-current] { color: var(--accent-strong); background: var(--accent-soft); }
+  .item:active:not(:disabled) { transform: scale(.91); }
+  .icon { font-size: 1.45rem; line-height: 1.1; }
+}
+@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }

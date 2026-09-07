@@ -1,0 +1,37 @@
+.card {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-base);
+}
+
+.text {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.pendingText {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.completeText {
+  margin: 0;
+  color: var(--accent-strong);
+  font-weight: 650;
+  font-size: var(--text-sm);
+}
+
+.summary {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}

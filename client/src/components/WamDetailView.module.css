@@ -1,0 +1,95 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.wrap [data-search-match] {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  scroll-margin-block: 100px;
+}
+
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.topBarRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.statusBadge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.statusBadge.draft {
+  background: var(--surface-alt);
+  color: var(--text-muted);
+}
+
+.statusBadge.complete {
+  background: var(--accent);
+  color: white;
+}
+
+.statusBadge.historical {
+  background: var(--surface-alt);
+  color: var(--text-faint);
+  border: 1px dashed var(--border);
+}
+
+.printTitle {
+  display: none;
+}
+
+.contentGrid {
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.ownGoalsSection {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ownGoalsTitle {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.ownGoalsHint {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 0.82rem;
+}
+
+@media print {
+  .topBar,
+  :global(.btn) {
+    display: none !important;
+  }
+  .printTitle {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+  }
+  :global(.card) {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    break-inside: avoid;
+  }
+}

@@ -1,0 +1,12 @@
+# OPTIONAL drop-in for 12-week-dashboard-backup.service.d/cloud.conf.
+# Parent installs ONLY after private Blob provisioning, budget approval and security review.
+# The base service stays network-denied when this drop-in is absent.
+[Service]
+EnvironmentFile=/etc/12-week-dashboard-backup-cloud.env
+RestrictAddressFamilies=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=
+# Network policy/firewalls must separately permit DNS, VM IMDS at 169.254.169.254:80,
+# and HTTPS to the selected private-authorized Azure Blob endpoint. Azure endpoint IPs
+# may change, so this sample does not pretend a static service-level IP list is reliable.
+# The uploader code accepts only fixed IMDS and <account>.blob.core.windows.net targets.

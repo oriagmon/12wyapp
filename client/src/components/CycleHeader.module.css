@@ -1,0 +1,69 @@
+.wrap {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nameInput {
+  flex: 1;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  padding: 4px 2px;
+}
+
+.nameInput:disabled {
+  opacity: 0.85;
+}
+
+.weekRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.weekLabel {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.arrow {
+  display: inline-block;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.resetSection {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.confirmBox {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+.confirmText {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text);
+}
+
+.confirmActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

@@ -1,0 +1,108 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.empty {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2, transparent);
+}
+
+.goal {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.title {
+  font-weight: 600;
+}
+
+.days {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Pushes the action to the far edge so every row's button lands in the same column. */
+.tags {
+  display: flex;
+  gap: 6px;
+  margin-inline-start: auto;
+}
+
+.tagOnce,
+.tagAdapted {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.tagOnce {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+
+.tagAdapted {
+  background: color-mix(in srgb, var(--warning, #b7791f) 16%, transparent);
+  color: var(--warning, #b7791f);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  width: 100%;
+}
+
+.formHint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.formActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.blocked {
+  font-size: 12px;
+  color: var(--text-muted);
+}

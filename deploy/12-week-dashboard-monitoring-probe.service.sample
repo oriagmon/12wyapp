@@ -1,0 +1,30 @@
+[Unit]
+Description=12-Week Dashboard local read-only operational observations
+After=local-fs.target
+
+[Service]
+Type=oneshot
+# Dedicated root-owned configuration; do NOT reuse the application's secrets-bearing .env.
+# Root is only needed if reading a restricted local public certificate requires it.
+# Prefer a dedicated probe user with the minimum read permissions when possible.
+User=root
+Group=copilot-agent
+UMask=0027
+WorkingDirectory=/opt/12-week-dashboard/server
+EnvironmentFile=/etc/12-week-dashboard-monitoring.env
+ExecStart=/snap/node/current/bin/node /opt/12-week-dashboard/server/dist/monitoringProbe.js
+TimeoutStartSec=30
+StateDirectory=12-week-dashboard-monitoring
+StateDirectoryMode=0750
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateDevices=true
+ReadWritePaths=/var/lib/12-week-dashboard-monitoring
+RestrictAddressFamilies=AF_UNIX
+IPAddressDeny=any
+RestrictSUIDSGID=true
+LockPersonality=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true

@@ -1,0 +1,95 @@
+.wrap {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.avatars {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+  justify-content: center;
+}
+
+.participant {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 0 1 150px;
+  min-width: 0;
+}
+
+.name, .identifier {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.identifier {
+  font-size: var(--text-xs);
+  font-weight: 400;
+}
+
+.heart {
+  padding-top: 8px;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.stats {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+  min-width: 84px;
+}
+
+.statActive {
+  background: var(--accent-soft);
+}
+
+.statValue {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.statLabel {
+  font-size: 0.68rem;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.motivation {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  max-width: 320px;
+}
+
+@media (max-width: 480px) {
+  .stat {
+    min-width: 70px;
+    padding: 5px 6px;
+  }
+  .statLabel {
+    white-space: normal;
+  }
+}

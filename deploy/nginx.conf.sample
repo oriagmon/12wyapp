@@ -1,0 +1,22 @@
+# Sample Nginx reverse-proxy config for the 12-Week Year dashboard.
+# The Node server binds to 127.0.0.1:4000 (see .env HOST/PORT) and serves both
+# the built frontend and the /api routes, so Nginx just needs a single proxy_pass.
+#
+# WARNING: this sample terminates plain HTTP only, matching the app's explicit
+# HTTP-only requirement. Session cookies are NOT marked Secure and credentials
+# travel unencrypted end-to-end. Only use this for trusted/internal networks,
+# and tell users to pick unique, disposable passwords (see README.md).
+
+server {
+    listen 80;
+    server_name dashboard.example.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:4000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

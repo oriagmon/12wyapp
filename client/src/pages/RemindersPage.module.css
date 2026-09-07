@@ -1,0 +1,204 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.formSection {
+  padding: clamp(18px, 3vw, 28px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+/* Only meaningful as a *width* basis inside the horizontal .row below. Left unqualified it
+   would also apply along .formSection's vertical main axis, giving every stacked field a
+   220px height and leaving huge blank gaps under the title and body inputs. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.row > .field {
+  flex: 1 1 220px;
+}
+
+.label {
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-weight: 650;
+}
+
+.row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 56px;
+  padding: 0.6em 0.75em;
+  overflow: hidden;
+  resize: none;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--text-base);
+  line-height: 1.55;
+  transition: border-color var(--transition-fast);
+}
+
+.textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.fieldError {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
+
+.prefillNotice {
+  margin: 0;
+  color: var(--accent-blue);
+  font-size: var(--text-sm);
+}
+
+.actionsRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.emptyText {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  padding: 8px 4px;
+}
+
+.reminderCard {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scroll-margin-block: 80px;
+}
+
+.searchContext {
+  padding: 16px 18px;
+}
+
+.searchContext p {
+  margin-block: 0 12px;
+  color: var(--text-muted);
+}
+
+.searchContext p[role='alert'] {
+  color: var(--danger);
+}
+
+.focusedReminder {
+  border: 2px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+.focusedReminder:focus, .list:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.reminderHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.reminderTitle {
+  margin: 0;
+  font-size: var(--text-base);
+}
+
+.reminderBody {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  white-space: pre-wrap;
+}
+
+.reminderMeta {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.errorText {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
+
+.statusChip {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: 650;
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.status_pending {
+  color: var(--accent-blue);
+}
+
+.status_sending {
+  color: var(--accent-blue);
+}
+
+.status_sent {
+  color: var(--accent-strong);
+}
+
+.status_failed {
+  color: var(--danger);
+}
+
+.status_cancelled {
+  color: var(--text-faint);
+}
+
+@media (max-width: 640px) {
+  .row {
+    flex-direction: column;
+  }
+}
+
+.quickTimes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-block-start: 6px;
+}

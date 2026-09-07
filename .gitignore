@@ -1,0 +1,25 @@
+node_modules/
+dist/
+build/
+*.log
+*.tsbuildinfo
+.env
+.env.local
+coverage/
+.DS_Store
+client/.vite/
+playwright-report/
+test-results/
+
+# Persistent SQLite data directory (server/data by default, see .env.example
+# DATA_DIR). Keep the directory itself tracked via .gitkeep but never commit
+# the actual database or WAL/journal files.
+server/data/*
+!server/data/.gitkeep
+
+# Per-test-run scratch evidence directories used only by
+# server/src/__tests__/tacticEvidence*.test.ts (created inside the project, never under
+# /tmp, and removed again in afterEach/afterAll — this entry is a backstop in case a test
+# run is ever interrupted before cleanup completes).
+server/.tmp-evidence-tests/
+.tmp-e2e-*/

@@ -1,0 +1,146 @@
+OPTIONAL PRIVATE OFF-VM BACKUPS — INSTALLATION CHECKLIST
+
+Gate and ownership:
+Provisioning and real network activity require operator approval. Complete the security
+review, isolated mocked tests and production build before provisioning. Passing local
+tests does not establish an actual cloud upload or successful restoration.
+scripts/backup.sh now uses a hardened stdlib-only Python producer. Linux/root,
+working positive SQLite heap limits and a nonroot-owned source database are required.
+Live SQLite opens only after chroot and permanent privilege removal. Evidence is
+validated and copied through no-follow descriptors, then published before the DB.
+There is no sqlite3-CLI/raw-copy/database-only fallback. Actual synthetic Linux/root
+fixture execution must pass before installation; skipped cases do not satisfy this gate.
+
+Pipeline:
+scripts/backup-with-monitoring.sh still takes exactly four absolute directory arguments:
+  data-dir backup-dir evidence-dir monitoring-state-dir
+With AZURE_BACKUP_ENABLED absent/false its accepted local-only behavior is unchanged.
+With AZURE_BACKUP_ENABLED=true it creates a private isolated child of backup-dir named
+cloud-run-<UTC timestamp>-<process ID>, then invokes the hardened backup.sh into that
+directory. If SQLite backup, reference lookup, or any evidence copy fails: stop nonzero,
+do not contact Azure, and do not change either success receipt.
+
+After complete local backup, server/dist/cloudBackup.js --upload-complete-snapshot <run-dir>
+validates the protected child directory and the exact app-<timestamp>.sqlite plus optional
+matching evidence-<timestamp> output. A bounded fixed /usr/bin/python3 -I -S helper opens
+ONLY that copy using immutable, read-only standard-library SQLite and rechecks its
+tactic_evidence stored-name/byte-size references against the copied regular files.
+Missing/extra/mismatched files, sidecars, symlinks, hardlinks and unsafe names fail.
+No request handler reads these records: this is a standalone scheduled backup CLI.
+
+GNU /usr/bin/tar streams the snapshot to native Node gzip, which streams into bounded
+4 MiB Azure Put Block requests. No archive is accumulated in RAM or spooled onto disk.
+Tar uses fixed arguments, numeric owner/group zero, no shell and no caller command text.
+A tar/compression failure never commits a blob. Each block has Content-MD5 verification.
+A unique daily/YYYY/MM/DD/<timestamp>-<UUID>.tar.gz blob is committed with If-None-Match: *,
+SHA-256 metadata and the ordered block list. Final HEAD must confirm compressed length,
+SHA-256 metadata, format and BlockBlob type before any cloud success is attested.
+A lost commit response can be retried safely: an existing unique blob is accepted ONLY
+after those same checks. This is transfer confirmation, not a restore drill.
+
+Only after confirmed remote upload does the CLI atomically publish:
+  cloud-backup-success.json
+  {"version":1,"completedAt":"<UTC ISO milliseconds>","archiveBytes":<positive integer>}
+Then the wrapper publishes its existing local file-backup receipt. In cloud-enabled mode,
+failed upload deliberately advances neither success receipt, even though a complete local
+copy may exist. Existing successful timestamps remain unchanged and naturally become stale.
+If cloud receipt publication succeeds but later local receipt publication fails, the
+independent cloud attestation remains truthful and the overall wrapper still fails nonzero.
+
+No stored credentials:
+The only identity source is standard VM managed identity via the fixed link-local IMDS
+GET endpoint at 169.254.169.254, Metadata:true, api-version=2018-02-01, resource=https://storage.azure.com/.
+Optional AZURE_BACKUP_MANAGED_IDENTITY_CLIENT_ID selects an attached user-assigned identity.
+Otherwise the VM system-assigned identity is used. Tokens stay in process memory, never
+files/env/logs/API. Azure storage requests use native HTTPS with normal TLS validation.
+No redirects, proxy environment support, SAS URLs, shared keys or custom signing.
+Only public-Azure <account>.blob.core.windows.net endpoints are accepted; a private endpoint
+may be used when private DNS resolves that normal hostname. Other sovereign-cloud suffixes
+are intentionally unsupported, not guessed.
+
+Configuration (backup service ONLY, no application secrets):
+  AZURE_BACKUP_ENABLED=true
+  AZURE_BACKUP_ACCOUNT=<3..24 lowercase alphanumeric storage account>
+  AZURE_BACKUP_CONTAINER=<private container name>
+  AZURE_BACKUP_MAX_BYTES=134217728                  optional, 128 MiB default
+  AZURE_BACKUP_MANAGED_IDENTITY_CLIENT_ID=<GUID>   optional
+The wrapper supplies AZURE_BACKUP_SOURCE_ROOT and MONITORING_STATE_DIR from its explicit
+directory arguments. Do not set user-controlled source paths in an HTTP request.
+MONITORING_NODE_BIN defaults to /snap/node/current/bin/node. Build the existing server
+workspace only after review. Runtime requirements are GNU tar, Node, Python3 >=3.8 and
+SQLite >=3.31 with a positive hard_heap_limit no greater than64MiB. Zero/unsupported
+limits fail before snapshot database parsing. The server build copies the reviewed helper
+to server/dist/assets/cloud_backup_references.py; the privileged reader has no native
+Node SQLite dependency.
+
+Root-run code and all dependencies require independently trusted provenance and protected
+ownership. Copying app-writable modules and hashing those copies does not authenticate
+them. Never enable a root-run sample against an app-controlled code/dependency tree.
+The separate versioned release packages authenticated, pinned Zod runtime bytes instead;
+it never reads, copies or imports the live application's node_modules.
+
+The parent may install backup-cloud.env.sample as a root-owned 0600 dedicated env file and
+the OPTIONAL backup-cloud.conf.sample as a backup-service drop-in. The base backup service
+remains network-denied without that drop-in. It uses root:copilot-agent, 0750 state/output
+directories and 0640 receipts. The app still gets read access only to monitoring state.
+The optional network drop-in permits IP sockets; parent must review outbound controls for
+DNS, local IMDS and HTTPS to the chosen account. Do not apply it to the HTTP app or local
+monitoring probe. Those remain non-network-probing.
+
+Separate monitoring:
+Set MONITORING_CLOUD_BACKUP_ENABLED=true in /etc/12-week-dashboard-monitoring.env only after
+the optional backup pipeline is configured. No Azure account/container/identity values
+belong in that probe file or the app environment. The probe reads only the bounded local
+cloud receipt. HTTP status exposes cloud state, last confirmed timestamp, compressed bytes
+and freshness age; no account, object name, filename, token, path, digest or user content.
+The Hebrew panel shows off-VM cloud confirmation separately from local backup freshness.
+Missing/malformed/future receipts = unknown; not enabled = not configured; old = warning.
+The same default 36-hour backup freshness threshold is used. A stale local probe can never
+make the cloud card green. Older probe JSON without cloud fields remains compatible.
+
+Enforced workload/cost bounds:
+- Daily timer remains 03:20 Asia/Jerusalem; parent must avoid duplicate existing schedules.
+- Maximum 10,000 evidence references and 1 GiB uncompressed source bytes per run.
+- Compressed default 128 MiB, configurable 1..256 MiB; the 256 MiB ceiling is hard.
+- 4 MiB in-flight block buffers, sequential upload/backpressure; no whole-archive buffering.
+- Per request: IMDS 5s, Blob 30s; 64 KiB response cap; at most three attempts.
+- Transient 408/429/5xx/network errors use bounded delay (maximum 5s); 401 refreshes identity.
+- Whole CLI deadline 10 minutes, inside the existing 15-minute service timeout.
+- No committed remote blob on archive failure. Uncommitted Azure blocks expire after about
+  seven days; they can incur bounded interim storage charges even on failed attempts.
+- Thirty daily successes retain at most 3.75 GiB by default, 7.5 GiB at the hard maximum.
+  Additional soft-delete/uncommitted retention can raise that amount.
+These are byte/operation limits, NOT a monetary enforcement mechanism. Region/SKU,
+redundancy, retention, diagnostics and other subscription spend determine the bill.
+The operator must verify the approved incremental USD 1–5/month estimate and total estimated
+subscription spend below USD 150 before enabling; these limits do not replace that check.
+
+Operator provisioning checklist:
+1. Use a private StorageV2 Standard_LRS account, preferably in the VM's region, Hot tier.
+   Disable anonymous/public blob access and shared-key authentication; require HTTPS/TLS1.2+.
+   Create a non-public container. Encryption at rest remains Azure-managed; no client key
+   is introduced. Select private endpoint/storage firewall settings appropriate to the VM.
+2. Attach/enable the selected VM managed identity and grant Storage Blob Data Contributor
+   scoped to THIS CONTAINER (or a reviewed minimal blob read/write custom role).
+   No subscription/account-wide contributor role is needed by the uploader.
+3. Configure lifecycle deletion after 30 days for block blobs under <container>/daily/.
+   Review soft-delete/version/snapshot settings and their billable retention; do not enable
+   unbounded diagnostic logging or replication as an accidental backup dependency.
+4. Verify regional pricing, current subscription forecast, and budget alerts. Alerts are
+   not hard spending caps; code cannot guarantee the subscription-wide USD 150 boundary.
+5. Review current backup schedules before installing/enabling the optional daily timer.
+   Review local retention separately: complete and failed snapshot directories are retained
+   for diagnosis/recovery; this change never silently deletes local backups.
+6. After security approval, execute isolated mocked tests/typechecks, then separately
+   authorize any real identity/upload/restore check. A restore drill remains necessary.
+
+New code/tests:
+  server/src/cloudBackup.ts
+  server/src/lib/cloudBackupConfig.ts
+  server/src/lib/cloudBackupSnapshot.ts
+  server/src/lib/cloudBackupTransport.ts
+  server/src/lib/cloudBackup.ts
+  server/src/__tests__/cloudBackup.test.ts
+  server/src/__tests__/cloudBackupTransport.test.ts
+Existing wrapper/monitoring tests also cover cloud success, failure and truthful receipts.
+Run the existing targeted tests before deploying changes to this pipeline.

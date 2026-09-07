@@ -1,0 +1,112 @@
+.authScreen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.authCard {
+  width: 100%;
+  max-width: 420px;
+  padding: 40px 32px;
+  text-align: center;
+}
+
+.authTitle {
+  margin: 0 0 4px;
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
+.authSubtitle {
+  margin: 0 0 28px;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.tabRow {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  background: var(--surface-alt);
+  padding: 4px;
+  border-radius: var(--radius-md);
+}
+
+.tabButton {
+  flex: 1;
+  padding: 0.6em 1em;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.tabButton[aria-selected='true'] {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.field {
+  text-align: right;
+  margin-bottom: 16px;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.errorBox {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  margin-bottom: 16px;
+  text-align: right;
+}
+
+.submitBtn {
+  width: 100%;
+  margin-top: 4px;
+  padding: 0.75em;
+  font-size: 1rem;
+}
+
+.successBox {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  border: 1px solid color-mix(in srgb, var(--accent-strong) 35%, transparent);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  margin-bottom: 16px;
+  text-align: right;
+}
+
+.linkButton {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent-blue);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.linkButton:hover {
+  color: var(--accent-strong);
+}

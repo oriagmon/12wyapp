@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh local monitoring observations every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=15s
+Unit=12-week-dashboard-monitoring-probe.service
+
+[Install]
+WantedBy=timers.target

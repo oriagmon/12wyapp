@@ -1,0 +1,303 @@
+/*
+  Minimalist design system.
+  One primary accent (emerald) drives all interactive/brand color; blue, gold and purple
+  are restrained secondary accents used only where semantically meaningful (info/links,
+  the 85% success threshold, and goal-color labeling respectively). Surfaces are flat and
+  neutral, shadows are minimal, borders are thin — calm rather than decorative.
+*/
+
+:root {
+  --accent: #10b981; /* emerald — primary */
+  --accent-strong: #059669;
+  --accent-soft: rgba(16, 185, 129, 0.12);
+  --accent-blue: #3b82f6; /* info/links only */
+  --accent-gold: #d4a017; /* 85%+ success threshold only */
+  --accent-purple: #8b5cf6; /* goal-color labeling only */
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --font-sans: 'Segoe UI', Arial, system-ui, -apple-system, 'Arial Hebrew', sans-serif;
+
+  --text-xs: 0.8rem;
+  --text-sm: 0.9rem;
+  --text-base: 1rem;
+  --text-lg: 1.2rem;
+  --text-xl: 1.6rem;
+  --text-2xl: 2.2rem;
+
+  --transition-fast: 130ms ease;
+  --motion-ease: cubic-bezier(.22, 1, .36, 1);
+  --motion-spring: cubic-bezier(.2, 1.4, .4, 1);
+  --motion-scrim: rgba(0, 0, 0, .38);
+}
+
+:root[data-theme='dark'] {
+  --bg: #0e1013;
+  --surface: #16181c;
+  --surface-alt: #1c1f24;
+  --surface-hover: #24272d;
+  --border: #2a2d33;
+  --text: #eef0f2;
+  --text-muted: #9a9fa8;
+  --text-faint: #6b6f78;
+  --danger: #f2777a;
+  --danger-bg: rgba(242, 119, 122, 0.12);
+  --shadow-card: none;
+}
+
+:root[data-theme='light'] {
+  --bg: #f7f8f9;
+  --surface: #ffffff;
+  --surface-alt: #f2f3f5;
+  --surface-hover: #e9ebee;
+  --border: #e2e4e8;
+  --text: #1b1d20;
+  --text-muted: #62666e;
+  --text-faint: #8b8f97;
+  --danger: #c53030;
+  --danger-bg: rgba(197, 48, 48, 0.08);
+  --shadow-card: 0 1px 2px rgba(16, 18, 20, 0.04);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+html { scroll-padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+a {
+  color: var(--accent-blue);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  padding: 0.55em 1em;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform 160ms var(--motion-spring);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px) scale(.96);
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.btn-danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-color: transparent;
+}
+
+.btn-danger:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--border);
+}
+
+.btn-sm {
+  padding: 0.35em 0.7em;
+  font-size: var(--text-xs);
+}
+
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='number'],
+input[type='datetime-local'] {
+  width: 100%;
+  padding: 0.6em 0.75em;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  transition: border-color var(--transition-fast);
+}
+
+input:focus-visible {
+  border-color: var(--accent);
+}
+
+select {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0.5em 0.7em;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.status-badge.saving {
+  color: var(--accent-blue);
+}
+.status-badge.saved {
+  color: var(--accent-strong);
+}
+.status-badge.error {
+  color: var(--danger);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: fixed;
+  inset-inline-start: 16px;
+  top: calc(8px + env(safe-area-inset-top));
+  z-index: 200;
+  padding: 12px 20px;
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-md);
+  transform: translateY(-180%);
+}
+.skip-link:focus { transform: none; }
+
+.motion-route { animation: route-enter 430ms var(--motion-ease) backwards; }
+.motion-route > :nth-child(-n + 8) {
+  animation: route-enter 460ms var(--motion-ease) backwards;
+  animation-delay: 40ms;
+}
+.motion-route > :nth-child(2) { animation-delay: 75ms; }
+.motion-route > :nth-child(3) { animation-delay: 110ms; }
+.motion-route > :nth-child(4) { animation-delay: 145ms; }
+.motion-route > :nth-child(n + 5) { animation-delay: 180ms; }
+/* Fixed dialogs must stay viewport-relative, even when opened during route entrance. */
+.motion-route:has([aria-modal='true'], dialog[open]),
+.motion-route:has([aria-modal='true'], dialog[open]) > :nth-child(-n + 8) {
+  animation: none;
+}
+.completion-pop { animation: completion-pop 660ms var(--motion-spring) !important; }
+.completion-error { color: var(--danger); font-size: var(--text-sm); }
+
+@keyframes route-enter {
+  from { opacity: .2; transform: translateY(14px) scale(.99); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes completion-pop {
+  0% { transform: scale(.84); }
+  40% { transform: scale(1.12) rotate(-4deg); box-shadow: 0 0 0 7px var(--accent-soft); }
+  72% { transform: scale(.98) rotate(1deg); }
+  100% { transform: none; box-shadow: 0 0 0 0 var(--accent-soft); }
+}
+
+@media (max-width: 720px) {
+  .card {
+    border-radius: var(--radius-md);
+  }
+  button, select, input:not([type='checkbox']):not([type='radio']):not([type='hidden']) {
+    min-height: 44px;
+  }
+  button { min-width: 44px; }
+  input, textarea, select { font-size: 16px; }
+  h1, h2, h3, p { overflow-wrap: anywhere; }
+  .motion-route { animation-duration: 330ms; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .btn:active:not(:disabled) { transform: none; }
+}

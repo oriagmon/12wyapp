@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "status": "frozen-source-only-for-parent-review",
+  "execution": "Parent only, through the new azure-final-arm.mjs; no requests have been made for this plan.",
+  "limits": {
+    "configurationGets": 6,
+    "senderConfigurationWrites": 2,
+    "automaticRetries": 0,
+    "testEmails": 0
+  },
+  "bindings": {
+    "COMM_ID": "Exact parent-allowlisted ARM resource ID ending /Microsoft.Communication/communicationServices/ori-12week-comm; do not guess its resource group.",
+    "EMAIL_ID": "Exact parent-allowlisted ARM resource ID ending /Microsoft.Communication/emailServices/ori-12week-email; do not discover other resources.",
+    "DOMAIN_ID": "Existing child of EMAIL_ID returned by domains-list, with properties.fromSenderDomain exactly equal to intendedDomain.",
+    "CURRENT_SENDER_ID": "Existing child of DOMAIN_ID returned by senders-list whose properties.username matches the effective working EMAIL_SENDER_ADDRESS local part.",
+    "DESIRED_SENDER_ID": "Existing child of DOMAIN_ID returned by senders-list whose properties.username is exactly 12wyapp.",
+    "intendedDomain": "1d3707be-5f1f-4a36-aa66-9938a4983103.azurecomm.net",
+    "intendedAddress": "12wyapp@1d3707be-5f1f-4a36-aa66-9938a4983103.azurecomm.net",
+    "displayName": "12WY",
+    "apiVersion": "2023-03-31"
+  },
+  "evidenceStatus": {
+    "providerConfiguration": "Not yet observed. No downloaded ACS domain or sender-username configuration was found in this local handoff. The intended address is a request, not a verified sender.",
+    "appContract": "server/src/config.ts reads ACS_EMAIL_CONNECTION_STRING and EMAIL_SENDER_ADDRESS from the environment; default dotenv loading does not override existing process environment.",
+    "sdkContract": "Installed @azure/communication-email EmailMessage has senderAddress:string, not a sender displayName field. Do not inject a From header or place '12WY <address>' in senderAddress.",
+    "existingCredentialFile": "/opt/12-week-dashboard/server/.env",
+    "publicEnvironmentFile": "/etc/12-week-dashboard-mvp.env"
+  },
+  "projectionPolicy": {
+    "persistOnly": "HTTP status, fixed request label, and explicitly allowed projected fields below. Validate scalar types and bound strings and arrays.",
+    "neverPersist": [
+      "authorization or tokens",
+      "connection strings or keys",
+      "raw response bodies",
+      "response headers or signed operation URLs",
+      "free-form provider errors",
+      "verification DNS record values",
+      "systemData, tags, identities, or unrelated properties",
+      "raw environment files or process environments"
+    ],
+    "errorProjection": "HTTP status plus error.code only when it matches ^[A-Za-z0-9_.-]{1,80}$; otherwise a fixed generic code.",
+    "pagination": "Record hasMore:boolean only. Do not follow nextLink. Incomplete or oversized results mean retain the working sender, not broaden discovery.",
+    "resourceIds": "Accept only exact approved resource IDs or strict descendants of the approved EMAIL_ID; never follow an arbitrary returned URL."
+  },
+  "initialRequests": [
+    {
+      "id": "G1-communication",
+      "method": "GET",
+      "path": "${COMM_ID}?api-version=2023-03-31",
+      "project": ["id", "name", "properties.provisioningState", "properties.linkedDomains"],
+      "purpose": "Confirm the existing communication resource and its linked email-domain IDs. No listKeys."
+    },
+    {
+      "id": "G2-domains",
+      "method": "GET",
+      "path": "${EMAIL_ID}/domains?api-version=2023-03-31",
+      "projectEachValue": [
+        "id",
+        "name",
+        "properties.domainManagement",
+        "properties.fromSenderDomain",
+        "properties.mailFromSenderDomain",
+        "properties.provisioningState",
+        "properties.verificationStates.Domain.status",
+        "properties.verificationStates.SPF.status",
+        "properties.verificationStates.DKIM.status",
+        "properties.verificationStates.DKIM2.status"
+      ],
+      "derive": ["hasMore"],
+      "purpose": "Find only the requested existing domain and establish managed/custom status, provisioning and verification. Never create, verify, relink, or alter a domain."
+    },
+    {
+      "id": "G3-senders",
+      "method": "GET",
+      "path": "${DOMAIN_ID}/senderUsernames?api-version=2023-03-31",
+      "projectEachValue": ["id", "name", "properties.username", "properties.displayName", "properties.provisioningState"],
+      "derive": ["hasMore"],
+      "purpose": "Observe the real allowed MailFrom username resources and existing display names. Do not confuse mailFromSenderDomain (envelope domain) with a selectable username."
+    }
+  ],
+  "selectionRules": [
+    "Require complete, successful reads and the exact requested domain linked to COMM_ID. Reject ambiguous domain/sender matches.",
+    "Parent's separately approved VM preflight must establish the effective working sender for the app and existing workers without printing credentials. Do not assume the default username or casing.",
+    "Changing the app address requires the desired sender to ALREADY exist in G3, its username to be 12wyapp, the requested domain to be provisioned Succeeded and verified, and DOMAIN_ID to be linked in G1.",
+    "If a sender-level provisioningState exists, it must be Succeeded; absence is not invented as a success state. A successful post-write GET of the configured username is still required.",
+    "If domainManagement is AzureManaged and 12wyapp is absent, there is no positive configuration evidence permitting a custom MailFrom. Do not attempt speculative creation. Retain the working sender and attempt only its supported displayName update.",
+    "This plan does not create 12wyapp even when an unrelated custom-domain capability might exist. No new domain, resource, DNS change, key operation, From-header spoofing, or paid feature is permitted.",
+    "If provider support remains unknown, leave the working sender unchanged. Existing in-message 12WY branding remains available; report that a mailbox display-name change was not verified."
+  ],
+  "writes": [
+    {
+      "id": "W1-brand-selected-existing-sender",
+      "method": "PUT",
+      "path": "${SELECTED_EXISTING_SENDER_ID}?api-version=2023-03-31",
+      "selection": "DESIRED_SENDER_ID only if all address-change gates pass; otherwise CURRENT_SENDER_ID. Skip if the existing displayName is already exactly 12WY.",
+      "payload": {
+        "properties": {
+          "username": "${EXACT_EXISTING_PROPERTIES_USERNAME}",
+          "displayName": "12WY"
+        }
+      },
+      "bodyPolicy": "Only these two properties. Preserve the observed username and resource ID exactly. Never send the full email address as username.",
+      "precondition": "The selected resource must exist in G3. This is an in-place sender metadata update, not an upsert to an unobserved username."
+    },
+    {
+      "id": "W2-optional-brand-working-fallback",
+      "method": "PUT",
+      "path": "${CURRENT_SENDER_ID}?api-version=2023-03-31",
+      "payload": {
+        "properties": {
+          "username": "${EXACT_EXISTING_WORKING_USERNAME}",
+          "displayName": "12WY"
+        }
+      },
+      "precondition": "Optional only when W1 targeted a distinct, pre-existing desired sender but was rejected or could not be confirmed, and the working sender needs display branding. Never repeat a failed write to the same resource. Never change the working username."
+    }
+  ],
+  "confirmationRequests": [
+    {
+      "id": "G4-selected-sender-confirmation",
+      "method": "GET",
+      "path": "${SELECTED_EXISTING_SENDER_ID}?api-version=2023-03-31",
+      "project": ["id", "name", "properties.username", "properties.displayName", "properties.provisioningState"],
+      "require": "Exact expected resource/username and displayName 12WY. Do not treat HTTP 202 or an unverified PUT response as permission to install an address override."
+    },
+    {
+      "id": "G5-optional-fallback-confirmation",
+      "method": "GET",
+      "path": "${CURRENT_SENDER_ID}?api-version=2023-03-31",
+      "project": ["id", "name", "properties.username", "properties.displayName", "properties.provisioningState"],
+      "when": "Only to verify W2, or to confirm that the retained sender remains unchanged after an inconclusive W1."
+    },
+    {
+      "id": "G6-optional-final-same-resource-confirmation",
+      "method": "GET",
+      "path": "${LAST_WRITTEN_EXISTING_SENDER_ID}?api-version=2023-03-31",
+      "project": ["id", "name", "properties.username", "properties.displayName", "properties.provisioningState"],
+      "when": "Reserve for one delayed fixed-resource confirmation if an earlier GET was not yet conclusive. No unbounded polling or operation-URL following. If still inconclusive, retain the current address."
+    }
+  ],
+  "minimumBudget": "Usually 3 initial GETs + 1 displayName PUT + 1 confirmation GET. Already-correct observed branding can need no write. Unused permission is not a requirement to send more requests.",
+  "conditionalVmInstall": {
+    "neededOnlyWhen": "The desired pre-existing sender passes all positive provider gates, is confirmed after branding, and differs from the effective working sender.",
+    "fragment": "deploy/install-verified-sender.fragment.py",
+    "newFile": "/etc/12-week-dashboard-sender.env",
+    "contentExactly": "EMAIL_SENDER_ADDRESS=12wyapp@1d3707be-5f1f-4a36-aa66-9938a4983103.azurecomm.net\n",
+    "ownershipAndMode": "root:root 0600, regular single-link file; reject symlinks and unexpected existing content.",
+    "unchangedFiles": ["/opt/12-week-dashboard/server/.env", "/etc/12-week-dashboard-mvp.env"],
+    "units": [
+      "12-week-dashboard.service",
+      "12-week-dashboard-wam-reminders.service",
+      "12-week-dashboard-scheduled-reminders.service",
+      "12-week-dashboard-broost-emails.service"
+    ],
+    "environmentOrder": "Preserve every approved existing EnvironmentFile entry. Keep credentials and public MVP settings; append the sender-only EnvironmentFile last for each existing app/email-worker service. Do not clear the EnvironmentFile list, copy secrets into the public file, or override NODE_ENV/DATA_DIR/DB_FILE/APP_PUBLIC_URL/approved IDs.",
+    "activation": "Parent may incorporate the returned drop-in fragment in the separately reviewed final release. No worker start/restart or timer trigger. daemon-reload alone does not restart running jobs. Workers adopt it on their next normal approved invocation; the app adopts it at its separately approved final-release restart, after in-flight activity is handled by that release plan.",
+    "fallback": "If retaining the current address, do not install any sender override or new service drop-in. A supported provider displayName change requires no application restart.",
+    "verification": "Report only booleans for credential presence, desired-sender match, effective file order, approved public settings unchanged and service state. No environment dumps, test mail, provider send call or credential output."
+  },
+  "handoff": "Fresh narrow parent review is required before any plan/helper execution. No tests, code execution, network requests, VM access, credentials-file reads, email sends, or deployment were performed for this source-only preparation."
+}

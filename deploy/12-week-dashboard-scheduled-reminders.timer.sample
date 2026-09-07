@@ -1,0 +1,14 @@
+[Unit]
+Description=Claim and send due scheduled email reminders (every minute)
+
+[Timer]
+# Fires at the top of every minute — scheduled reminders are minute-granularity, so this
+# keeps delivery latency low without needing a long-running daemon.
+OnCalendar=*-*-* *:*:00
+# If the machine was off/asleep at a scheduled minute, run once shortly after boot instead of
+# silently skipping any reminders that became due while it was down.
+Persistent=true
+AccuracySec=1sec
+
+[Install]
+WantedBy=timers.target

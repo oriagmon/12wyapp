@@ -1,0 +1,38 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.tabRow {
+  display: flex;
+  gap: 8px;
+  background: var(--surface-alt);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  width: fit-content;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: 0.55em 1.1em;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.tab.active {
+  background: var(--surface);
+  color: var(--accent-strong);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}

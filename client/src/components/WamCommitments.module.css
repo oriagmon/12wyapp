@@ -1,0 +1,92 @@
+.wrap {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.empty {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 0.85rem;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--surface-alt);
+  border-radius: var(--radius-sm);
+}
+
+.checkboxLabel input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.itemInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 4px 2px;
+}
+
+.itemInput.done {
+  text-decoration: line-through;
+  color: var(--text-faint);
+}
+
+.scopeTag {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.addRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.addRow input[type='text'] {
+  flex: 1;
+  min-width: 160px;
+}
+
+.addRow select {
+  padding: 0.4em 0.6em;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+}
+
+.reopenHint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}

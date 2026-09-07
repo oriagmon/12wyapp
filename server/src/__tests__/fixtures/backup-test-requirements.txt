@@ -1,0 +1,112 @@
+BACKUP TEST REQUIREMENTS — TEST-ONLY, NOT AN APPLICATION OR BACKUP DEPLOYMENT
+
+Production code and release archives are not modified by this test work.
+No VM/network/Docker-daemon/package-download activity is part of these tests.
+
+Current parent-built release:
+  azure-backup-release-20260905-offvm-v5.tar.gz
+  98280 bytes /58 files
+  SHA256 87ab82333b6597ce75c4ec8c44d98d36ea3c9a3d29782ac690f66a5a64d341ad
+  Focused source review cleared. Parent ran35cloudBackup cases, server typecheck/build,
+  and actual packaged root ESM/CJS Zod APIs/monitoringProbe schema offline smoke.
+  The packaged Python asset byte-matches the reviewed source.
+  Packaging profile is zod-root-runtime-v1: the complete reachable ROOT ESM/CJS graphs,
+  enclosing package scopes, referenced runtime assets and licenses—not all Zod variants
+  or public subpath APIs. Anchor version3 / dependency-manifest version2.
+  See FILES/azure-backup-release/packaging-notes.txt for the packaging contract; older
+  all-variant selection wording is not the current runtime profile.
+  These packaging checks do NOT establish the Linux/root producer boundary. The31-case
+  fixture execution below is still required before installation. No backup VM command
+  has been invoked by this test task; parent reports the original three remain unused.
+
+Local SQLite capability:
+  The privileged default remains fixed at /usr/bin/python3; there is no runtime override.
+  backupPythonRuntime.ts probes only in-memory SQLite using isolated Python subprocesses.
+  A supported runtime requires Python>=3.8, SQLite>=3.31, and BOTH setting/querying
+  PRAGMA hard_heap_limit yielding a positive value <=67108864.
+  On this Mac the already installed /opt/homebrew/bin/python3.13 is compatible:
+    Python3.13.15 / SQLite3.53.4 / heap limit67108864.
+  The fixed Apple/Xcode interpreter's zero limit is classified UNSUPPORTED.
+  The Homebrew alternative is test-only and only considered on nonroot macOS; Linux/root
+  checks always use the fixed OS interpreter. Nothing is downloaded or PATH-discovered
+  dynamically during tests.
+  SQL reference tests are explicitly capability-gated. The producer guard is checked
+  OUTSIDE expected-failure handling, so a failed heap prerequisite cannot fake a passing
+  malformed-reference assertion. Pure basename/descriptor tests need no SQLite limit.
+  Affinity-free fixtures bind integral sizes as bigint: better-sqlite3 JS numbers otherwise
+  become REAL, causing a false "valid" fixture to fail strict INTEGER validation.
+
+Snapshot helper guard:
+  Both producer and snapshot helper require a positive heap result no greater than64MiB.
+  Four reviewed subprocess regressions inject0/-1/null/oversized control results and
+  require the exact PRAGMA to be reached, its control connection closed, and NO untrusted
+  database connection attempted. Earlier prerequisite failure cannot fake a pass.
+  These regressions passed in the35-case parent run; they do not establish kernel behavior.
+
+Existing targeted local runner:
+  cd <PROJECT>
+  npm_config_offline=true npm_config_update_notifier=false \
+    npm_config_audit=false npm_config_fund=false \
+    npm run test --workspace server -- \
+      src/__tests__/cloudBackup.test.ts src/__tests__/backupProducer.test.ts
+  The 12 Vitest kernel cases require Linux/root, supported fixed OS Python, a root-controlled
+  project directory and local UID/GID65534. Skips do not satisfy the installation gate.
+
+PORTABLE STDLIB-ONLY LINUX/ROOT DRIVER
+  File: backup_linux_runner.py (beside this document).
+  No Node/native Node binding, npm, new framework, container daemon, downloads or network.
+  It runs31 fixed cases against the reviewed producer and actual backup.sh using exclusively
+  generated fixture databases/evidence. A separate bounded Python writer keeps committed
+  WAL transactions open; no live SQLite connection crosses the producer's fork.
+  A valid synthetic root-only SQLite sentinel and WAL are used for path-race tests.
+  Injected DB/WAL swaps are restored before post-checks, ensuring that post-check rejection
+  alone cannot masquerade as successful confinement.
+  Coverage includes WAL, absent evidence schema, 2/3 arguments + DB_FILE, DB/sidecar/evidence
+  symlinks, traversal/control/NUL/length/count limits, directory swaps, hardlinks/FIFO,
+  missing/changed evidence, leaked VFS directory capability, inherited FD closure,
+  root-owned source rejection, exclusive existing outputs, and restored-copy integrity.
+
+  The driver refuses the real application/data/backup roots and /tmp or /var/tmp.
+  It requires an empty dedicated root-owned0700 project with EXACTLY this layout:
+    .isolated-backup-fixture-project
+    scripts/backup.sh
+    scripts/backup_producer.py
+    tests/backup_linux_runner.py
+  Marker bytes must be exactly: SYNTHETIC BACKUP FIXTURES ONLY followed by LF.
+  All files/ancestors must be root-controlled, nonsymlinked and not group/world writable.
+  Use ONLY authenticated reviewed build-artifact code, never code copied from a live app.
+  Staged producer scripts must match payload/scripts/ from the authenticated v5 archive;
+  do not substitute an older release or confuse anchor-v3 with release-name versions.
+  The existing local UID/GID65534 must be available; the runner creates no OS/app users.
+  Kernel CHOWN/SETGID/SETUID/SYS_CHROOT support and functional SQLite heap limit are required.
+
+  Example LOCAL code-only staging (does not execute any root fixture):
+    mkdir -m700 backup-linux-fixture-project
+    mkdir -m700 backup-linux-fixture-project/scripts backup-linux-fixture-project/tests
+    cp <REVIEWED_PROJECT>/scripts/backup.sh \
+      <REVIEWED_PROJECT>/scripts/backup_producer.py backup-linux-fixture-project/scripts/
+    cp <REVIEWED_PROJECT>/server/src/__tests__/fixtures/backup_linux_runner.py \
+      backup-linux-fixture-project/tests/
+    printf 'SYNTHETIC BACKUP FIXTURES ONLY\n' > backup-linux-fixture-project/.isolated-backup-fixture-project
+    chmod 600 backup-linux-fixture-project/.isolated-backup-fixture-project \
+      backup-linux-fixture-project/scripts/* backup-linux-fixture-project/tests/*
+  Parent separately authenticates/transfers these code-only files to an authorized
+  root-controlled Linux scratch project. No transport or VM command is performed here.
+
+  Inspection (does not run cases):
+    /usr/bin/python3 -I -S -B tests/backup_linux_runner.py --list
+  Actual execution, ONLY after parent authorizes the Linux/root environment:
+    cd <DEDICATED_ROOT_OWNED_FIXTURE_PROJECT>
+    /usr/bin/env -i PATH=/usr/bin:/bin LC_ALL=C \
+      /usr/bin/python3 -I -S -B tests/backup_linux_runner.py --run
+
+  The first real WAL baseline must pass before any negative case is credited.
+  Exit0 requires passed=31 failed=0 not_run=0 cleanup_failed=0.
+  Exit77 / RUNNER_NOT_RUN means prerequisites were missing: NOTHING passed.
+  Other nonzero exits or any cleanup failure block installation.
+  Only case IDs, status and counts are printed; no source records, paths, credentials,
+  application environment, OS secrets or raw provider errors.
+  Each fixture is confined to its own newly protected UUID directory under that project.
+  The runner closes its writer processes and removes only its own fixture directories.
+  On local macOS only --list and honest NOT_RUN behavior are validated; the31 real kernel
+  cases remain NOT RUN until an authorized Linux/root execution completes.

@@ -1,0 +1,101 @@
+.wrap {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.mismatch {
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  font-size: var(--text-sm);
+}
+
+.historicalBanner {
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  font-size: var(--text-sm);
+}
+
+.sides {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.side {
+  background: var(--surface-alt);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid transparent;
+}
+
+.side.me {
+  border-color: var(--accent-blue);
+}
+
+.sideHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sideLabel {
+  font-weight: 700;
+}
+
+.meBadge {
+  color: var(--accent-blue);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.email {
+  color: var(--text-faint);
+  font-size: 0.78rem;
+}
+
+.scoreRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.scoreValue {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.scoreTag {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
+.cycleInfo {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}

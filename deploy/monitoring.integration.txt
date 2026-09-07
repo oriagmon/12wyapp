@@ -1,0 +1,125 @@
+MONITORING INTEGRATION — local-only, read-only, not deployed
+
+Server:
+  import { monitoringRouter } from './routes/monitoring.js';
+  app.use('/api/monitoring', monitoringRouter);
+Mount before static frontend/error handlers. Requires existing cookieParser middleware.
+The router checks existing sessions using SELECT only (unlike requireAuth, it never
+deletes expired sessions). Every logged-in app user may view these system-wide,
+anonymous aggregates; put any stricter admin-only policy before this mount if needed.
+GET/HEAD only. Authentication precedes filesystem reads. Query parameters are ignored.
+All responses are private/no-store. DB errors return 503; missing optional observations
+remain unknown, never "healthy". No new tables/migrations or dependencies.
+
+Client:
+  import { MonitoringPanel } from '../components/MonitoringPanel';
+  <MonitoringPanel />
+Render inside the authenticated dashboard/navigation. It loads once on mount and uses
+manual refresh only. Styles are local to the panel; no global styles or main types changed.
+Server 503 snapshots are still displayed, with error status. Generic errors/auth failures
+do not display server error text or stale prior data. API: /api/monitoring.
+
+App runtime (no extra privileges):
+  MONITORING_STATE_DIR=/var/lib/12-week-dashboard-monitoring
+  MONITORING_PROBE_MAX_AGE_SECONDS=900           optional; 60..86400
+  MONITORING_BACKUP_MAX_AGE_SECONDS=129600       optional; 60..2592000
+The app needs directory traversal + read access ONLY to the published probe JSON.
+Do NOT add the state directory to the app's writable paths. Probe files are mode 0640;
+the directory should be root:application-group 0750, never app/group/world-writable.
+Do not serve this directory statically. No environment values/paths appear in the API.
+Absent MONITORING_STATE_DIR is supported in development and means not configured.
+
+Operator setup (manual, not performed by this implementation):
+Build server via existing build. Review/copy the new probe .service/.timer samples and
+the separate monitoring.env.sample. Adjust paths/group, then install/enable via the
+normal privileged deployment process. The sample service creates its state directory.
+Do NOT source the application .env: the probe needs no DB, ACS, user or connection secrets.
+Its systemctl calls only inspect these fixed units:
+  weekly     12-week-dashboard-wam-reminders.timer
+  reminders  12-week-dashboard-scheduled-reminders.timer
+  broost     12-week-dashboard-broost-emails.timer
+  backup     12-week-dashboard-backup.timer
+MONITORING_TIMERS is a comma-separated subset of those IDs. Empty = not configured;
+unknown/duplicate names fail closed. A backup timer sample is provided, not installed
+or enabled. Check existing backup schedules before choosing whether to enable it.
+Other unit names require an explicit reviewed code/contract change, not arbitrary env input.
+The backup alias has one explicit fixed alternative: MONITORING_BACKUP_TIMER=standalone-blob
+selects 12-week-dashboard-blob-backup.timer for the separately installed Blob pipeline.
+Absent or standard selects 12-week-dashboard-backup.timer; blank/other values fail.
+Include backup in MONITORING_TIMERS to collect either variant. Cloud receipt enablement
+does not implicitly change the timer selection. The public four-timer contract is unchanged.
+Systemctl uses execFile, no shell, 3-second timeout and 4096-byte output cap per unit.
+Only loaded unit state and next realtime run are retained. This does not claim the
+timer's last service execution succeeded. Unsupported outputs/hosts say unknown.
+
+Certificates:
+MONITORING_CERT_FILE is an operator-controlled local PUBLIC leaf certificate file.
+Never provide a private-key file. No HTTPS/DNS/network probe exists.
+X509Certificate reads validity only, with a 64 KiB cap. Subject/SAN/issuer are discarded.
+The final file component must not be a symlink. For renewal-managed symlinks, publish
+the public leaf PEM atomically into a fixed regular file using your renewal hook.
+Keep this copy refreshed; the dashboard reports observed validity, not proof of what
+a reverse proxy currently serves. Not-yet-valid/expired => error; <=30 days => warning.
+
+File-backup freshness:
+No mtime guessing, directory scanning, or presumption that an SQLite copy includes evidence.
+Enable MONITORING_FILE_BACKUP_ENABLED=true in the probe's dedicated environment only
+when your trusted backup runner records SUCCESS after a consistent database AND evidence
+file backup completes. The new wrapper does this without changing backup.sh:
+  /bin/bash /opt/12-week-dashboard/scripts/backup-with-monitoring.sh \
+    /opt/12-week-dashboard/server/data /var/lib/12-week-dashboard-backups \
+    /opt/12-week-dashboard/server/data/evidence /var/lib/12-week-dashboard-monitoring
+All four directories must be explicit absolute paths. Apostrophes/line breaks are rejected
+because the accepted backup.sh quotes its destination inside SQLite's .backup command.
+MONITORING_NODE_BIN defaults to /snap/node/current/bin/node; a non-snap operator may
+explicitly configure another absolute Node executable. DB_FILE defaults to app.sqlite
+and must be a simple basename. No caller-provided commands, script names or CLI flags.
+The wrapper checks that the built server/dist/monitoringProbe.js exists before backing up,
+forwards the three backup directories exactly, and invokes only:
+  /snap/node/current/bin/node /opt/12-week-dashboard/server/dist/monitoringProbe.js --record-file-backup-success
+only after backup.sh exits zero. It supplies the receipt environment itself and strips
+application credentials/runtime hooks from both child environments. Any failed SQLite,
+reference-query or evidence-copy step preserves the prior receipt without rewriting it.
+Incomplete backup artifacts are left for operator investigation, not misreported as success.
+If the backup completes but receipt publication fails, the wrapper exits nonzero explicitly.
+Supply MONITORING_STATE_DIR and MONITORING_FILE_BACKUP_ENABLED=true to that process.
+The receipt is written atomically in the same protected state directory; use the same
+writer group/umask as the probe. Do not make the directory app-writable to enable this.
+The command performs no backup itself, never modifies the DB, and never executes services.
+It only attests the trusted runner's completion time. A failed backup must NOT write it.
+The existing scripts/backup.sh and existing units were intentionally not modified.
+Receipt absence/corruption/future timestamps => unknown. Age >36 hours by default => warn.
+This is freshness of an attested completed file backup, not restore/integrity validation.
+
+Optional private off-VM backups are documented separately in cloud-backup.integration.txt.
+They remain disabled by default. When enabled, the wrapper withholds both success receipts
+until remote confirmation, and publishes a separate cloud receipt/card; it never treats
+a local artifact as proof of off-VM backup. The HTTP app/local probe do not contact Azure.
+
+The new 12-week-dashboard-backup.service.sample runs root:copilot-agent using snap Node,
+with no application secrets EnvironmentFile. Its StateDirectory entries create the backup
+and monitoring directories mode 0750. SQLite's accepted CLI backup may need source WAL/SHM
+bookkeeping, so only the source data directory plus the two output directories are writable.
+The matching timer sample schedules 03:20 Asia/Jerusalem daily, with a persistent missed-run
+catch-up. These samples perform local backups only; retention/off-host copying is separate.
+Do not install/enable blindly: an existing backup schedule may already perform this work.
+Choose one schedule, then add the "backup" timer ID and enable file-backup observations in
+the probe's separate config. The HTTP application still receives no write privileges.
+
+Interpretation:
+WAM count/latest is from immutable backup metadata only, never snapshot_json.
+Empty WAM history is unknown, not failure. This in-DB safety net is not an external backup.
+Email counts cover currently retained delivery records, not lifetime attempts or a recent
+window. Retries overwrite some delivery rows. Any failed records => warning; empty channels
+=> unknown. No recipient addresses, user identifiers, message content, raw errors/logs,
+SQL, filenames, certificate identities or connection strings are returned.
+An unavailable file probe stays unknown; a >15-minute-old valid probe is stale and can
+never make operational cards green. Future samples and receipts are rejected.
+The JSON is read with a 16 KiB cap, regular-file checks and no final symlink following.
+System/probe status is informational: there are no control/destructive operations.
+
+Offline verification:
+Use targeted monitoring server/client tests and existing workspace typecheck commands.
+Tests use in-memory SQLite, isolated project-local scratch directories, mocked file/clock/
+systemctl providers and synthetic local certificate fixtures. Never run the live collector
+against host services/certificates just to test installation.

@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily complete 12-Week Dashboard backup (Israel time)
+
+[Timer]
+OnCalendar=*-*-* 03:20:00 Asia/Jerusalem
+Persistent=true
+AccuracySec=1min
+Unit=12-week-dashboard-backup.service
+
+# Review existing backup schedules first. This sample is not installed or enabled.
+[Install]
+WantedBy=timers.target
