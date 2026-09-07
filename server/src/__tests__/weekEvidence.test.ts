@@ -130,7 +130,7 @@ describe('whole-cycle-week album (in-process, no network)', () => {
     expect(JSON.stringify(exported.body)).not.toContain('file_stored_name');
     expect((await invoke(exportRouter, 'GET', '/', partner)).body.cycles.every((cycle: any) => cycle.id !== 10)).toBe(true);
     const snapshot = buildAppDataSnapshot(db);
-    expect(snapshot.schemaVersion).toBe(6);
+    expect(snapshot.schemaVersion).toBe(7);
     expect(snapshot.tables.tactic_evidence).toHaveLength(2);
     expect(snapshot.tables.tactic_evidence[0]).toMatchObject({ cycleId: 10, tacticId: null, hasFile: 1 });
     expect((await request('DELETE', `/10/1/${first.body.id}/file`, owner)).status).toBe(200);

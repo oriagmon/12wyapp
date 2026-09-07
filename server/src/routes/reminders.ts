@@ -14,6 +14,7 @@ import {
   validateScheduledFor,
   type ScheduledEmailReminderRow,
 } from '../lib/scheduledReminders.js';
+import { tReq } from '../lib/i18n/index.js';
 
 export const remindersRouter = Router();
 remindersRouter.use(requireAuth);
@@ -70,7 +71,7 @@ remindersRouter.get('/', (req, res) => {
 remindersRouter.post('/', (req, res) => {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();
@@ -146,7 +147,7 @@ remindersRouter.patch('/:id', (req, res) => {
 
   const parsed = updateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
 

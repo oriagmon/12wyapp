@@ -10,6 +10,7 @@ import { loadUserProfile } from '../lib/userProfile.js';
 import { config } from '../config.js';
 import { getAcceptedPartnershipForUser, isPartnershipMember } from '../lib/wam.js';
 import { isUserAdmitted } from '../lib/accessPolicy.js';
+import { LOCALES, tReq, type Locale } from '../lib/i18n/index.js';
 
 export const profileRouter = Router();
 profileRouter.use(requireAuth);
@@ -27,6 +28,7 @@ const profileUpdateSchema = z.object({
     .max(MAX_DISPLAY_NAME, `שם התצוגה ארוך מדי (עד ${MAX_DISPLAY_NAME} תווים)`)
     .optional(),
   bio: z.string().trim().max(MAX_BIO, `הביוגרפיה ארוכה מדי (עד ${MAX_BIO} תווים)`).optional(),
+  locale: z.enum(LOCALES as unknown as [Locale, ...Locale[]]).optional(),
 });
 
 const passwordChangeSchema = z
@@ -95,17 +97,24 @@ profileRouter.get('/', (req, res) => {
 profileRouter.patch('/', (req, res) => {
   const parsed = profileUpdateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();
-  const current = db.prepare('SELECT display_name, bio FROM users WHERE id = ?').get(req.user!.id) as {
+  const current = db.prepare('SELECT display_name, bio, locale FROM users WHERE id = ?').get(req.user!.id) as {
     display_name: string;
     bio: string;
+    locale: string;
   };
   const displayName = parsed.data.displayName ?? current.display_name;
   const bio = parsed.data.bio ?? current.bio;
-  db.prepare('UPDATE users SET display_name = ?, bio = ? WHERE id = ?').run(displayName, bio, req.user!.id);
+  const locale = parsed.data.locale ?? current.locale;
+  db.prepare('UPDATE users SET display_name = ?, bio = ?, locale = ? WHERE id = ?').run(
+    displayName,
+    bio,
+    locale,
+    req.user!.id
+  );
   res.json(loadUserProfile(db, req.user!.id));
 });
 
@@ -119,7 +128,7 @@ profileRouter.patch('/', (req, res) => {
 profileRouter.patch('/password', async (req, res) => {
   const parsed = passwordChangeSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();

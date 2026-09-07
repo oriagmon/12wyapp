@@ -25,6 +25,7 @@ import { buildStableWamCalendarUid, domainFromEmail } from '../lib/ics.js';
 import { sendWamCalendarInvitations } from '../lib/wamCalendarInvites.js';
 import { insertWamCompletionBackupIfAbsent } from '../lib/wamCompletionBackup.js';
 import { computeDuoStreak, classifyWamOutcome, type DuoStreakSummary } from '../lib/duoStreak.js';
+import { tReq } from '../lib/i18n/index.js';
 
 export const wamsRouter = Router();
 wamsRouter.use(requireAuth);
@@ -462,7 +463,7 @@ wamsRouter.get('/search', (req, res) => {
 wamsRouter.post('/', (req, res) => {
   const parsed = wamCreateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();
@@ -571,7 +572,7 @@ wamsRouter.patch('/:id', (req, res) => {
   }
   const parsed = wamContentUpdateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const fieldMap: Record<string, string> = {
@@ -646,7 +647,7 @@ async function completeWam(req: Request, res: Response, scheduleOnly: boolean) {
   }
   const parsed = wamCompleteSchema.safeParse(req.body ?? {});
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const { nextWamAt, nextWamDurationMinutes } = parsed.data;
@@ -830,7 +831,7 @@ wamsRouter.post('/:id/reopen', (req, res) => {
 wamsRouter.patch('/:id/rating', (req, res) => {
   const parsed = wamRatingSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();
@@ -854,7 +855,7 @@ wamsRouter.patch('/:id/rating', (req, res) => {
 wamsRouter.post('/:id/commitments', (req, res) => {
   const parsed = commitmentCreateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();
@@ -884,7 +885,7 @@ wamsRouter.post('/:id/commitments', (req, res) => {
 wamsRouter.patch('/:id/commitments/:commitmentId', (req, res) => {
   const parsed = commitmentUpdateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();
@@ -961,7 +962,7 @@ wamsRouter.delete('/:id/commitments/:commitmentId', (req, res) => {
 wamsRouter.post('/:id/punishments', (req, res) => {
   const parsed = punishmentCreateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();
@@ -1018,7 +1019,7 @@ wamsRouter.post('/:id/punishments', (req, res) => {
 wamsRouter.patch('/:id/punishments/:punishmentId', (req, res) => {
   const parsed = punishmentUpdateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();
@@ -1120,7 +1121,7 @@ wamsRouter.delete('/:id/punishments/:punishmentId', (req, res) => {
 wamsRouter.patch('/:id/due-punishments/:punishmentId', (req, res) => {
   const parsed = punishmentToggleSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();

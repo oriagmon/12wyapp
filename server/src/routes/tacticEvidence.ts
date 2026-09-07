@@ -27,6 +27,7 @@ import {
   type EvidenceMime,
   type TacticEvidenceRow,
 } from '../lib/tacticEvidence.js';
+import { tReq } from '../lib/i18n/index.js';
 
 export const tacticEvidenceRouter = Router();
 tacticEvidenceRouter.use(requireAuth);
@@ -180,7 +181,7 @@ tacticEvidenceRouter.put(evidencePaths, (req, res) => {
   }
   const parsedBody = metadataSchema.safeParse(req.body);
   if (!parsedBody.success) {
-    res.status(400).json({ error: parsedBody.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsedBody.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();

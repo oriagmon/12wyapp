@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { tacticAdaptationSchema, tacticCreateSchema, tacticUpdateSchema } from '../lib/validation.js';
 import { goalBelongsToUser, tacticBelongsToUser } from '../lib/repo.js';
 import { collectEvidenceStoredFilenames, scheduleEvidenceFileCleanup } from '../lib/tacticEvidence.js';
+import { tReq } from '../lib/i18n/index.js';
 
 export const tacticsRouter = Router();
 tacticsRouter.use(requireAuth);
@@ -11,7 +12,7 @@ tacticsRouter.use(requireAuth);
 tacticsRouter.post('/', (req, res) => {
   const parsed = tacticCreateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();
@@ -37,7 +38,7 @@ tacticsRouter.post('/', (req, res) => {
 tacticsRouter.patch('/:id', (req, res) => {
   const parsed = tacticUpdateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();
@@ -71,7 +72,7 @@ tacticsRouter.patch('/:id', (req, res) => {
 tacticsRouter.put('/:id/adaptation', (req, res) => {
   const parsed = tacticAdaptationSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();

@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3';
 import { computeSuccessStreak } from './successStreak.js';
+import { fallbackLocale, isLocale, type Locale } from './i18n/index.js';
 
 export interface UserProfileResponse {
   id: number;
@@ -9,6 +10,8 @@ export interface UserProfileResponse {
   hasAvatar: boolean;
   avatarVersion: number;
   successStreak: number;
+  /** Interface language. Also what emails to this user are written in. */
+  locale: Locale;
 }
 
 interface UserProfileRow {
@@ -18,6 +21,7 @@ interface UserProfileRow {
   bio: string;
   avatar_mime: string | null;
   avatar_version: number;
+  locale: string;
 }
 
 /**
@@ -28,7 +32,7 @@ interface UserProfileRow {
  */
 export function loadUserProfile(db: Database.Database, userId: number): UserProfileResponse | undefined {
   const row = db
-    .prepare('SELECT id, email, display_name, bio, avatar_mime, avatar_version FROM users WHERE id = ?')
+    .prepare('SELECT id, email, display_name, bio, avatar_mime, avatar_version, locale FROM users WHERE id = ?')
     .get(userId) as UserProfileRow | undefined;
   if (!row) return undefined;
   return {
@@ -39,5 +43,6 @@ export function loadUserProfile(db: Database.Database, userId: number): UserProf
     hasAvatar: row.avatar_mime !== null,
     avatarVersion: row.avatar_version,
     successStreak: computeSuccessStreak(db, userId),
+    locale: isLocale(row.locale) ? row.locale : fallbackLocale(),
   };
 }

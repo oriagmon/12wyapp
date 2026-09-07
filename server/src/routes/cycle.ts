@@ -3,6 +3,7 @@ import { getDb } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { cycleCreateSchema, cycleUpdateSchema } from '../lib/validation.js';
 import { getActiveCycle } from '../lib/repo.js';
+import { tReq } from '../lib/i18n/index.js';
 
 export const cycleRouter = Router();
 cycleRouter.use(requireAuth);
@@ -10,7 +11,7 @@ cycleRouter.use(requireAuth);
 cycleRouter.post('/', (req, res) => {
   const parsed = cycleCreateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();
@@ -30,7 +31,7 @@ cycleRouter.post('/', (req, res) => {
 cycleRouter.patch('/', (req, res) => {
   const parsed = cycleUpdateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();
@@ -79,7 +80,7 @@ cycleRouter.post('/reset', (req, res) => {
   }
   const parsed = cycleCreateSchema.safeParse({ name: body.name });
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();

@@ -5,6 +5,7 @@ import { getDb } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { resolveAccess, type AccessLevel } from '../lib/access.js';
 import { getCycleById, type CycleRow } from '../lib/repo.js';
+import { tReq } from '../lib/i18n/index.js';
 
 export const weeklyPlanningRouter = Router();
 weeklyPlanningRouter.use(requireAuth);
@@ -146,7 +147,7 @@ weeklyPlanningRouter.put('/:cycleId/:targetWeek', (req, res) => {
 
   const parsed = weeklyPlanningDraftSchema.safeParse(req.body ?? {});
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
 

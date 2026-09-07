@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { completionToggleSchema } from '../lib/validation.js';
 import { tacticBelongsToUser } from '../lib/repo.js';
 import { isScheduled } from '../lib/scoring.js';
+import { tReq } from '../lib/i18n/index.js';
 
 export const completionsRouter = Router();
 completionsRouter.use(requireAuth);
@@ -11,7 +12,7 @@ completionsRouter.use(requireAuth);
 completionsRouter.post('/toggle', (req, res) => {
   const parsed = completionToggleSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();

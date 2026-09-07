@@ -14,6 +14,7 @@ import {
   serializeBroostList,
   type BroostRow,
 } from '../lib/broosts.js';
+import { tReq } from '../lib/i18n/index.js';
 
 export const broostsRouter = Router();
 broostsRouter.use(requireAuth);
@@ -112,7 +113,7 @@ broostsRouter.post('/', (req, res) => {
 
   const parsed = sendSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const resolved = resolveBroostMessage(parsed.data);

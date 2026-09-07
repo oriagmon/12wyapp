@@ -13,6 +13,7 @@ import {
   createWeekEvidence, findWeekEvidence, listWeekEvidence, removeWeekEvidence, serializeWeekEvidence,
   updateWeekEvidenceMetadata, weekEvidenceAccess, weekEvidenceMetadata,
 } from '../lib/weekEvidence.js';
+import { tReq } from '../lib/i18n/index.js';
 
 export const weekEvidenceRouter = Router();
 weekEvidenceRouter.use(requireAuth);
@@ -60,7 +61,7 @@ weekEvidenceRouter.post('/:cycleId/:week', (req, res) => {
   const params = scope(req, res);
   if (!params) return;
   const input = weekEvidenceMetadata.safeParse(req.body);
-  if (!input.success) { res.status(400).json({ error: input.error.issues[0]?.message ?? 'קלט לא תקין' }); return; }
+  if (!input.success) { res.status(400).json({ error: tReq(req, input.error.issues[0]?.message ?? 'errors.validation.generic') }); return; }
   if (!input.data.note && !input.data.link) { res.status(400).json({ error: 'יש להוסיף הערה, קישור או קובץ' }); return; }
   res.status(201).json(serializeWeekEvidence(createWeekEvidence(getDb(), params.cycleId, params.week!, input.data)));
 });
@@ -69,7 +70,7 @@ weekEvidenceRouter.put('/:cycleId/:week/:id', (req, res) => {
   const params = scope(req, res);
   if (!params) return;
   const input = weekEvidenceMetadata.safeParse(req.body);
-  if (!input.success) { res.status(400).json({ error: input.error.issues[0]?.message ?? 'קלט לא תקין' }); return; }
+  if (!input.success) { res.status(400).json({ error: tReq(req, input.error.issues[0]?.message ?? 'errors.validation.generic') }); return; }
   const db = getDb();
   const row = findWeekEvidence(db, params.cycleId, params.week!, params.id!);
   if (!row) { res.status(404).json({ error: 'הפריט לא נמצא בשבוע הזה' }); return; }

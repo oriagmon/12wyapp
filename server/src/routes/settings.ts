@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getDb } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { settingsUpdateSchema } from '../lib/validation.js';
+import { tReq } from '../lib/i18n/index.js';
 
 export const settingsRouter = Router();
 settingsRouter.use(requireAuth);
@@ -17,7 +18,7 @@ settingsRouter.get('/', (req, res) => {
 settingsRouter.patch('/', (req, res) => {
   const parsed = settingsUpdateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();

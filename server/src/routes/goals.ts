@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { goalCreateSchema, goalUpdateSchema } from '../lib/validation.js';
 import { getActiveCycle, getGoalsForCycle, goalBelongsToUser, nextGoalColor } from '../lib/repo.js';
 import { collectEvidenceStoredFilenames, scheduleEvidenceFileCleanup } from '../lib/tacticEvidence.js';
+import { tReq } from '../lib/i18n/index.js';
 
 export const goalsRouter = Router();
 goalsRouter.use(requireAuth);
@@ -13,7 +14,7 @@ const MAX_GOALS = 3;
 goalsRouter.post('/', (req, res) => {
   const parsed = goalCreateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();
@@ -39,7 +40,7 @@ goalsRouter.post('/', (req, res) => {
 goalsRouter.patch('/:id', (req, res) => {
   const parsed = goalUpdateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();

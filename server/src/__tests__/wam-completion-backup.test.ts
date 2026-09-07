@@ -745,9 +745,9 @@ describe('WAM completion backups: snapshot metadata (migrations list + shape ide
   });
 
   it('GOLDEN: pins the exact current snapshot table/key shape and schema version — changing the allowlist must update this test deliberately', () => {
-    expect(BACKUP_SNAPSHOT_SCHEMA_VERSION).toBe(6);
+    expect(BACKUP_SNAPSHOT_SCHEMA_VERSION).toBe(7);
     expect(describeSnapshotShape()).toEqual([
-      { table: 'users', columns: ['id', 'email', 'displayName', 'bio', 'hasAvatar', 'avatarMime', 'avatarVersion', 'createdAt'] },
+      { table: 'users', columns: ['id', 'email', 'displayName', 'bio', 'hasAvatar', 'avatarMime', 'avatarVersion', 'locale', 'createdAt'] },
       { table: 'user_settings', columns: ['userId', 'theme', 'updatedAt'] },
       { table: 'partnerships', columns: ['id', 'initiatorId', 'inviteeId', 'createdAt'] },
       {

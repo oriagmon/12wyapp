@@ -17,6 +17,7 @@ import {
   recordInMemoryAttempt,
   type PasswordResetTokenRow,
 } from '../lib/passwordReset.js';
+import { tReq } from '../lib/i18n/index.js';
 
 export const authRouter = Router();
 
@@ -43,7 +44,7 @@ authRouter.post('/register', async (req, res) => {
   }
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const { email, password } = parsed.data;
@@ -79,7 +80,7 @@ authRouter.post('/register', async (req, res) => {
 authRouter.post('/login', async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const { email, password } = parsed.data;
@@ -213,7 +214,7 @@ authRouter.post('/forgot-password', async (req, res) => {
 authRouter.post('/reset-password', async (req, res) => {
   const parsed = resetPasswordSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
   const db = getDb();

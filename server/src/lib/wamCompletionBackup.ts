@@ -84,7 +84,7 @@ import type Database from 'better-sqlite3';
  * A snapshot is never produced in any of these situations — better an outright failure (and a
  * loud server log) than a silently incomplete or silently-leaking backup.
  */
-export const BACKUP_SNAPSHOT_SCHEMA_VERSION = 6;
+export const BACKUP_SNAPSHOT_SCHEMA_VERSION = 7;
 
 /** Tables that are real (non-`sqlite_*`-internal) but deliberately never part of a snapshot —
  *  see the module doc comment above for why each one is excluded. `auditSnapshotSchema()`
@@ -136,6 +136,7 @@ const SNAPSHOT_TABLES: SnapshotTableSpec[] = [
       { as: 'hasAvatar', expr: 'avatar_mime IS NOT NULL' },
       { as: 'avatarMime', expr: 'avatar_mime' },
       { as: 'avatarVersion', expr: 'avatar_version' },
+      { as: 'locale', expr: 'locale' },
       { as: 'createdAt', expr: 'created_at' },
     ],
     // password_hash (secret), avatar_data (raw bytes) — never selected, directly or computed.

@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
-export const emailSchema = z.string().trim().toLowerCase().email('כתובת אימייל לא תקינה');
+export const emailSchema = z.string().trim().toLowerCase().email('errors.validation.email');
 export const passwordSchema = z
   .string()
-  .min(8, 'הסיסמה חייבת להכיל לפחות 8 תווים')
-  .max(200, 'הסיסמה ארוכה מדי');
+  .min(8, 'errors.validation.passwordTooShort')
+  .max(200, 'errors.validation.passwordTooLong');
 
 export const registerSchema = z.object({
   email: emailSchema,
@@ -13,7 +13,7 @@ export const registerSchema = z.object({
 
 export const loginSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, 'נדרשת סיסמה'),
+  password: z.string().min(1, 'errors.validation.passwordRequired'),
 });
 
 export const forgotPasswordSchema = z.object({
@@ -21,7 +21,7 @@ export const forgotPasswordSchema = z.object({
 });
 
 export const resetPasswordSchema = z.object({
-  token: z.string().trim().min(1, 'קישור האיפוס אינו תקין').max(512, 'קישור האיפוס אינו תקין'),
+  token: z.string().trim().min(1, 'errors.validation.resetLinkInvalid').max(512, 'errors.validation.resetLinkInvalid'),
   newPassword: passwordSchema,
 });
 
@@ -30,7 +30,7 @@ export const pairWithUserSchema = z.object({
 });
 
 export const cycleUpdateSchema = z.object({
-  name: z.string().trim().min(1, 'שם המחזור לא יכול להיות ריק').max(120).optional(),
+  name: z.string().trim().min(1, 'errors.validation.cycleNameEmpty').max(120).optional(),
   currentWeek: z.number().int().min(1).max(12).optional(),
   vision: z.string().max(4000).optional(),
   successDefinition: z.string().max(4000).optional(),
@@ -43,19 +43,19 @@ export const cycleUpdateSchema = z.object({
 });
 
 export const cycleCreateSchema = z.object({
-  name: z.string().trim().min(1, 'שם המחזור לא יכול להיות ריק').max(120),
+  name: z.string().trim().min(1, 'errors.validation.cycleNameEmpty').max(120),
 });
 
 export const GOAL_COLORS = ['emerald', 'blue', 'purple', 'gold'] as const;
 export type GoalColor = (typeof GOAL_COLORS)[number];
 
 export const goalCreateSchema = z.object({
-  title: z.string().trim().min(1, 'שם המטרה לא יכול להיות ריק').max(120),
+  title: z.string().trim().min(1, 'errors.validation.goalTitleEmpty').max(120),
   color: z.enum(GOAL_COLORS).optional(),
 });
 
 export const goalUpdateSchema = z.object({
-  title: z.string().trim().min(1, 'שם המטרה לא יכול להיות ריק').max(120).optional(),
+  title: z.string().trim().min(1, 'errors.validation.goalTitleEmpty').max(120).optional(),
 });
 
 const weekdaySchema = z.number().int().min(0).max(6);
@@ -63,13 +63,13 @@ const weekdaySchema = z.number().int().min(0).max(6);
 export const tacticCreateSchema = z
   .object({
     goalId: z.number().int().positive(),
-    title: z.string().trim().min(1, 'שם הטקטיקה לא יכול להיות ריק').max(160),
-    weekdays: z.array(weekdaySchema).min(1, 'יש לבחור לפחות יום אחד בשבוע').max(7),
+    title: z.string().trim().min(1, 'errors.validation.tacticTitleEmpty').max(160),
+    weekdays: z.array(weekdaySchema).min(1, 'errors.validation.weekdaysRequired').max(7),
     startWeek: z.number().int().min(1).max(12),
     endWeek: z.number().int().min(1).max(12),
   })
   .refine((v) => v.endWeek >= v.startWeek, {
-    message: 'שבוע הסיום חייב להיות אחרי שבוע ההתחלה או שווה לו',
+    message: 'errors.validation.endWeekBeforeStart',
     path: ['endWeek'],
   });
 
@@ -81,13 +81,13 @@ export const tacticUpdateSchema = z
     endWeek: z.number().int().min(1).max(12).optional(),
   })
   .refine((v) => (v.startWeek !== undefined && v.endWeek !== undefined ? v.endWeek >= v.startWeek : true), {
-    message: 'שבוע הסיום חייב להיות אחרי שבוע ההתחלה או שווה לו',
+    message: 'errors.validation.endWeekBeforeStart',
     path: ['endWeek'],
   });
 
 export const tacticAdaptationSchema = z.object({
-  title: z.string().trim().min(1, 'שם הטקטיקה לא יכול להיות ריק').max(160),
-  weekdays: z.array(weekdaySchema).min(1, 'יש לבחור לפחות יום אחד בשבוע').max(7),
+  title: z.string().trim().min(1, 'errors.validation.tacticTitleEmpty').max(160),
+  weekdays: z.array(weekdaySchema).min(1, 'errors.validation.weekdaysRequired').max(7),
   scope: z.enum(['nextWeek', 'restOfCycle']),
 });
 
@@ -122,14 +122,14 @@ export const wamRatingSchema = z.object({
 });
 
 export const wamCompleteSchema = z.object({
-  nextWamAt: z.string().datetime({ message: 'מועד לא תקין' }).nullable().optional(),
+  nextWamAt: z.string().datetime({ message: 'errors.validation.invalidDate' }).nullable().optional(),
   nextWamDurationMinutes: z.number().int().min(1).max(24 * 60).optional(),
 });
 
 export const WAM_COMMITMENT_SCOPES = ['a', 'b', 'shared'] as const;
 
 export const commitmentCreateSchema = z.object({
-  label: z.string().trim().min(1, 'טקסט ההתחייבות לא יכול להיות ריק').max(300),
+  label: z.string().trim().min(1, 'errors.validation.commitmentLabelEmpty').max(300),
   scope: z.enum(WAM_COMMITMENT_SCOPES),
 });
 
@@ -146,7 +146,7 @@ export const PUNISHMENT_MAX_LABEL_LENGTH = 300;
 // fully-validated contract rather than a loose bag of fields the server picks through.
 export const punishmentCreateSchema = z
   .object({
-    label: z.string().trim().min(1, 'טקסט העונש לא יכול להיות ריק').max(PUNISHMENT_MAX_LABEL_LENGTH),
+    label: z.string().trim().min(1, 'errors.validation.punishmentLabelEmpty').max(PUNISHMENT_MAX_LABEL_LENGTH),
     assignedUserId: z.number().int().positive(),
   })
   .strict();
@@ -158,7 +158,7 @@ export const punishmentUpdateSchema = z
   })
   .strict()
   .refine((data) => data.label !== undefined || data.assignedUserId !== undefined, {
-    message: 'יש לספק לפחות שדה אחד לעדכון (טקסט או שיוך)',
+    message: 'errors.validation.punishmentUpdateEmpty',
   });
 
 export const punishmentToggleSchema = z

@@ -14,6 +14,7 @@ import {
 } from '../lib/repo.js';
 import { assessExecutionRisk, type ExecutionRiskAssessment } from '../lib/executionRisk.js';
 import type { TacticWithCompletions } from '../lib/scoring.js';
+import { tReq } from '../lib/i18n/index.js';
 
 export const executionRecoveryRouter = Router();
 executionRecoveryRouter.use(requireAuth);
@@ -191,7 +192,7 @@ executionRecoveryRouter.put('/:userId', (req, res) => {
 
   const parsed = maneuverSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
 
@@ -260,7 +261,7 @@ executionRecoveryRouter.post('/:userId/reduce-next-week', (req, res) => {
 
   const parsed = reduceNextWeekSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'קלט לא תקין' });
+    res.status(400).json({ error: tReq(req, parsed.error.issues[0]?.message ?? 'errors.validation.generic') });
     return;
   }
 
