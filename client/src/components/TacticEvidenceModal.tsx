@@ -7,6 +7,7 @@ import { autoResizeTextarea } from '../lib/autoResizeTextarea';
 
 import styles from './TacticEvidenceModal.module.css';
 import { useWeekdayLabels } from '../i18n/useWeekdayLabels';
+import { useTranslation } from '../i18n';
 
 const MAX_NOTE_LENGTH = 2000;
 
@@ -19,26 +20,29 @@ function formatBytes(bytes: number | null): string {
 }
 
 function LegacyEvidence({ evidence }: { evidence: TacticEvidence }) {
+  const { t } = useTranslation();
   const weekdayLabels = useWeekdayLabels();
   const status = useAsyncStatus();
   return (
     <li className={styles.legacyItem}>
-      <h4 className={styles.legacyTitle}>עדות קודמת · {weekdayLabels.short[evidence.weekday!]}</h4>
+      <h4 className={styles.legacyTitle}>
+        {t('week.evidence.legacyTitle', { day: weekdayLabels.short[evidence.weekday!] })}
+      </h4>
       {evidence.note && <p className={styles.readOnlyField}>{evidence.note}</p>}
       {evidence.link && (
         <a href={evidence.link} target="_blank" rel="noreferrer noopener" className={styles.link}>{evidence.link}</a>
       )}
       {evidence.hasFile && (
         <div className={styles.fileRow}>
-          <span>📎 {evidence.fileOriginalName ?? 'קובץ'} ({formatBytes(evidence.fileSize)})</span>
+          <span>📎 {evidence.fileOriginalName ?? t('week.evidence.file')} ({formatBytes(evidence.fileSize)})</span>
           <button
             type="button"
             className="btn btn-ghost btn-sm"
             disabled={status.status === 'saving'}
-            aria-label={`הורדת קובץ קודם · ${weekdayLabels.short[evidence.weekday!]}`}
+            aria-label={t('week.evidence.downloadLegacyLabel', { day: weekdayLabels.short[evidence.weekday!] })}
             onClick={() => status.run(() => downloadTacticEvidenceFile(evidence.tacticId, evidence.week, evidence.weekday, evidence.fileOriginalName))}
           >
-            הורדה
+            {t('week.album.download')}
           </button>
         </div>
       )}
@@ -69,6 +73,7 @@ function WeeklyEvidenceEditor({
   onClose,
   onChanged,
 }: TacticEvidenceModalProps) {
+  const { t } = useTranslation();
   const { evidence, legacyEvidence, canCreate, access, loadStatus, loadError, saveMeta, uploadFile, deleteFile, deleteAll, downloadFile } = useTacticEvidence(
     tacticId,
     week
@@ -102,11 +107,11 @@ function WeeklyEvidenceEditor({
   const handleFileChosen = (file: File) => {
     setFileError(null);
     if (!hasAcceptedEvidenceExtension(file.name)) {
-      setFileError('סוג קובץ לא נתמך — יש להעלות PNG, JPEG, WebP, PDF, DOCX או TXT בלבד');
+      setFileError(t('week.evidence.unsupportedType'));
       return;
     }
     if (file.size > MAX_EVIDENCE_FILE_BYTES) {
-      setFileError('הקובץ גדול מדי — הגודל המרבי הוא 8MB');
+      setFileError(t('week.evidence.tooLarge'));
       return;
     }
     fileStatus.run(async () => {
@@ -135,19 +140,19 @@ function WeeklyEvidenceEditor({
   const busy = [saveStatus, fileStatus, deleteStatus].some((status) => status.status === 'saving');
 
   return (
-    <div className={styles.overlay} role="dialog" aria-modal="true" aria-label={`עדות עבור ${tacticTitle}`} onClick={onClose}>
+    <div className={styles.overlay} role="dialog" aria-modal="true" aria-label={t('week.evidence.modalLabel', { title: tacticTitle })} onClick={onClose}>
       <div className={`card ${styles.modal}`} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <div>
             <h3 className={styles.title}>{tacticTitle}</h3>
-            <p className={styles.subtitle}>צרופות שבועיות · שבוע {week}</p>
+            <p className={styles.subtitle}>{t('week.evidence.modalSubtitle', { week })}</p>
           </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} aria-label="סגירה">
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} aria-label={t('wams.celebration.close')}>
             ✕
           </button>
         </div>
 
-        {loadStatus === 'loading' && <p className={styles.text}>טוען...</p>}
+        {loadStatus === 'loading' && <p className={styles.text}>{t('common.loading')}</p>}
         {loadStatus === 'error' && (
           <p className={styles.errorText} role="alert">
             {loadError}
@@ -156,7 +161,7 @@ function WeeklyEvidenceEditor({
 
         {loadStatus === 'ready' && !canEdit && (
           <div className={styles.readOnly}>
-            {!evidence && <p className={styles.text}>עדיין לא נוספה עדות שבועית.</p>}
+            {!evidence && <p className={styles.text}>{t('week.evidence.none')}</p>}
             {evidence?.note && <p className={styles.readOnlyField}>{evidence.note}</p>}
             {evidence?.link && (
               <a href={evidence.link} target="_blank" rel="noreferrer noopener" className={styles.link}>
@@ -166,10 +171,10 @@ function WeeklyEvidenceEditor({
             {evidence?.hasFile && (
               <div className={styles.fileRow}>
                 <span>
-                  📎 {evidence.fileOriginalName ?? 'קובץ'} ({formatBytes(evidence.fileSize)})
+                  📎 {evidence.fileOriginalName ?? t('week.evidence.file')} ({formatBytes(evidence.fileSize)})
                 </span>
                 <button type="button" className="btn btn-ghost btn-sm" disabled={downloadStatus.status === 'saving'} onClick={handleDownload}>
-                  הורדה
+                  {t('week.album.download')}
                 </button>
               </div>
             )}
@@ -178,13 +183,13 @@ function WeeklyEvidenceEditor({
         )}
 
         {loadStatus === 'ready' && canEdit && !evidence && !canCreate && (
-          <p className={styles.text}>ניתן להוסיף עדות שבועית לאחר השלמת ביצוע אחד לפחות בשבוע.</p>
+          <p className={styles.text}>{t('week.evidence.needCompletion')}</p>
         )}
         {loadStatus === 'ready' && canEdit && (evidence || canCreate) && (
           <div className={styles.editor}>
-            <h4 className={styles.legacyTitle}>עדות שבועית</h4>
+            <h4 className={styles.legacyTitle}>{t('week.evidence.weeklyTitle')}</h4>
             <label className={styles.label} htmlFor="evidence-note">
-              מה עבד? (הערה)
+              {t('week.evidence.noteLabel')}
             </label>
             <textarea
               id="evidence-note"
@@ -202,7 +207,7 @@ function WeeklyEvidenceEditor({
             />
 
             <label className={styles.label} htmlFor="evidence-link">
-              קישור (אופציונלי)
+              {t('week.evidence.linkLabel')}
             </label>
             <input
               id="evidence-link"
@@ -215,31 +220,31 @@ function WeeklyEvidenceEditor({
 
             <div className={styles.actions}>
               <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={handleSaveMeta}>
-                שמירה
+                {t('common.action.save')}
               </button>
               <StatusBadge status={saveStatus.status} error={saveStatus.error} />
             </div>
 
             <div className={styles.fileSection}>
-              <span className={styles.label}>קובץ מצורף</span>
+              <span className={styles.label}>{t('week.evidence.attachedFile')}</span>
               {evidence?.hasFile ? (
                 <div className={styles.fileRow}>
                   <span>
-                    📎 {evidence.fileOriginalName ?? 'קובץ'} ({formatBytes(evidence.fileSize)})
+                    📎 {evidence.fileOriginalName ?? t('week.evidence.file')} ({formatBytes(evidence.fileSize)})
                   </span>
                   <button type="button" className="btn btn-ghost btn-sm" disabled={downloadStatus.status === 'saving'} onClick={handleDownload}>
-                    הורדה
+                    {t('week.album.download')}
                   </button>
                   <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={handleDeleteFile}>
-                    הסרת קובץ
+                    {t('week.evidence.removeFile')}
                   </button>
                 </div>
               ) : (
                 <FilePicker
-                  label="בחירת קובץ עדות"
+                  label={t('week.evidence.pickFileLabel')}
                   accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.txt"
                   disabled={busy}
-                  hint="PNG, JPEG, WebP, PDF, DOCX או TXT · עד 8MB"
+                  hint={t('week.evidence.fileHint')}
                   onFiles={(files) => handleFileChosen(files[0])}
                 />
               )}
@@ -255,15 +260,15 @@ function WeeklyEvidenceEditor({
             {evidence && (
               <div className={styles.dangerZone}>
                 <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={handleDeleteAll}>
-                  מחיקת העדות השבועית
+                  {t('week.evidence.deleteWeekly')}
                 </button>
                 <StatusBadge status={deleteStatus.status} error={deleteStatus.error} />
               </div>
             )}
             {loadStatus === 'ready' && legacyEvidence.length > 0 && (
-              <section className={styles.legacySection} aria-label="צרופות קודמות">
-                <h4 className={styles.legacyTitle}>צרופות קודמות</h4>
-                <p className={styles.text}>כל ההערות, הקישורים והקבצים שנוספו בעבר לפי ימים נשמרו כאן לצפייה ולהורדה. שמירה או מחיקה של העדות השבועית אינה משנה אותם.</p>
+              <section className={styles.legacySection} aria-label={t('week.evidence.legacySection')}>
+                <h4 className={styles.legacyTitle}>{t('week.evidence.legacySection')}</h4>
+                <p className={styles.text}>{t('week.evidence.legacyHelp')}</p>
                 <ul className={styles.legacyList}>
                   {legacyEvidence.map((item) => <LegacyEvidence key={item.weekday} evidence={item} />)}
                 </ul>

@@ -6,12 +6,14 @@ import { FilePicker } from './FilePicker';
 
 import styles from './WeekEvidenceAlbum.module.css';
 import { useWeekdayLabels } from '../i18n/useWeekdayLabels';
+import { useTranslation } from '../i18n';
 
 export function WeekEvidenceCard({ item, onSave, onRemove }: {
   item: WeekEvidenceItem;
   onSave?: (input: { note: string; link: string }) => Promise<void>;
   onRemove?: (fileOnly?: boolean) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const weekdayLabels = useWeekdayLabels();
   const [editing, setEditing] = useState(false);
   const [note, setNote] = useState(item.note ?? '');
@@ -27,8 +29,14 @@ export function WeekEvidenceCard({ item, onSave, onRemove }: {
       if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
     };
   }, []);
-  const label = item.scope === 'week' ? 'צרופה לשבוע' :
-    `עדות קודמת · ${item.tacticTitle ?? 'טקטיקה'}${item.weekday === null ? '' : ` · ${weekdayLabels.short[item.weekday]}`}`;
+  const label = item.scope === 'week'
+    ? t('week.album.weekAttachment')
+    : item.weekday === null
+      ? t('week.album.legacyItem', { title: item.tacticTitle ?? t('week.album.tactic') })
+      : t('week.album.legacyItemDay', {
+          title: item.tacticTitle ?? t('week.album.tactic'),
+          day: weekdayLabels.short[item.weekday],
+        });
   const showPreview = () => status.run(async () => {
     const blob = await fetchWeekEvidenceFile(item);
     if (!alive.current) return;
@@ -39,16 +47,16 @@ export function WeekEvidenceCard({ item, onSave, onRemove }: {
   return (
     <li className={styles.item} aria-label={label}>
       <p className={styles.caption}>{label}</p>
-      {preview && <img className={styles.preview} src={preview} alt={item.fileOriginalName ?? 'תמונה מהשבוע'} />}
+      {preview && <img className={styles.preview} src={preview} alt={item.fileOriginalName ?? t('week.album.imageAlt')} />}
       {item.note && <p className={styles.note}>{item.note}</p>}
       {item.link && <a className={styles.link} href={item.link} target="_blank" rel="noreferrer noopener">{item.link}</a>}
       {item.hasFile && (
         <div className={styles.actions}>
-          <span className={styles.filename}>{item.fileOriginalName ?? 'קובץ'} · {Math.ceil((item.fileSize ?? 0) / 1024)} KB</span>
+          <span className={styles.filename}>{item.fileOriginalName ?? t('week.evidence.file')} · {Math.ceil((item.fileSize ?? 0) / 1024)} KB</span>
           {item.fileMime?.startsWith('image/') && !preview && (
-            <button className="btn btn-ghost btn-sm" type="button" disabled={status.status === 'saving'} onClick={showPreview}>הצגת תמונה</button>
+            <button className="btn btn-ghost btn-sm" type="button" disabled={status.status === 'saving'} onClick={showPreview}>{t('week.album.showImage')}</button>
           )}
-          <button className="btn btn-ghost btn-sm" type="button" disabled={status.status === 'saving'} onClick={() => status.run(() => downloadWeekEvidenceFile(item))}>הורדה</button>
+          <button className="btn btn-ghost btn-sm" type="button" disabled={status.status === 'saving'} onClick={() => status.run(() => downloadWeekEvidenceFile(item))}>{t('week.album.download')}</button>
         </div>
       )}
       {editing && onSave && (
@@ -56,17 +64,17 @@ export function WeekEvidenceCard({ item, onSave, onRemove }: {
           event.preventDefault();
           void status.run(async () => { await onSave({ note, link }); setEditing(false); });
         }}>
-          <label>הערה<textarea value={note} maxLength={2000} onChange={(event) => setNote(event.target.value)} /></label>
-          <label>קישור<input type="url" value={link} maxLength={2048} onChange={(event) => setLink(event.target.value)} /></label>
-          <button type="submit" className="btn btn-primary btn-sm" disabled={status.status === 'saving'}>שמירת הפריט</button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>ביטול</button>
+          <label>{t('week.album.note')}<textarea value={note} maxLength={2000} onChange={(event) => setNote(event.target.value)} /></label>
+          <label>{t('week.album.link')}<input type="url" value={link} maxLength={2048} onChange={(event) => setLink(event.target.value)} /></label>
+          <button type="submit" className="btn btn-primary btn-sm" disabled={status.status === 'saving'}>{t('week.album.saveItem')}</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>{t('common.action.cancel')}</button>
         </form>
       )}
-      {onSave && !editing && <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setNote(item.note ?? ''); setLink(item.link ?? ''); setEditing(true); }}>עריכת הערה וקישור</button>}
+      {onSave && !editing && <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setNote(item.note ?? ''); setLink(item.link ?? ''); setEditing(true); }}>{t('week.album.editNote')}</button>}
       {onRemove && (
         <div className={styles.actions}>
-          {item.hasFile && (item.note || item.link) && <button type="button" className="btn btn-ghost btn-sm" disabled={status.status === 'saving'} onClick={() => status.run(() => onRemove(true))}>הסרת הקובץ בלבד</button>}
-          <button type="button" className="btn btn-ghost btn-sm" disabled={status.status === 'saving'} onClick={() => status.run(() => onRemove())}>מחיקת הפריט</button>
+          {item.hasFile && (item.note || item.link) && <button type="button" className="btn btn-ghost btn-sm" disabled={status.status === 'saving'} onClick={() => status.run(() => onRemove(true))}>{t('week.album.removeFileOnly')}</button>}
+          <button type="button" className="btn btn-ghost btn-sm" disabled={status.status === 'saving'} onClick={() => status.run(() => onRemove())}>{t('week.album.deleteItem')}</button>
         </div>
       )}
       <StatusBadge status={status.status} error={status.error} />
@@ -80,6 +88,7 @@ export function WeekEvidenceAlbum(props: { cycleId: number; week: number; isOwne
 }
 
 function WeekAlbumBody({ cycleId, week, isOwner }: { cycleId: number; week: number; isOwner: boolean }) {
+  const { t } = useTranslation();
   const album = useWeekEvidence(cycleId, week);
   const uploadStatus = useAsyncStatus();
   const noteStatus = useAsyncStatus();
@@ -87,38 +96,38 @@ function WeekAlbumBody({ cycleId, week, isOwner }: { cycleId: number; week: numb
   const [link, setLink] = useState('');
   const canEdit = isOwner && album.access === 'owner' && album.status === 'ready';
   return (
-    <section className={`card ${styles.album}`} aria-label={`אלבום שבוע ${week}`}>
-      <h3 className={styles.title}>תמונות וצרופות · שבוע {week}</h3>
-      <p className={styles.caption}>אלבום אחד לכל השבוע — לא לכל טקטיקה. אפשר להוסיף כמה קבצים, גם בלי לסמן ביצועים.</p>
-      {album.status === 'loading' && <p role="status">טוען אלבום...</p>}
-      {album.status === 'error' && <div><p role="alert">{album.error}</p><button type="button" className="btn btn-ghost" onClick={() => void album.reload()}>ניסיון נוסף</button></div>}
+    <section className={`card ${styles.album}`} aria-label={t('week.weekAlbum.label', { week })}>
+      <h3 className={styles.title}>{t('week.weekAlbum.title', { week })}</h3>
+      <p className={styles.caption}>{t('week.album.caption')}</p>
+      {album.status === 'loading' && <p role="status">{t('week.weekAlbum.loading')}</p>}
+      {album.status === 'error' && <div><p role="alert">{album.error}</p><button type="button" className="btn btn-ghost" onClick={() => void album.reload()}>{t('week.album.retry')}</button></div>}
       {canEdit && (
         <>
           <FilePicker
-            label={`הוספת תמונות או קבצים לשבוע ${week}`}
+            label={t('week.album.uploadLabel', { week })}
             accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.txt"
             multiple
             disabled={uploadStatus.status === 'saving'}
-            hint="PNG, JPEG, WebP, PDF, DOCX או TXT · עד 8MB לכל קובץ"
+            hint={t('week.album.uploadHint')}
             onFiles={(files) => void uploadStatus.run(() => album.uploadFiles(files))}
           />
           <StatusBadge status={uploadStatus.status} error={uploadStatus.error} />
           <details>
-            <summary>הוספת הערה או קישור לשבוע</summary>
+            <summary>{t('week.album.addNoteSummary')}</summary>
             <form className={styles.editor} onSubmit={(event) => {
               event.preventDefault();
               void noteStatus.run(async () => { await album.save({ note, link }); setNote(''); setLink(''); });
             }}>
-              <label>הערה לשבוע<textarea value={note} maxLength={2000} onChange={(event) => setNote(event.target.value)} /></label>
-              <label>קישור לשבוע<input type="url" value={link} maxLength={2048} onChange={(event) => setLink(event.target.value)} /></label>
-              <button type="submit" className="btn btn-primary btn-sm" disabled={noteStatus.status === 'saving' || (!note.trim() && !link.trim())}>הוספה לאלבום</button>
+              <label>{t('week.album.weekNote')}<textarea value={note} maxLength={2000} onChange={(event) => setNote(event.target.value)} /></label>
+              <label>{t('week.album.weekLink')}<input type="url" value={link} maxLength={2048} onChange={(event) => setLink(event.target.value)} /></label>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={noteStatus.status === 'saving' || (!note.trim() && !link.trim())}>{t('week.album.addToAlbum')}</button>
               <StatusBadge status={noteStatus.status} error={noteStatus.error} />
             </form>
           </details>
         </>
       )}
-      {album.status === 'ready' && album.items.length === 0 && <p className={styles.caption}>עדיין אין תמונות או צרופות בשבוע הזה.</p>}
-      {album.items.some((item) => item.scope !== 'week') && <p className={styles.caption}>גם כל ההערות, הקישורים והקבצים הקודמים שנשמרו לטקטיקות ולימים מוצגים כאן.</p>}
+      {album.status === 'ready' && album.items.length === 0 && <p className={styles.caption}>{t('week.weekAlbum.empty')}</p>}
+      {album.items.some((item) => item.scope !== 'week') && <p className={styles.caption}>{t('week.album.legacyHint')}</p>}
       <ul className={styles.items}>
         {album.items.map((item) => (
           <WeekEvidenceCard key={`${item.id}:${item.updatedAt}:${item.hasFile}`} item={item}
