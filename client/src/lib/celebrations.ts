@@ -1,4 +1,5 @@
 export type SuccessKind = 'completion' | 'milestone' | 'broost' | 'wam';
+import { translateActive } from '../i18n';
 
 /** Emit only after the server confirms a meaningful mutation, never from a GET or render. */
 export interface SuccessEvent {
@@ -39,6 +40,12 @@ export function subscribeSuccess(listener: (event: SuccessEvent) => void) {
   return () => { listeners.delete(listener); };
 }
 
+const celebration = (kind: string, symbol: string): CelebrationChoice => ({
+  title: translateActive(`dashboard.celebration.${kind}Title`),
+  detail: translateActive(`dashboard.celebration.${kind}Detail`),
+  symbol,
+});
+
 export function selectCelebration(
   event: SuccessEvent,
   state: CelebrationSession,
@@ -60,8 +67,8 @@ export function selectCelebration(
   if (event.kind === 'milestone') return {
     state: next,
     choice: {
-      title: '85% — עמדתם ביעד! 🎆',
-      detail: 'הגעתם ליעד השבועי. כל הכבוד על הביצוע!',
+      title: translateActive('dashboard.celebration.milestoneTitle'),
+      detail: translateActive('dashboard.celebration.milestoneDetail'),
       symbol: '🏆',
       fireworks: true,
     },
@@ -73,12 +80,12 @@ export function selectCelebration(
   ) return { state: next, choice: null };
 
   const choice: CelebrationChoice = event.firstStep
-    ? { title: 'צעד קטן, התחלה אמיתית', detail: 'הביצוע הראשון במחזור נשמר. ממשיכים בקצב שלכם.', symbol: '✦' }
+    ? celebration('firstStep', '✦')
     : event.kind === 'broost'
-        ? { title: 'פרגון שעושה טוב', detail: 'ה־BROOST נשלח. נחמד להתקדם יחד.', symbol: '↗' }
+        ? celebration('broost', '↗')
         : event.kind === 'wam'
-          ? { title: 'עצרתם, דיברתם, התקדמתם', detail: 'הפגישה נשמרה. עכשיו לצעד הבא שלכם.', symbol: '✦' }
-          : { title: 'עוד הבטחה קטנה שקוימה', detail: 'הביצוע נשמר. כל צעד כזה נחשב.', symbol: '✦' };
+          ? celebration('wam', '✦')
+          : celebration('step', '✦');
   return { state: { ...next, lastAt: options.now, count: state.count + 1 }, choice };
 }
 

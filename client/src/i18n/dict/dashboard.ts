@@ -12,6 +12,16 @@ import type { AreaDict } from '../locales';
  */
 export const dashboard: AreaDict = {
   en: {
+    'dashboard.celebration.milestoneTitle': '85% — you hit the target! 🎆',
+    'dashboard.celebration.milestoneDetail': 'You reached the weekly target. Great execution!',
+    'dashboard.celebration.firstStepTitle': 'A small step, a real start',
+    'dashboard.celebration.firstStepDetail': 'The first thing done in this cycle is saved. Keep your own pace.',
+    'dashboard.celebration.broostTitle': 'A cheer that lands well',
+    'dashboard.celebration.broostDetail': 'The BROOST is sent. Nice to move forward together.',
+    'dashboard.celebration.wamTitle': 'You paused, talked, moved on',
+    'dashboard.celebration.wamDetail': 'The meeting is saved. Now for your next step.',
+    'dashboard.celebration.stepTitle': 'Another small promise kept',
+    'dashboard.celebration.stepDetail': 'It is saved. Every step like this counts.',
     'dashboard.hero.label': 'The main goal',
     'dashboard.hero.weeks': '12 weeks',
     'dashboard.hero.tactics_one': '{count} tactic',
@@ -140,6 +150,16 @@ export const dashboard: AreaDict = {
     'dashboard.cycle.confirmEnd': 'Yes, end the cycle',
   },
   he: {
+    'dashboard.celebration.milestoneTitle': '85% — עמדתם ביעד! 🎆',
+    'dashboard.celebration.milestoneDetail': 'הגעתם ליעד השבועי. כל הכבוד על הביצוע!',
+    'dashboard.celebration.firstStepTitle': 'צעד קטן, התחלה אמיתית',
+    'dashboard.celebration.firstStepDetail': 'הביצוע הראשון במחזור נשמר. ממשיכים בקצב שלכם.',
+    'dashboard.celebration.broostTitle': 'פרגון שעושה טוב',
+    'dashboard.celebration.broostDetail': 'ה־BROOST נשלח. נחמד להתקדם יחד.',
+    'dashboard.celebration.wamTitle': 'עצרתם, דיברתם, התקדמתם',
+    'dashboard.celebration.wamDetail': 'הפגישה נשמרה. עכשיו לצעד הבא שלכם.',
+    'dashboard.celebration.stepTitle': 'עוד הבטחה קטנה שקוימה',
+    'dashboard.celebration.stepDetail': 'הביצוע נשמר. כל צעד כזה נחשב.',
     'dashboard.hero.label': 'המטרה המרכזית',
     'dashboard.hero.weeks': '12 שבועות',
     'dashboard.hero.tactics_one': '{count} טקטיקה למטרה',

@@ -3,21 +3,24 @@ import type { CSSProperties } from 'react';
 import type { WamCelebration } from '../lib/types';
 import { Avatar } from './Avatar';
 import styles from './WamCelebrationOverlay.module.css';
+import { useTranslation, type Translator } from '../i18n';
 
 /** Bounded, purely decorative particle count — never grows with anything user-controlled, and
  *  deliberately small so the DOM/animation cost stays cheap even on low-end mobile devices. */
 const PARTICLE_COUNT = 10;
 
-function titleFor(celebration: WamCelebration): string {
+function titleFor(celebration: WamCelebration, t: Translator): string {
   switch (celebration.type) {
     case 'duo-success':
-      return 'הצלחה משותפת!';
+      return t('wams.celebration.bothHit');
     case 'spotlight':
-      return celebration.winner.score >= 85 ? 'שבוע מצוין!' : 'ממשיכים קדימה יחד';
+      return celebration.winner.score >= 85
+        ? t('wams.celebration.greatWeek')
+        : t('wams.celebration.forwardTogether');
     case 'tie':
-      return 'תיקו צמוד!';
+      return t('wams.celebration.tie');
     case 'completion':
-      return 'הפגישה הושלמה';
+      return t('wams.celebration.done');
   }
 }
 
@@ -36,6 +39,7 @@ function titleFor(celebration: WamCelebration): string {
  * to whatever was focused beforehand on close/unmount.
  */
 export function WamCelebrationOverlay({ celebration, onClose }: { celebration: WamCelebration; onClose: () => void }) {
+  const { t } = useTranslation();
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const onCloseRef = useRef(onClose);
@@ -89,15 +93,15 @@ export function WamCelebrationOverlay({ celebration, onClose }: { celebration: W
         className={`${styles.dialog} ${styles[celebration.type]}`}
         role="dialog"
         aria-modal="true"
-        aria-label={titleFor(celebration)}
+        aria-label={titleFor(celebration, t)}
         onClick={(e) => e.stopPropagation()}
       >
-        <button ref={closeButtonRef} type="button" className={styles.closeButton} onClick={onClose} aria-label="סגירה">
+        <button ref={closeButtonRef} type="button" className={styles.closeButton} onClick={onClose} aria-label={t('wams.celebration.close')}>
           ✕
         </button>
         <Particles variant={celebration.type} />
         <div className={styles.content} role="status" aria-live="polite">
-          <h3 className={styles.title}>{titleFor(celebration)}</h3>
+          <h3 className={styles.title}>{titleFor(celebration, t)}</h3>
           <CelebrationBody celebration={celebration} />
         </div>
       </div>
@@ -117,6 +121,7 @@ function Particles({ variant }: { variant: WamCelebration['type'] }) {
 }
 
 function CelebrationBody({ celebration }: { celebration: WamCelebration }) {
+  const { t } = useTranslation();
   if (celebration.type === 'duo-success') {
     const [a, b] = celebration.participants;
     return (
@@ -136,9 +141,10 @@ function CelebrationBody({ celebration }: { celebration: WamCelebration }) {
             <span className={styles.score}>{b.score}%</span>
           </div>
         </div>
-        <p className={styles.message}>שניכם הגעתם ל־85% ומעלה השבוע — ממש עבודת צוות!</p>
+        <p className={styles.message}>{t('wams.celebration.bothMessage')}</p>
         <p className={styles.streak}>
-          🔥 רצף Duo: <span className={styles.streakNumber}>{celebration.currentStreak}</span>
+          {t('wams.celebration.duoStreak')}
+          <span className={styles.streakNumber}>{celebration.currentStreak}</span>
         </p>
       </>
     );
@@ -160,8 +166,15 @@ function CelebrationBody({ celebration }: { celebration: WamCelebration }) {
           <span className={styles.score}>{winner.score}%</span>
         </div>
         <p className={styles.message}>
-          {(winner.displayName.trim() || winner.email)} הוביל/ה בביצוע השבוע — {winner.score}% מול {other.score}%.
-          {' '}{winner.score >= 85 ? 'כל הכבוד על העמידה ביעד!' : 'כל צעד שבוצע נחשב. בוחרים יחד את הצעד הבא.'}
+          {t('wams.celebration.winner', {
+            name: winner.displayName.trim() || winner.email,
+            winner: winner.score,
+            other: other.score,
+          })}
+          {' '}
+          {winner.score >= 85
+            ? t('wams.celebration.winnerAbove')
+            : t('wams.celebration.winnerBelow')}
         </p>
       </>
     );
@@ -186,10 +199,10 @@ function CelebrationBody({ celebration }: { celebration: WamCelebration }) {
             <span className={styles.score}>{b.score}%</span>
           </div>
         </div>
-        <p className={styles.message}>תיקו — אותו ציון בדיוק השבוע. בוחרים יחד את הצעד הבא!</p>
+        <p className={styles.message}>{t('wams.celebration.tieMessage')}</p>
       </>
     );
   }
 
-  return <p className={styles.message}>הפגישה השבועית הושלמה בהצלחה.</p>;
+  return <p className={styles.message}>{t('wams.celebration.doneMessage')}</p>;
 }
