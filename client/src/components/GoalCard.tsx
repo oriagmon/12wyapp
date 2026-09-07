@@ -7,6 +7,7 @@ import { useAsyncStatus } from '../hooks/useAsyncStatus';
 import { StatusBadge } from './StatusBadge';
 import styles from './GoalCard.module.css';
 import { useWeekdayLabels } from '../i18n/useWeekdayLabels';
+import { useTranslation } from '../i18n';
 
 function TacticRow({
   tactic,
@@ -27,6 +28,7 @@ function TacticRow({
   // so it gets the same two-step confirmation a goal already had instead of firing on the
   // first tap of a red button that repeats on every single row.
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const { t } = useTranslation();
   const del = useAsyncStatus();
   const nextWeekOverride = tactic.overrides?.find(
     (override) => override.week === currentWeek + 1
@@ -37,7 +39,7 @@ function TacticRow({
       <TacticForm
         initial={tactic}
         currentWeek={currentWeek}
-        submitLabel="שמירה"
+        submitLabel={t('goals.tactic.saveSubmit')}
         onSubmit={onUpdate}
         onCancel={() => setEditing(false)}
       />
@@ -49,46 +51,52 @@ function TacticRow({
       <div className={styles.tacticInfo}>
         <span className={styles.tacticTitle}>{tactic.title}</span>
         <span className={styles.tacticMeta}>
-          {tactic.weekdays.map((d) => weekdayLabels.short[d]).join(', ')} · שבועות {tactic.startWeek}–
-          {tactic.endWeek}
+          {t('goals.tactic.weeks', {
+            days: tactic.weekdays.map((d) => weekdayLabels.short[d]).join(', '),
+            start: tactic.startWeek,
+            end: tactic.endWeek,
+          })}
         </span>
         {nextWeekOverride && (
           <span className={styles.adaptation}>
-            שבוע {nextWeekOverride.week}: {nextWeekOverride.title} ·{' '}
-            {nextWeekOverride.weekdays.map((day) => weekdayLabels.short[day]).join(', ')}
+            {t('goals.tactic.override', {
+              week: nextWeekOverride.week,
+              title: nextWeekOverride.title,
+              days: nextWeekOverride.weekdays.map((day) => weekdayLabels.short[day]).join(', '),
+            })}
           </span>
         )}
       </div>
       {isOwner && (
         <div className={styles.tacticActions}>
           {confirmingDelete ? (
-            <span className={styles.inlineConfirm} role="alertdialog" aria-label={`מחיקת הטקטיקה ${tactic.title}`}>
-              <span className={styles.inlineConfirmText}>למחוק? גם הביצועים והעדויות שלה יימחקו.</span>
+            <span className={styles.inlineConfirm} role="alertdialog" aria-label={t('goals.tactic.deleteLabel', { title: tactic.title })}>
+              <span className={styles.inlineConfirmText}>{t('goals.tactic.deleteConfirm')}</span>
               <button
                 type="button"
                 className="btn btn-danger btn-sm"
                 onClick={() => del.run(onDelete)}
                 disabled={del.status === 'saving'}
               >
-                כן, למחוק
+                {t('goals.tactic.deleteYes')}
               </button>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmingDelete(false)}>
-                לא
+                {t('goals.tactic.deleteNo')}
               </button>
               <StatusBadge status={del.status} error={del.error} />
             </span>
           ) : (
             <>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>
-                עריכה
+                {t('goals.tactic.edit')}
               </button>
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"
                 onClick={() => setConfirmingDelete(true)}
-                aria-label={`מחיקת הטקטיקה ${tactic.title}`}
+                aria-label={t('goals.tactic.deleteLabel', { title: tactic.title })}
               >
-                מחיקה
+                {t('goals.tactic.delete')}
               </button>
             </>
           )}
@@ -117,6 +125,7 @@ export function GoalCard({
   onUpdateTactic: (tacticId: number, values: TacticFormValues) => Promise<unknown>;
   onDeleteTactic: (tacticId: number) => Promise<unknown>;
 }) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState(goal.title);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [addingTactic, setAddingTactic] = useState(false);
@@ -139,19 +148,19 @@ export function GoalCard({
           onChange={(e) => setTitle(e.target.value)}
           onBlur={commitRename}
           className={styles.titleInput}
-          aria-label="שם המטרה"
+          aria-label={t('goals.name.label')}
         />
         <StatusBadge status={rename.status} error={rename.error} />
         {isOwner && !confirmingDelete && (
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmingDelete(true)}>
-            מחיקת מטרה
+            {t('goals.delete')}
           </button>
         )}
       </div>
 
       {confirmingDelete && (
         <div className={styles.confirmBox} role="alertdialog">
-          <p>מחיקת המטרה תמחק גם את כל הטקטיקות והביצועים המשויכים אליה. לאשר?</p>
+          <p>{t('goals.delete.confirm')}</p>
           <div className={styles.confirmActions}>
             <button
               type="button"
@@ -159,10 +168,10 @@ export function GoalCard({
               onClick={() => del.run(onDelete)}
               disabled={del.status === 'saving'}
             >
-              אישור מחיקה
+              {t('goals.delete.yes')}
             </button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmingDelete(false)}>
-              ביטול
+              {t('goals.delete.cancel')}
             </button>
             <StatusBadge status={del.status} error={del.error} />
           </div>
@@ -170,15 +179,15 @@ export function GoalCard({
       )}
 
       <div className={styles.tactics}>
-        {goal.tactics.length === 0 && <p className={styles.emptyTactics}>אין עדיין טקטיקות למטרה זו.</p>}
-        {goal.tactics.map((t) => (
+        {goal.tactics.length === 0 && <p className={styles.emptyTactics}>{t('goals.tactic.none')}</p>}
+        {goal.tactics.map((goalTactic) => (
           <TacticRow
-            key={t.id}
-            tactic={t}
+            key={goalTactic.id}
+            tactic={goalTactic}
             isOwner={isOwner}
             currentWeek={currentWeek}
-            onUpdate={(values) => onUpdateTactic(t.id, values)}
-            onDelete={() => onDeleteTactic(t.id)}
+            onUpdate={(values) => onUpdateTactic(goalTactic.id, values)}
+            onDelete={() => onDeleteTactic(goalTactic.id)}
           />
         ))}
       </div>
@@ -188,13 +197,13 @@ export function GoalCard({
           {addingTactic ? (
             <TacticForm
               currentWeek={currentWeek}
-              submitLabel="הוספה"
+              submitLabel={t('goals.tactic.addSubmit')}
               onSubmit={onCreateTactic}
               onCancel={() => setAddingTactic(false)}
             />
           ) : (
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAddingTactic(true)}>
-              + הוספת טקטיקה
+              {t('goals.tactic.add')}
             </button>
           )}
         </div>

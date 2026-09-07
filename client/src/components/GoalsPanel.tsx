@@ -5,6 +5,7 @@ import type { TacticFormValues } from './TacticForm';
 import { useAsyncStatus } from '../hooks/useAsyncStatus';
 import { StatusBadge } from './StatusBadge';
 import styles from './GoalsPanel.module.css';
+import { useTranslation } from '../i18n';
 
 const MAX_GOALS = 3;
 
@@ -17,6 +18,7 @@ function AddGoalForm({
   onCreateGoal: (title: string, color?: GoalColor) => Promise<unknown>;
   autoFocus?: boolean;
 }) {
+  const { t } = useTranslation();
   const [newGoalTitle, setNewGoalTitle] = useState('');
   const create = useAsyncStatus();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -34,16 +36,16 @@ function AddGoalForm({
         ref={inputRef}
         type="text"
         autoFocus={autoFocus}
-        placeholder={`הוספת מטרה (${goalsCount}/${MAX_GOALS})`}
+        placeholder={t('goals.add.placeholder', { count: goalsCount, max: MAX_GOALS })}
         value={newGoalTitle}
         onChange={(e) => setNewGoalTitle(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter') submitNewGoal();
         }}
-        aria-label="שם מטרה חדשה"
+        aria-label={t('goals.add.label')}
       />
       <button type="button" className="btn btn-primary btn-sm" onClick={submitNewGoal}>
-        הוספה
+        {t('goals.add.submit')}
       </button>
       <StatusBadge status={create.status} error={create.error} />
     </div>
@@ -71,29 +73,30 @@ export function GoalsPanel({
   onUpdateTactic: (tacticId: number, values: TacticFormValues) => Promise<unknown>;
   onDeleteTactic: (tacticId: number) => Promise<unknown>;
 }) {
+  const { t } = useTranslation();
   const [showFirstGoalForm, setShowFirstGoalForm] = useState(false);
 
   if (goals.length === 0) {
     if (!isOwner) {
       return (
         <div className={`card ${styles.emptyState}`}>
-          <h3 className={styles.emptyTitle}>עדיין לא הוגדרו מטרות</h3>
-          <p className={styles.emptyText}>השותף/ה טרם הוסיפ/ה מטרות למחזור הנוכחי.</p>
+          <h3 className={styles.emptyTitle}>{t('goals.empty.partner.title')}</h3>
+          <p className={styles.emptyText}>{t('goals.empty.partner.body')}</p>
         </div>
       );
     }
     return (
       <section className={styles.wrap}>
         <div className={`card ${styles.emptyState}`}>
-          <h3 className={styles.emptyTitle}>עדיין אין מטרות במחזור זה</h3>
+          <h3 className={styles.emptyTitle}>{t('goals.empty.title')}</h3>
           <p className={styles.emptyText}>
-            הוסיפו עד 3 מטרות מרכזיות למחזור בן 12 השבועות, ולכל מטרה טקטיקות שבועיות למעקב.
+            {t('goals.empty.body')}
           </p>
           {showFirstGoalForm ? (
             <AddGoalForm goalsCount={0} onCreateGoal={onCreateGoal} autoFocus />
           ) : (
             <button type="button" className="btn btn-primary" onClick={() => setShowFirstGoalForm(true)}>
-              + הוספת מטרה ראשונה
+              {t('goals.empty.cta')}
             </button>
           )}
         </div>
@@ -123,7 +126,7 @@ export function GoalsPanel({
         <AddGoalForm goalsCount={goals.length} onCreateGoal={onCreateGoal} />
       )}
       {goals.length >= MAX_GOALS && isOwner && (
-        <p className={styles.limitNote}>הגעת למספר המרבי של 3 מטרות למחזור.</p>
+        <p className={styles.limitNote}>{t('goals.limit')}</p>
       )}
     </section>
   );

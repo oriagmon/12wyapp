@@ -4,6 +4,7 @@ import { useAsyncStatus } from '../hooks/useAsyncStatus';
 import { StatusBadge } from './StatusBadge';
 import type { Tactic } from '../lib/types';
 import styles from './TacticForm.module.css';
+import { useTranslation } from '../i18n';
 
 export interface TacticFormValues {
   title: string;
@@ -26,6 +27,7 @@ export function TacticForm({
   submitLabel: string;
   currentWeek: number;
 }) {
+  const { t } = useTranslation();
   const nextWeek = currentWeek + 1;
   const upcomingOverride = initial?.overrides?.find((override) => override.week === nextWeek);
   const [title, setTitle] = useState(upcomingOverride?.title ?? initial?.title ?? '');
@@ -62,10 +64,10 @@ export function TacticForm({
       <div className={styles.row}>
         <input
           type="text"
-          placeholder="שם הטקטיקה"
+          placeholder={t('goals.form.name')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          aria-label="שם הטקטיקה"
+          aria-label={t('goals.form.name')}
         />
       </div>
       <WeekdayPicker value={weekdays} onChange={setWeekdays} />
@@ -78,20 +80,20 @@ export function TacticForm({
             disabled={!hasFutureWeek}
           />
           <span>
-            <strong>להחיל רק בשבוע הבא</strong>
+            <strong>{t('goals.form.nextWeekOnly')}</strong>
             <small>
               {hasFutureWeek
                 ? nextWeekOnly
-                  ? `השינוי יחול בשבוע ${nextWeek} בלבד, ואז הטקטיקה הרגילה תחזור.`
-                  : `השינוי יחול משבוע ${nextWeek} ועד סוף המחזור.`
-                : 'אין שבוע עתידי לטקטיקה הזו במחזור הנוכחי.'}
+                  ? t('goals.form.nextWeekOnlyHint', { week: nextWeek })
+                  : t('goals.form.everyWeekHint', { week: nextWeek })
+                : t('goals.form.noFutureWeek')}
             </small>
           </span>
         </label>
       ) : (
         <div className={styles.weekRange}>
           <label>
-            משבוע
+            {t('goals.form.fromWeek')}
             <select value={startWeek} onChange={(e) => setStartWeek(Number(e.target.value))}>
               {weekOptions.map((w) => (
                 <option key={w} value={w}>
@@ -101,7 +103,7 @@ export function TacticForm({
             </select>
           </label>
           <label>
-            עד שבוע
+            {t('goals.form.toWeek')}
             <select value={endWeek} onChange={(e) => setEndWeek(Number(e.target.value))}>
               {weekOptions.map((w) => (
                 <option key={w} value={w}>
@@ -112,13 +114,13 @@ export function TacticForm({
           </label>
         </div>
       )}
-      {rangeInvalid && <p className={styles.error}>שבוע הסיום חייב להיות אחרי שבוע ההתחלה או שווה לו</p>}
+      {rangeInvalid && <p className={styles.error}>{t('goals.form.rangeInvalid')}</p>}
       <div className={styles.actions}>
         <button type="button" className="btn btn-primary btn-sm" disabled={!canSubmit} onClick={submit}>
           {submitLabel}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>
-          ביטול
+          {t('goals.form.cancel')}
         </button>
         <StatusBadge status={status.status} error={status.error} />
       </div>
