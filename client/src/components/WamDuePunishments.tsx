@@ -3,6 +3,7 @@ import type { WamDetail, WamDuePunishment } from '../lib/types';
 import { useAsyncStatus } from '../hooks/useAsyncStatus';
 import { StatusBadge } from './StatusBadge';
 import styles from './WamDuePunishments.module.css';
+import { useTranslation } from '../i18n';
 
 /** "Due Punishments" checklist for the next WAM created after the one where each item was
  *  written. Either partner may view every item (author AND assignee are both always shown,
@@ -18,12 +19,13 @@ export function WamDuePunishments({
   wam: WamDetail;
   onToggle: (id: number, done: boolean) => Promise<unknown>;
 }) {
+  const { t } = useTranslation();
   const { duePunishments } = wam;
   if (duePunishments.length === 0) return null;
 
   return (
     <div className={`card ${styles.wrap}`}>
-      <h3 className={styles.title}>עונשים לביצוע השבוע</h3>
+      <h3 className={styles.title}>{t('wams.punishments.dueTitle')}</h3>
       <ul className={styles.list}>
         {duePunishments.map((p) => (
           <DueRow key={p.id} punishment={p} onToggle={(done) => onToggle(p.id, done)} />
@@ -40,6 +42,7 @@ function DueRow({
   punishment: WamDuePunishment;
   onToggle: (done: boolean) => Promise<unknown>;
 }) {
+  const { t } = useTranslation();
   const toggleStatus = useAsyncStatus();
   const busy = toggleStatus.status === 'saving';
   // Controlled optimistic checkbox: flips immediately on click for a snappy feel, but rolls
@@ -67,16 +70,16 @@ function DueRow({
           checked={checked}
           disabled={!punishment.canToggle || busy}
           onChange={(e) => handleChange(e.target.checked)}
-          aria-label={`סימון "${punishment.label}" כבוצע`}
+          aria-label={t('wams.punishments.markLabel', { label: punishment.label })}
         />
       </label>
       <span className={styles.label}>{punishment.label}</span>
-      <span className={styles.metaTag}>מאת {punishment.authorLabel}</span>
-      <span className={styles.metaTag}>על {punishment.assigneeLabel}</span>
-      <span className={styles.metaTag}>מפגישת שבוע {punishment.sourceWeek}</span>
+      <span className={styles.metaTag}>{t('wams.punishments.by', { name: punishment.authorLabel })}</span>
+      <span className={styles.metaTag}>{t('wams.punishments.on', { name: punishment.assigneeLabel })}</span>
+      <span className={styles.metaTag}>{t('wams.punishments.fromWeek', { week: punishment.sourceWeek })}</span>
       {checked && (
         <span className={styles.doneStatus} role="status">
-          ✔️ בוצע
+          {t('wams.punishments.done')}
         </span>
       )}
       <StatusBadge status={toggleStatus.status} error={toggleStatus.error} />

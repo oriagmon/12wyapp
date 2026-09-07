@@ -6,6 +6,7 @@ import type { ArchiveSearchTarget } from '../lib/archiveSearchTypes';
 import { WamListPanel } from './WamListPanel';
 import { WamDetailView } from './WamDetailView';
 import { WamCelebrationOverlay } from './WamCelebrationOverlay';
+import { useTranslation } from '../i18n';
 
 export function WamsTab({ myUserId, ownDash, selection, onSelectionChange, selectedWeek, onWeekChange, navigationKey }: {
   myUserId: number;
@@ -16,6 +17,7 @@ export function WamsTab({ myUserId, ownDash, selection, onSelectionChange, selec
   onWeekChange?: (week: number) => void;
   navigationKey?: string;
 }) {
+  const { t } = useTranslation();
   const list = useWamList();
   const [localSelectedWamId, setSelectedWamId] = useState<number | null>(selection?.wamId ?? null);
   const selectedWamId = onSelectionChange ? selection?.wamId ?? null : localSelectedWamId;
@@ -110,13 +112,13 @@ export function WamsTab({ myUserId, ownDash, selection, onSelectionChange, selec
       return (
         <div className="card" style={{ padding: 24, color: 'var(--danger)' }}>
           <p role="alert">{detail.loadError}</p>
-          <button type="button" className="btn btn-ghost" onClick={detail.reload}>ניסיון נוסף</button>
-          <button type="button" className="btn btn-ghost" onClick={goBackToList}>חזרה לרשימת הפגישות</button>
+          <button type="button" className="btn btn-ghost" onClick={detail.reload}>{t('wams.retry')}</button>
+          <button type="button" className="btn btn-ghost" onClick={goBackToList}>{t('wams.backToList')}</button>
         </div>
       );
     }
     if (detail.loadStatus === 'loading' || !detail.wam || detail.wam.id !== selectedWamId) {
-      return <div className="card" style={{ padding: 24 }}>טוען פגישה...</div>;
+      return <div className="card" style={{ padding: 24 }}>{t('wams.loadingOne')}</div>;
     }
     return (
       <>
@@ -148,7 +150,7 @@ export function WamsTab({ myUserId, ownDash, selection, onSelectionChange, selec
   }
 
   if (list.loading) {
-    return <div className="card" style={{ padding: 24 }}>טוען פגישות אחריותיות...</div>;
+    return <div className="card" style={{ padding: 24 }}>{t('wams.loadingList')}</div>;
   }
   if (list.error) {
     return (

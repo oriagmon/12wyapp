@@ -3,9 +3,10 @@ import type { CommitmentScope, WamCommitment, WamPartnershipMeta } from '../lib/
 import { useAsyncStatus } from '../hooks/useAsyncStatus';
 import { StatusBadge } from './StatusBadge';
 import styles from './WamCommitments.module.css';
+import { useTranslation, type Translator } from '../i18n';
 
-function scopeLabel(scope: CommitmentScope, partnership: WamPartnershipMeta): string {
-  if (scope === 'shared') return 'משותף';
+function scopeLabel(scope: CommitmentScope, partnership: WamPartnershipMeta, t: Translator): string {
+  if (scope === 'shared') return t('wams.scope.shared');
   if (scope === 'a') return partnership.initiatorEmail;
   return partnership.inviteeEmail;
 }
@@ -29,6 +30,7 @@ export function WamCommitments({
   onUpdateLabel: (id: number, label: string) => Promise<unknown>;
   onDelete: (id: number) => Promise<unknown>;
 }) {
+  const { t } = useTranslation();
   const [newLabel, setNewLabel] = useState('');
   const [newScope, setNewScope] = useState<CommitmentScope>('shared');
   const addStatus = useAsyncStatus();
@@ -42,8 +44,8 @@ export function WamCommitments({
 
   return (
     <div className={`card ${styles.wrap}`}>
-      <h3 className={styles.title}>התחייבויות לשבוע הבא</h3>
-      {commitments.length === 0 && <p className={styles.empty}>עדיין אין התחייבויות. הוסיפו את הראשונה.</p>}
+      <h3 className={styles.title}>{t('wams.commitments.title')}</h3>
+      {commitments.length === 0 && <p className={styles.empty}>{t('wams.commitments.empty')}</p>}
       <ul className={styles.list}>
         {commitments.map((c) => (
           <CommitmentRow
@@ -63,32 +65,32 @@ export function WamCommitments({
         <div className={styles.addRow}>
           <input
             type="text"
-            placeholder="התחייבות חדשה..."
+            placeholder={t('wams.commitments.placeholder')}
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') submitAdd();
             }}
-            aria-label="טקסט התחייבות חדשה"
+            aria-label={t('wams.commitments.newLabel')}
           />
           <select
             value={newScope}
             onChange={(e) => setNewScope(e.target.value as CommitmentScope)}
-            aria-label="שיוך ההתחייבות"
+            aria-label={t('wams.commitments.scopeLabel')}
           >
-            <option value="shared">משותף</option>
+            <option value="shared">{t('wams.scope.shared')}</option>
             <option value="a">{partnership.initiatorEmail}</option>
             <option value="b">{partnership.inviteeEmail}</option>
           </select>
           <button type="button" className="btn btn-primary btn-sm" onClick={submitAdd}>
-            הוספה
+            {t('wams.commitments.add')}
           </button>
           <StatusBadge status={addStatus.status} error={addStatus.error} />
         </div>
       )}
-      {locked && <p className={styles.reopenHint}>פגישה זו נעולה כהיסטוריה של מחזור שהסתיים ולא ניתנת עוד לעריכה.</p>}
+      {locked && <p className={styles.reopenHint}>{t('wams.locked')}</p>}
       {!locked && !canEditContent && (
-        <p className={styles.reopenHint}>הפגישה הושלמה — ניתן עדיין לסמן ביצוע, אך הוספה/עריכת טקסט דורשת פתיחה מחדש.</p>
+        <p className={styles.reopenHint}>{t('wams.completed')}</p>
       )}
     </div>
   );
@@ -111,6 +113,7 @@ function CommitmentRow({
   onUpdateLabel: (label: string) => Promise<unknown>;
   onDelete: () => Promise<unknown>;
 }) {
+  const { t } = useTranslation();
   const [label, setLabel] = useState(commitment.label);
   const toggleStatus = useAsyncStatus();
   const editStatus = useAsyncStatus();
@@ -138,17 +141,17 @@ function CommitmentRow({
         disabled={!canEditContent}
         onChange={(e) => setLabel(e.target.value)}
         onBlur={commitLabel}
-        aria-label="טקסט ההתחייבות"
+        aria-label={t('wams.commitments.text')}
       />
-      <span className={styles.scopeTag}>{scopeLabel(commitment.scope, partnership)}</span>
+      <span className={styles.scopeTag}>{scopeLabel(commitment.scope, partnership, t)}</span>
       {canEditContent && (
         <button
           type="button"
           className="btn btn-ghost btn-sm"
           onClick={() => deleteStatus.run(onDelete)}
-          aria-label="מחיקת התחייבות"
+          aria-label={t('wams.commitments.deleteLabel')}
         >
-          מחיקה
+          {t('wams.commitments.delete')}
         </button>
       )}
       <StatusBadge

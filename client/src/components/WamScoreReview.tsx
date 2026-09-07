@@ -2,6 +2,7 @@ import type { WamDetail } from '../lib/types';
 import { formatScore } from '../lib/scoring';
 import { RatingPicker } from './RatingPicker';
 import styles from './WamScoreReview.module.css';
+import { useTranslation } from '../i18n';
 
 function ScoreSide({
   label,
@@ -20,6 +21,7 @@ function ScoreSide({
   locked: boolean;
   onRate?: (rating: number) => void;
 }) {
+  const { t } = useTranslation();
   const review = wam.reviews[side];
   const displayScore = wam.status === 'complete' ? review.scoreSnapshot : review.live.score;
   const frozen = wam.status === 'complete';
@@ -28,27 +30,30 @@ function ScoreSide({
     <div className={`${styles.side} ${isMe ? styles.me : ''}`}>
       <div className={styles.sideHeader}>
         <span className={styles.sideLabel}>
-          {label} {isMe && <span className={styles.meBadge}>(את/ה)</span>}
+          {label} {isMe && <span className={styles.meBadge}>{t('wams.review.me')}</span>}
         </span>
         <span className={styles.email}>{email}</span>
       </div>
 
       <div className={styles.scoreRow}>
         <span className={styles.scoreValue}>{formatScore(displayScore)}</span>
-        <span className={styles.scoreTag}>{frozen ? 'קפוא (הושלם)' : 'חי — נכון להיום'}</span>
+        <span className={styles.scoreTag}>{frozen ? t('wams.review.frozen') : t('wams.review.live')}</span>
       </div>
 
       {review.live.hasCycle ? (
         <p className={styles.cycleInfo}>
-          מחזור: {review.live.cycleName}
-          {review.live.cycleIsActive ? '' : ' (הסתיים)'} · שבוע נוכחי: {review.live.currentWeek}
+          {t('wams.review.cycle', {
+            name: review.live.cycleName ?? '',
+            ended: review.live.cycleIsActive ? '' : t('wams.review.cycleEnded'),
+            week: review.live.currentWeek ?? '',
+          })}
         </p>
       ) : (
-        <p className={styles.cycleInfo}>אין מחזור פעיל</p>
+        <p className={styles.cycleInfo}>{t('wams.review.noCycle')}</p>
       )}
 
       <RatingPicker
-        label={isMe ? 'הדירוג העצמי שלי (1-10)' : 'דירוג עצמי'}
+        label={isMe ? t('wams.review.myRating') : t('wams.review.theirRating')}
         value={review.rating}
         disabled={!isMe || locked}
         onChange={isMe ? onRate : undefined}
@@ -68,25 +73,25 @@ export function WamScoreReview({
   locked: boolean;
   onRate: (rating: number) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className={`card ${styles.wrap}`}>
       <div className={styles.header}>
-        <h3 className={styles.title}>סקירת ציונים — שבוע {wam.week}</h3>
+        <h3 className={styles.title}>{t('wams.review.title', { week: wam.week })}</h3>
         {wam.isHistorical && (
           <div className={styles.historicalBanner} role="status">
-            🔒 פגישה זו שייכת למחזור שהסתיים — כל הנתונים כאן נשמרים לצמיתות כהיסטוריה לקריאה בלבד.
+            {t('wams.review.lockedNote')}
           </div>
         )}
         {wam.mismatch && (
           <div className={styles.mismatch} role="alert">
-            ⚠️ שימו לב: השבוע הנוכחי במחזורים של שני הצדדים שונה. אין סנכרון אוטומטי — כל אחד/ת ממשיך/ה
-            בקצב שלו/ה.
+            {t('wams.review.driftNote')}
           </div>
         )}
       </div>
       <div className={styles.sides}>
         <ScoreSide
-          label="צד א׳"
+          label={t('wams.review.sideA')}
           email={wam.partnership.initiatorEmail}
           wam={wam}
           side="a"
@@ -95,7 +100,7 @@ export function WamScoreReview({
           onRate={onRate}
         />
         <ScoreSide
-          label="צד ב׳"
+          label={t('wams.review.sideB')}
           email={wam.partnership.inviteeEmail}
           wam={wam}
           side="b"
