@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError } from '../lib/api';
 import type { PartnershipsState, RegisteredUser } from '../lib/types';
+import { translateActive } from '../i18n';
 
 /**
  * V1 direct-pairing model: no invitation/acceptance step. Any authenticated user can list
@@ -23,7 +24,7 @@ export function usePartnerships() {
       setCandidates(candidatesRes.users);
       setError(null);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'שגיאה בטעינת שותפויות');
+      setError(e instanceof ApiError ? e.message : translateActive('common.load.partnerships'));
     } finally {
       setLoading(false);
     }

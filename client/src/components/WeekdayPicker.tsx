@@ -1,6 +1,7 @@
 
 import styles from './WeekdayPicker.module.css';
 import { useWeekdayLabels } from '../i18n/useWeekdayLabels';
+import { useTranslation } from '../i18n';
 
 export function WeekdayPicker({
   value,
@@ -11,6 +12,7 @@ export function WeekdayPicker({
   onChange: (next: number[]) => void;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   const weekdayLabels = useWeekdayLabels();
   const toggle = (day: number) => {
     if (disabled) return;
@@ -22,7 +24,7 @@ export function WeekdayPicker({
   };
 
   return (
-    <div className={styles.row} role="group" aria-label="ימי השבוע">
+    <div className={styles.row} role="group" aria-label={t('common.weekdays.group')}>
       {weekdayLabels.short.map((label, day) => {
         const active = value.includes(day);
         return (

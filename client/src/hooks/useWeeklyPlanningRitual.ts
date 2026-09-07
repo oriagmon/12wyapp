@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '../lib/api';
+import { translateActive } from '../i18n';
 
 /**
  * Focused types for the weekly planning ritual feature, kept local to this hook rather than
@@ -104,7 +105,7 @@ export function useWeeklyPlanningRitual(cycleId: number | null, targetWeek: numb
       if (!isCurrent(generation) || sequence !== scope.readSequence || revision !== scope.revision) return;
       setState({
         scope, ritual: null, access: null, loadStatus: 'error',
-        loadError: e instanceof ApiError ? e.message : 'שגיאה בטעינת טקס התכנון השבועי',
+        loadError: e instanceof ApiError ? e.message : translateActive('common.load.ritual'),
       });
     }
   }, [scope, isCurrent]);
@@ -121,7 +122,7 @@ export function useWeeklyPlanningRitual(cycleId: number | null, targetWeek: numb
   const mutate = useCallback(
     async (action: 'draft' | 'complete' | 'reopen', patch?: WeeklyPlanningDraftPatch) => {
       if (scope.cycleId === null || scope.targetWeek === null) {
-        throw new Error('אין שבוע יעד זמין לתכנון כרגע');
+        throw new Error(translateActive('common.guard.noTargetWeek'));
       }
       const sequence = ++scope.mutationSequence;
       const generation = lifetime.current;

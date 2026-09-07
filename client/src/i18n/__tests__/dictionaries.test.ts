@@ -88,9 +88,14 @@ describe('dictionary integrity', () => {
     // English one. The exceptions are values that are the same in every language.
     const languageNeutral = /^[\s\d%✓✨🏆🔥⚪+\-–—·:.,()[\]{}/]*$/u;
 
+    // A template made only of placeholders and punctuation carries no words of its own,
+    // so it reads the same in both languages by construction.
+    const placeholdersOnly = (value: string) => languageNeutral.test(value.replace(/\{\w+\}/g, ''));
+
     const suspicious = Object.entries(dictionaries.he)
       .filter(([, value]) => !hebrew.test(value))
       .filter(([, value]) => !languageNeutral.test(value))
+      .filter(([, value]) => !placeholdersOnly(value))
       // Product names we deliberately keep in Latin script in both languages.
       .filter(([, value]) => !/^(12wyapp|WAM|BROOST|Duo|English)$/.test(value.trim()))
       .filter(([key]) => key !== 'common.language.en');

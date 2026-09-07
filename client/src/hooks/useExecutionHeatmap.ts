@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError } from '../lib/api';
 import { formatIsraelWallTime, israelWallTimeToUtcIso } from '../lib/israelTime';
 import type { ExecutionHeatmapResponse } from '../lib/executionHeatmapTypes';
+import { translateActive } from '../i18n';
 
 type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
 interface HeatmapState {
@@ -32,7 +33,7 @@ export function useExecutionHeatmap(userId: number | null, cycleId?: number, ref
     }).catch((error: unknown) => {
       if (!disposed) setState({
         key, data: null, loadStatus: 'error',
-        loadError: error instanceof ApiError ? error.message : 'לא הצלחנו לטעון את מפת הביצוע',
+        loadError: error instanceof ApiError ? error.message : translateActive('common.load.heatmap'),
       });
     });
     return () => { disposed = true; };

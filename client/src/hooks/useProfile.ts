@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import { translateActive } from '../i18n';
 
 export interface ProfileData {
   id: number;
@@ -32,7 +33,7 @@ export function useProfile() {
       setProfile(data);
       setLoadStatus('ready');
     } catch (e) {
-      setLoadError(e instanceof ApiError ? e.message : 'שגיאה בטעינת הפרופיל');
+      setLoadError(e instanceof ApiError ? e.message : translateActive('common.load.profile'));
       setLoadStatus('error');
     }
   }, []);

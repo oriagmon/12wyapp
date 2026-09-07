@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '../lib/api';
 import type { ArchiveSearchResponse } from '../lib/archiveSearchTypes';
+import { translateActive } from '../i18n';
 
 export function useArchiveSearch() {
   const [query, setQuery] = useState('');
@@ -25,7 +26,7 @@ export function useArchiveSearch() {
     const value = query.trim();
     setData(null);
     if (!value || query.length > 120 || /[\u0000-\u001f\u007f]/.test(value)) {
-      setError('יש להזין חיפוש באורך 1–120 תווים');
+      setError(translateActive('common.search.tooLong'));
       setStatus('error');
       return;
     }
@@ -38,7 +39,7 @@ export function useArchiveSearch() {
       setStatus('ready');
     } catch (cause) {
       if (requestId !== sequence.current) return;
-      setError(cause instanceof ApiError ? cause.message : 'לא ניתן לטעון תוצאות. נסו שוב.');
+      setError(cause instanceof ApiError ? cause.message : translateActive('common.load.results'));
       setStatus('error');
     }
   }, [query]);

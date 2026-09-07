@@ -12,6 +12,12 @@ import type { AreaDict } from '../locales';
  */
 export const dashboard: AreaDict = {
   en: {
+    'dashboard.hero.label': 'The main goal',
+    'dashboard.hero.weeks': '12 weeks',
+    'dashboard.hero.tactics_one': '{count} tactic',
+    'dashboard.hero.tactics_other': '{count} tactics',
+    'dashboard.hero.thisWeek': 'This week: {score}',
+    'dashboard.hero.standard': 'Success standard: {target}%',
     'dashboard.streak.label': 'Your success-day streak',
     'dashboard.streak.sideLabel': 'More streak numbers',
     'dashboard.streak.unit_one': 'success day in a row',
@@ -61,6 +67,12 @@ export const dashboard: AreaDict = {
     'dashboard.cycle.confirmEnd': 'Yes, end the cycle',
   },
   he: {
+    'dashboard.hero.label': 'המטרה המרכזית',
+    'dashboard.hero.weeks': '12 שבועות',
+    'dashboard.hero.tactics_one': '{count} טקטיקה למטרה',
+    'dashboard.hero.tactics_other': '{count} טקטיקות למטרה',
+    'dashboard.hero.thisWeek': 'ביצוע השבוע: {score}',
+    'dashboard.hero.standard': 'סטנדרט הצלחה: {target}%',
     'dashboard.streak.label': 'רצף ימי ההצלחה',
     'dashboard.streak.sideLabel': 'נתוני רצף נוספים',
     'dashboard.streak.unit_one': 'יום הצלחה ברצף',

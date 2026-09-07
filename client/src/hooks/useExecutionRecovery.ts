@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '../lib/api';
+import { translateActive } from '../i18n';
 
 /**
  * Focused types for the execution recovery feature, kept local to this hook rather than
@@ -134,7 +135,7 @@ export function useExecutionRecovery(
       setLoadStatus('ready');
       setLoadError(null); // clear any stale error from an earlier failed attempt
     } catch (e) {
-      setLoadError(e instanceof ApiError ? e.message : 'שגיאה בטעינת תוכנית החילוץ');
+      setLoadError(e instanceof ApiError ? e.message : translateActive('common.load.recovery'));
       setLoadStatus('error');
     }
   }, [userId]);
@@ -147,7 +148,7 @@ export function useExecutionRecovery(
 
   const saveManeuver = useCallback(
     async (note: string) => {
-      if (userId === null) throw new Error('אין משתמש זמין');
+      if (userId === null) throw new Error(translateActive('common.guard.noUser'));
       const data = await api.put<RecoveryMutationResponse>(`/execution-recovery/${userId}`, { note });
       setPlan(data.plan);
       return data.plan;
@@ -157,7 +158,7 @@ export function useExecutionRecovery(
 
   const reduceNextWeek = useCallback(
     async (input: ReduceNextWeekInput) => {
-      if (userId === null) throw new Error('אין משתמש זמין');
+      if (userId === null) throw new Error(translateActive('common.guard.noUser'));
       const data = await api.post<RecoveryMutationResponse>(`/execution-recovery/${userId}/reduce-next-week`, input);
       setPlan(data.plan);
       // Only reached on success — a thrown error above (network/validation) skips this
@@ -169,14 +170,14 @@ export function useExecutionRecovery(
   );
 
   const resolve = useCallback(async () => {
-    if (userId === null) throw new Error('אין משתמש זמין');
+    if (userId === null) throw new Error(translateActive('common.guard.noUser'));
     const data = await api.post<RecoveryMutationResponse>(`/execution-recovery/${userId}/resolve`);
     setPlan(data.plan);
     return data.plan;
   }, [userId]);
 
   const reopen = useCallback(async () => {
-    if (userId === null) throw new Error('אין משתמש זמין');
+    if (userId === null) throw new Error(translateActive('common.guard.noUser'));
     const data = await api.post<RecoveryMutationResponse>(`/execution-recovery/${userId}/reopen`);
     setPlan(data.plan);
     return data.plan;

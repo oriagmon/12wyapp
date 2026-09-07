@@ -5,6 +5,7 @@ import { GOAL_COLOR_HEX } from '../lib/colors';
 import { useCompletionFeedback } from '../hooks/useCompletionFeedback';
 import styles from './WeeklyGrid.module.css';
 import { useWeekdayLabels } from '../i18n/useWeekdayLabels';
+import { useTranslation } from '../i18n';
 
 function isScheduled(tactic: { weekdays: number[]; startWeek: number; endWeek: number }, week: number, weekday: number): boolean {
   return week >= tactic.startWeek && week <= tactic.endWeek && tactic.weekdays.includes(weekday);
@@ -25,13 +26,14 @@ export function WeeklyGrid({
   isOwner: boolean;
   onToggle: (tacticId: number, weekday: number, done: boolean) => void | Promise<unknown>;
 }) {
+  const { t } = useTranslation();
   const weekdayLabels = useWeekdayLabels();
   const today = currentWeek === week ? israelWeekday() : null;
   const feedback = useCompletionFeedback(`${week}:${isOwner}:${goals.map((goal) => goal.id).join(',')}`);
   const allTactics = goals.flatMap((g) =>
-    g.tactics.map((t) => ({
-      ...t,
-      ...effectiveTacticForWeek(t, week),
+    g.tactics.map((tactic) => ({
+      ...tactic,
+      ...effectiveTacticForWeek(tactic, week),
       goalColor: g.color,
       goalTitle: g.title,
     }))
@@ -40,22 +42,22 @@ export function WeeklyGrid({
   if (allTactics.length === 0) {
     return (
       <div className={`card ${styles.emptyCard}`}>
-        <p>אין עדיין טקטיקות מוגדרות. הוסיפו מטרות וטקטיקות כדי לראות את הרשת השבועית.</p>
+        <p>{t('week.grid.empty')}</p>
       </div>
     );
   }
 
   return (
-    <div className={`card ${styles.wrap}`} role="region" aria-label="רשת ביצועים שבועית — ניתן לגלול לרוחב" tabIndex={0}>
+    <div className={`card ${styles.wrap}`} role="region" aria-label={t('week.grid.label')} tabIndex={0}>
       {feedback.error && <p role="alert" className="completion-error">{feedback.error}</p>}
       <table className={styles.table}>
         <thead>
           <tr>
-            <th className={styles.tacticHeader}>טקטיקה</th>
+            <th className={styles.tacticHeader}>{t('week.grid.tactic')}</th>
             {weekdayLabels.short.map((label, weekday) => (
               <th key={label} scope="col" className={weekday === today ? styles.todayColumn : undefined}>
                 {label}
-                {weekday === today && <span className={styles.todayBadge}>היום</span>}
+                {weekday === today && <span className={styles.todayBadge}>{t('week.grid.today')}</span>}
               </th>
             ))}
           </tr>
@@ -83,7 +85,7 @@ export function WeeklyGrid({
                 if (!scheduled) {
                   return (
                     <td key={weekday} className={`${styles.unscheduled} ${weekday === today ? styles.todayCell : ''}`}
-                      aria-label="לא מתוזמן">
+                      aria-label={t('week.grid.unscheduled')}>
                       ·
                     </td>
                   );
@@ -97,7 +99,11 @@ export function WeeklyGrid({
                         disabled={!isOwner || feedback.pending.has(key)}
                         aria-busy={feedback.pending.has(key) || undefined}
                         aria-pressed={done}
-                        aria-label={`${tactic.title} — ${weekdayLabels.short[weekday]}, ${done ? 'בוצע' : 'לביצוע'}`}
+                        aria-label={t('week.grid.cell', {
+                          title: tactic.title,
+                          day: weekdayLabels.short[weekday],
+                          state: done ? t('week.grid.cellDone') : t('week.grid.cellTodo'),
+                        })}
                         onClick={() => void feedback.run(key, !done, () => onToggle(tactic.id, weekday, !done))}
                       >
                         {done ? '✓' : ''}
@@ -113,19 +119,19 @@ export function WeeklyGrid({
       </table>
       <p className={styles.legend}>
         <span className={styles.legendItem}>
-          <span className={`${styles.legendSwatch} ${styles.legendDone}`} aria-hidden="true">✓</span>בוצע
+          <span className={`${styles.legendSwatch} ${styles.legendDone}`} aria-hidden="true">✓</span>{t('week.grid.legendDone')}
         </span>
         <span className={styles.legendItem}>
-          <span className={styles.legendSwatch} aria-hidden="true" />מתוכנן, טרם בוצע
+          <span className={styles.legendSwatch} aria-hidden="true" />{t('week.grid.legendPlanned')}
         </span>
         <span className={styles.legendItem}>
           <span className={`${styles.legendSwatch} ${styles.legendUnscheduled}`} aria-hidden="true">·</span>
-          לא מתוכנן ליום הזה
+          {t('week.grid.legendUnplanned')}
         </span>
         {today !== null && (
           <span className={styles.legendItem}>
             <span className={`${styles.legendSwatch} ${styles.legendToday}`} aria-hidden="true" />
-            היום — יום {weekdayLabels.full[today]}
+            {t('week.grid.legendToday', { day: weekdayLabels.full[today] })}
           </span>
         )}
       </p>

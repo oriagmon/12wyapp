@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '../lib/api';
+import { translateActive } from '../i18n';
 
 export type ReminderStatus = 'pending' | 'sending' | 'sent' | 'failed' | 'cancelled';
 
@@ -65,7 +66,7 @@ export function useReminders() {
       hasDataRef.current = true;
       setLoadStatus('ready');
     } catch (e) {
-      setLoadError(e instanceof ApiError ? e.message : 'שגיאה בטעינת התזכורות');
+      setLoadError(e instanceof ApiError ? e.message : translateActive('common.load.reminders'));
       setLoadStatus('error');
     }
   }, []);

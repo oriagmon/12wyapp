@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { translateActive } from '../i18n';
 
 export function useCompletionFeedback(scope: string) {
   const [pending, setPending] = useState<Set<string>>(new Set());
@@ -36,7 +37,7 @@ export function useCompletionFeedback(scope: string) {
       }, 720);
       timers.current.add(timer);
     } catch {
-      if (generation === version.current) setError('הסימון לא נשמר. אפשר לנסות שוב.');
+      if (generation === version.current) setError(translateActive('common.mark.failed'));
     } finally {
       if (generation === version.current) {
         inflight.current.delete(key);

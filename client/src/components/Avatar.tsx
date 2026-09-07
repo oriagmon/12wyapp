@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import styles from './Avatar.module.css';
+import { useTranslation } from '../i18n';
 
 export type AvatarSize = 'sm' | 'md' | 'lg';
 
@@ -39,6 +40,7 @@ function initialsFrom(displayName: string, email: string): string {
  * number, when `successStreak` is provided.
  */
 export function Avatar({ userId, displayName, email, hasAvatar, avatarVersion, successStreak, size = 'md' }: AvatarProps) {
+  const { t } = useTranslation();
   const [imageFailed, setImageFailed] = useState(false);
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export function Avatar({ userId, displayName, email, hasAvatar, avatarVersion, s
   const initials = initialsFrom(displayName, email);
   const streakLabel =
     successStreak !== undefined
-      ? `רצף הצלחות: ${successStreak} ${successStreak === 1 ? 'שבוע רצוף' : 'שבועות רצופים'} בציון 85% ומעלה`
+      ? t('common.avatar.streak', { count: successStreak })
       : '';
 
   return (

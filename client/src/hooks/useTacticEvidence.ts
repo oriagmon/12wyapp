@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '../lib/api';
+import { translateActive } from '../i18n';
 
 /**
  * Focused types for the tactic-evidence feature, kept local to this hook rather than added to
@@ -78,7 +79,7 @@ export function useTacticEvidence(tacticId: number | null, week: number | null) 
       setLegacyEvidence([]);
       setAccess(null);
       setCanCreate(false);
-      setLoadError(e instanceof ApiError ? e.message : 'שגיאה בטעינת העדות');
+      setLoadError(e instanceof ApiError ? e.message : translateActive('common.load.evidence'));
       setLoadStatus('error');
     }
   }, [weekPath]);
@@ -96,7 +97,7 @@ export function useTacticEvidence(tacticId: number | null, week: number | null) 
 
   const saveMeta = useCallback(
     async (input: { note?: string; link?: string }) => {
-      if (!weekPath) throw new Error('לא נבחר שבוע');
+      if (!weekPath) throw new Error(translateActive('common.guard.noWeek'));
       const id = ++requestId.current;
       const updated = await api.put<TacticEvidence>(weekPath, input);
       if (activePath.current === weekPath && requestId.current === id) setEvidence(updated);
@@ -107,7 +108,7 @@ export function useTacticEvidence(tacticId: number | null, week: number | null) 
 
   const uploadFile = useCallback(
     async (file: File) => {
-      if (!weekPath) throw new Error('לא נבחר שבוע');
+      if (!weekPath) throw new Error(translateActive('common.guard.noWeek'));
       const id = ++requestId.current;
       const updated = await api.putBinary<TacticEvidence | { evidence: null }>(`${weekPath}/file`, file, file.type || 'application/octet-stream', {
         'X-Evidence-Filename': encodeURIComponent(file.name),
@@ -120,7 +121,7 @@ export function useTacticEvidence(tacticId: number | null, week: number | null) 
   );
 
   const deleteFile = useCallback(async () => {
-    if (!weekPath) throw new Error('לא נבחר שבוע');
+    if (!weekPath) throw new Error(translateActive('common.guard.noWeek'));
     const id = ++requestId.current;
     const result = await api.delete<{ evidence: TacticEvidence | null }>(`${weekPath}/file`);
     if (activePath.current === weekPath && requestId.current === id) setEvidence(result.evidence);
@@ -128,7 +129,7 @@ export function useTacticEvidence(tacticId: number | null, week: number | null) 
   }, [weekPath]);
 
   const deleteAll = useCallback(async () => {
-    if (!weekPath) throw new Error('לא נבחר שבוע');
+    if (!weekPath) throw new Error(translateActive('common.guard.noWeek'));
     const id = ++requestId.current;
     await api.delete(weekPath);
     if (activePath.current === weekPath && requestId.current === id) setEvidence(null);
@@ -136,7 +137,7 @@ export function useTacticEvidence(tacticId: number | null, week: number | null) 
 
   const downloadFile = useCallback(async () => {
     if (!weekPath || tacticId === null || week === null || !evidence?.hasFile) {
-      throw new Error('אין קובץ להורדה');
+      throw new Error(translateActive('common.guard.noFile'));
     }
     await downloadTacticEvidenceFile(tacticId, week, null, evidence.fileOriginalName);
   }, [weekPath, tacticId, week, evidence]);
@@ -172,7 +173,7 @@ export async function downloadTacticEvidenceFile(
   const scope = weekday === null ? `weekly/${tacticId}/${week}` : `${tacticId}/${week}/${weekday}`;
   const res = await fetch(`/api/tactic-evidence/${scope}/file`, { credentials: 'include' });
   if (!res.ok) {
-    let message = `שגיאת שרת (${res.status})`;
+    let message = translateActive('common.error.server', { status: res.status });
     try {
       const body = (await res.json()) as { error?: string };
       if (body?.error) message = body.error;

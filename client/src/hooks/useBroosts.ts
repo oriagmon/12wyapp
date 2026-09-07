@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '../lib/api';
 import { createBroostInstanceId, publishBroostChange, subscribeBroostChange } from '../lib/broostBus';
+import { translateActive } from '../i18n';
 
 /**
  * Focused types for the BROOST feature, kept local to this hook rather than added to
@@ -90,7 +91,7 @@ export function useBroostUnread(pollIntervalMs: number = MIN_POLL_INTERVAL_MS) {
       setLoadError(null);
     } catch (e) {
       if (seq !== requestSeqRef.current) return;
-      setLoadError(e instanceof ApiError ? e.message : 'שגיאה בטעינת התראות BROOST');
+      setLoadError(e instanceof ApiError ? e.message : translateActive('common.load.broostAlerts'));
       setLoadStatus('error');
     }
   }, []);
@@ -241,7 +242,7 @@ export function useBroostHistory(limit: number = DEFAULT_HISTORY_LIMIT) {
       setLoadError(null);
     } catch (e) {
       if (seq !== requestSeqRef.current) return;
-      setLoadError(e instanceof ApiError ? e.message : 'שגיאה בטעינת היסטוריית BROOST');
+      setLoadError(e instanceof ApiError ? e.message : translateActive('common.load.broostHistory'));
       setLoadStatus('error');
     }
   }, [limit]);
@@ -306,7 +307,7 @@ export function useBroostHistory(limit: number = DEFAULT_HISTORY_LIMIT) {
       setLoadError(null);
     } catch (e) {
       if (seq !== requestSeqRef.current) return;
-      setLoadError(e instanceof ApiError ? e.message : 'שגיאה בטעינת היסטוריית BROOST');
+      setLoadError(e instanceof ApiError ? e.message : translateActive('common.load.broostHistory'));
       setLoadStatus('error');
     }
   }, [limit]);

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '../lib/api';
 import { hasAcceptedEvidenceExtension, MAX_EVIDENCE_FILE_BYTES, type TacticEvidence } from './useTacticEvidence';
+import { translateActive } from '../i18n';
 
 export interface WeekEvidenceItem extends Omit<TacticEvidence, 'tacticId'> {
   id: number;
@@ -39,7 +40,7 @@ export function useWeekEvidence(cycleId: number | null, week: number | null) {
       setState({ path, ...result, status: 'ready', error: null });
     } catch (error) {
       if (active.current !== path || id !== request.current) return;
-      setState({ path, items: [], access: null, status: 'error', error: error instanceof Error ? error.message : 'שגיאה בטעינת האלבום' });
+      setState({ path, items: [], access: null, status: 'error', error: error instanceof Error ? error.message : translateActive('common.load.album') });
     }
   }, [path]);
 
@@ -51,7 +52,7 @@ export function useWeekEvidence(cycleId: number | null, week: number | null) {
   }, [path, reload]);
 
   const requireScope = () => {
-    if (!path || week === null || current.access !== 'owner') throw new Error('אין הרשאה לעריכת השבוע');
+    if (!path || week === null || current.access !== 'owner') throw new Error(translateActive('common.guard.readOnlyWeek'));
     return path;
   };
   const merge = (item: WeekEvidenceItem, target: string, version: number) => {
@@ -76,8 +77,8 @@ export function useWeekEvidence(cycleId: number | null, week: number | null) {
     // Each accepted file is its own record. Failed files never erase successful siblings.
     for (const file of files) {
       if (active.current !== target || generation.current !== version) break;
-      if (!hasAcceptedEvidenceExtension(file.name)) { errors.push(`${file.name}: סוג קובץ לא נתמך`); continue; }
-      if (file.size > MAX_EVIDENCE_FILE_BYTES) { errors.push(`${file.name}: הגודל המרבי הוא 8MB`); continue; }
+      if (!hasAcceptedEvidenceExtension(file.name)) { errors.push(`${file.name}: ${translateActive('common.upload.badType')}`); continue; }
+      if (file.size > MAX_EVIDENCE_FILE_BYTES) { errors.push(`${file.name}: ${translateActive('common.upload.tooLarge')}`); continue; }
       try {
         const mime = file.type || ({
           png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', pdf: 'application/pdf',
@@ -87,7 +88,7 @@ export function useWeekEvidence(cycleId: number | null, week: number | null) {
         merge(item, target, version);
       } catch (error) {
         handleMutationFailure(error, target, version);
-        errors.push(`${file.name}: ${error instanceof Error ? error.message : 'ההעלאה נכשלה'}`);
+        errors.push(`${file.name}: ${error instanceof Error ? error.message : translateActive('common.upload.failed')}`);
       }
     }
     if (errors.length) throw new Error(errors.join('\n'));
@@ -126,7 +127,7 @@ export async function fetchWeekEvidenceFile(item: WeekEvidenceItem): Promise<Blo
   const response = await fetch(`/api/week-evidence/${item.cycleId}/${item.week}/${item.id}/file`, { credentials: 'include' });
   if (!response.ok) {
     const body = await response.json().catch(() => null) as { error?: string } | null;
-    throw new ApiError(body?.error ?? 'שגיאה בטעינת הקובץ', response.status);
+    throw new ApiError(body?.error ?? translateActive('common.load.file'), response.status);
   }
   return response.blob();
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '../lib/api';
 import type { CommitmentScope, WamCompleteResult, WamDetail, WamListResponse, WamSummary } from '../lib/types';
+import { translateActive } from '../i18n';
 
 export function useWamList() {
   const [data, setData] = useState<WamListResponse | null>(null);
@@ -14,7 +15,7 @@ export function useWamList() {
       setData(res);
       setError(null);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'שגיאה בטעינת פגישות האחריותיות');
+      setError(e instanceof ApiError ? e.message : translateActive('common.load.wams'));
     } finally {
       setLoading(false);
     }
@@ -94,7 +95,7 @@ export function useWamDetail(wamId: number | null) {
       setLoadStatus('ready');
     } catch (e) {
       if (sequence !== loadSequenceRef.current || wamId !== wamIdRef.current) return;
-      setLoadError(e instanceof ApiError ? e.message : 'שגיאה בטעינת הפגישה');
+      setLoadError(e instanceof ApiError ? e.message : translateActive('common.load.wam'));
       setLoadStatus('error');
     }
   }, [wamId, applyIfCurrent]);
@@ -161,7 +162,7 @@ export function useWamDetail(wamId: number | null) {
           // The panel's completed-WAM action is invitation-only. Keep the existing
           // callback wiring, but never POST /complete again or replay its celebration.
           if (wam?.status === 'complete') {
-            if (!schedule) throw new Error('יש לבחור מועד לפגישה הבאה');
+            if (!schedule) throw new Error(translateActive('common.guard.noSchedule'));
             const res = await api.put<{ wam: WamDetail }>(`/wams/${wamId}/next-wam`, schedule);
             applyIfCurrent(res.wam);
             return { ...res, celebration: null };

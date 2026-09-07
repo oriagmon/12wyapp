@@ -1,16 +1,88 @@
 import type { AreaDict } from '../locales';
 
 /**
- * Translations for the "week" area.
- *
- * Contract:
- * - Every key present in `en` must also be present in `he` (enforced by the
- *   dictionary parity test in src/i18n/__tests__/dictionaries.test.ts).
- * - Keys are dot-namespaced and start with `week.`.
- * - Use `{name}` placeholders for interpolation.
- * - For counts, define `key_one` and `key_other` and call `t(key, { count })`.
+ * The execution surfaces: the weekly grid, the "what's due" list, the 12-week
+ * timeline, and the evidence people attach to a week.
  */
 export const week: AreaDict = {
-  en: {},
-  he: {},
+  en: {
+    'week.today.title': 'This week — week {week}',
+    'week.today.subtitle': "Tick off what you've already done this week — catching up on a few days at once is fine.",
+    'week.today.empty': 'Nothing is scheduled for this week.',
+    'week.today.progress': '{done}/{total} days',
+    'week.today.daysFor': 'Days for {title}',
+    'week.today.done': 'Done',
+    'week.today.notDone': 'Not done',
+    'week.today.unscheduled': 'Not scheduled',
+
+    'week.grid.empty': 'No tactics yet. Add goals and tactics to see the weekly grid.',
+    'week.grid.label': 'Weekly execution grid — scrolls sideways',
+    'week.grid.tactic': 'Tactic',
+    'week.grid.today': 'Today',
+    'week.grid.unscheduled': 'Not scheduled',
+    'week.grid.cell': '{title} — {day}, {state}',
+    'week.grid.cellDone': 'done',
+    'week.grid.cellTodo': 'to do',
+    'week.grid.legendDone': 'Done',
+    'week.grid.legendPlanned': 'Planned, not done yet',
+    'week.grid.legendUnplanned': 'Not planned for that day',
+    'week.grid.legendToday': 'Today — {day}',
+
+    'week.timeline.title': 'Timeline — 12 weeks',
+    'week.timeline.current': 'Current week: {week} of 12',
+    'week.timeline.average': 'Average: {score}',
+    'week.timeline.noAverage': 'No data for an average yet',
+    'week.timeline.chart': 'Weekly score across the 12 weeks',
+    'week.timeline.target': 'Target 85%',
+    'week.timeline.point': 'Week {week}{score}',
+    'week.timeline.pointScore': ', score {score}',
+    'week.timeline.pointEmpty': ', no data',
+
+    'week.album.label': 'Cycle albums',
+    'week.album.title': 'Photos and files from this cycle',
+    'week.album.loading': 'Loading...',
+    'week.album.empty': 'No photos or files in this cycle yet.',
+    'week.album.week': 'Week {week} album',
+    'week.album.weekTitle': 'Week {week}',
+  },
+  he: {
+    'week.today.title': 'ביצוע השבוע — שבוע {week}',
+    'week.today.subtitle': 'סמנו את מה שכבר בוצע השבוע — אפשר גם בדיעבד, בבת אחת.',
+    'week.today.empty': 'אין טקטיקות מתוזמנות לשבוע הזה.',
+    'week.today.progress': '{done}/{total} ימים',
+    'week.today.daysFor': 'ימי ביצוע עבור {title}',
+    'week.today.done': 'בוצע',
+    'week.today.notDone': 'לא בוצע',
+    'week.today.unscheduled': 'לא מתוזמן',
+
+    'week.grid.empty': 'אין עדיין טקטיקות מוגדרות. הוסיפו מטרות וטקטיקות כדי לראות את הרשת השבועית.',
+    'week.grid.label': 'רשת ביצועים שבועית — ניתן לגלול לרוחב',
+    'week.grid.tactic': 'טקטיקה',
+    'week.grid.today': 'היום',
+    'week.grid.unscheduled': 'לא מתוזמן',
+    'week.grid.cell': '{title} — {day}, {state}',
+    'week.grid.cellDone': 'בוצע',
+    'week.grid.cellTodo': 'לביצוע',
+    'week.grid.legendDone': 'בוצע',
+    'week.grid.legendPlanned': 'מתוכנן, טרם בוצע',
+    'week.grid.legendUnplanned': 'לא מתוכנן ליום הזה',
+    'week.grid.legendToday': 'היום — יום {day}',
+
+    'week.timeline.title': 'ציר זמן — 12 שבועות',
+    'week.timeline.current': 'שבוע נוכחי: {week} מתוך 12',
+    'week.timeline.average': 'ממוצע: {score}',
+    'week.timeline.noAverage': 'אין עדיין נתונים לממוצע',
+    'week.timeline.chart': 'גרף ציון שבועי לאורך 12 שבועות',
+    'week.timeline.target': 'יעד 85%',
+    'week.timeline.point': 'שבוע {week}{score}',
+    'week.timeline.pointScore': ', ציון {score}',
+    'week.timeline.pointEmpty': ', ללא נתונים',
+
+    'week.album.label': 'אלבומי המחזור',
+    'week.album.title': 'תמונות וצרופות מהמחזור',
+    'week.album.loading': 'טוען...',
+    'week.album.empty': 'עדיין אין תמונות או צרופות במחזור הזה.',
+    'week.album.week': 'אלבום שבוע {week}',
+    'week.album.weekTitle': 'שבוע {week}',
+  },
 };

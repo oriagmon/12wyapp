@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '../lib/api';
 import type { TacticEvidence } from './useTacticEvidence';
+import { translateActive } from '../i18n';
 
 export interface TacticEvidenceGalleryItem extends TacticEvidence {
   tacticTitle: string;
@@ -41,7 +42,7 @@ export function useTacticEvidenceGallery(cycleId: number | null) {
       if (activeCycle.current !== cycleId || id !== requestId.current) return;
       setItems([]);
       setAccess(null);
-      setLoadError(e instanceof ApiError ? e.message : 'שגיאה בטעינת גלריית העדויות');
+      setLoadError(e instanceof ApiError ? e.message : translateActive('common.load.gallery'));
       setLoadStatus('error');
     }
   }, [cycleId]);

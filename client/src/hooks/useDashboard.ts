@@ -4,6 +4,7 @@ import type { Cycle, DashboardBundle, Goal, GoalColor, Tactic } from '../lib/typ
 import { useAuth } from '../context/AuthContext';
 import { publishSuccess } from '../lib/celebrations';
 import { effectiveTacticForWeek, TARGET_SCORE } from '../lib/scoring';
+import { translateActive } from '../i18n';
 
 export type LoadStatus = 'loading' | 'ready' | 'empty' | 'error';
 
@@ -65,7 +66,7 @@ export function useDashboard(userId: number | null, navigation?: DashboardWeekNa
     } catch (e) {
       if (version !== loadVersion.current || targetRef.current.userId !== userId) return;
       setLoadedUserId(userId);
-      setLoadError(e instanceof ApiError ? e.message : 'שגיאה בטעינת הנתונים');
+      setLoadError(e instanceof ApiError ? e.message : translateActive('common.load.dashboard'));
       setLoadStatus('error');
     }
   }, [userId]);

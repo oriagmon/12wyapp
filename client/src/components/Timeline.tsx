@@ -1,6 +1,7 @@
 import type { WeekScore } from '../lib/types';
 import { formatScore, TARGET_SCORE } from '../lib/scoring';
 import styles from './Timeline.module.css';
+import { useTranslation } from '../i18n';
 
 const WIDTH = 640;
 const HEIGHT = 200;
@@ -28,6 +29,11 @@ export function Timeline({
   currentWeek: number;
   onSelectWeek: (week: number) => void;
 }) {
+  const { t } = useTranslation();
+  // Split around the placeholder so the number can stay inside a <strong> while each
+  // language keeps its own word order around it.
+  const currentWeekLabel = t('week.timeline.current').split('{week}');
+  const averageLabel = t('week.timeline.average').split('{score}');
   const scoredPoints = weekScores.filter((w) => w.score !== null) as (WeekScore & { score: number })[];
   const path = scoredPoints
     .map((w, i) => `${i === 0 ? 'M' : 'L'} ${xForWeek(w.week)} ${yForScore(w.score)}`)
@@ -38,25 +44,25 @@ export function Timeline({
     <div className={`card ${styles.wrap}`}>
       <div className={styles.header}>
         <div>
-          <h3 className={styles.title}>ציר זמן — 12 שבועות</h3>
+          <h3 className={styles.title}>{t('week.timeline.title')}</h3>
           <p className={styles.currentWeekLabel}>
-            שבוע נוכחי: <strong>{currentWeek}</strong> מתוך 12
+            {currentWeekLabel[0]}<strong>{currentWeek}</strong>{currentWeekLabel[1]}
           </p>
         </div>
         <div className={styles.avg}>
           {average !== null ? (
             <>
-              ממוצע: <strong>{formatScore(average)}</strong>
+              {averageLabel[0]}<strong>{formatScore(average)}</strong>{averageLabel[1]}
             </>
           ) : (
-            'אין עדיין נתונים לממוצע'
+            t('week.timeline.noAverage')
           )}
         </div>
       </div>
-      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="גרף ציון שבועי לאורך 12 שבועות" className={styles.svg}>
+      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={t('week.timeline.chart')} className={styles.svg}>
         <line x1={PAD_X} y1={targetY} x2={WIDTH - PAD_X} y2={targetY} className={styles.targetLine} />
         <text x={WIDTH - PAD_X} y={targetY - 6} textAnchor="end" className={styles.targetLabel}>
-          יעד 85%
+          {t('week.timeline.target')}
         </text>
         {path && <path d={path} className={styles.trendPath} fill="none" />}
         {weekScores.map((w) => {
@@ -76,7 +82,12 @@ export function Timeline({
                 onClick={() => onSelectWeek(w.week)}
                 role="button"
                 tabIndex={0}
-                aria-label={`שבוע ${w.week}${w.score !== null ? `, ציון ${formatScore(w.score)}` : ', ללא נתונים'}`}
+                aria-label={t('week.timeline.point', {
+                  week: w.week,
+                  score: w.score !== null
+                    ? t('week.timeline.pointScore', { score: formatScore(w.score) })
+                    : t('week.timeline.pointEmpty'),
+                })}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') onSelectWeek(w.week);
                 }}

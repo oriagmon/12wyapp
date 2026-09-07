@@ -1,4 +1,5 @@
 import styles from './RatingPicker.module.css';
+import { useTranslation } from '../i18n';
 
 export function RatingPicker({
   value,
@@ -11,6 +12,7 @@ export function RatingPicker({
   disabled?: boolean;
   label: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className={styles.wrap}>
       <span className={styles.label}>{label}</span>
@@ -22,14 +24,14 @@ export function RatingPicker({
             className={`${styles.pip} ${value !== null && n <= value ? styles.filled : ''}`}
             disabled={disabled}
             aria-pressed={value === n}
-            aria-label={`${n} מתוך 10`}
+            aria-label={t('common.rating.outOfTen', { n })}
             onClick={() => onChange?.(n)}
           >
             {n}
           </button>
         ))}
       </div>
-      <span className={styles.value}>{value !== null ? `${value}/10` : 'טרם דורג'}</span>
+      <span className={styles.value}>{value !== null ? `${value}/10` : t('common.rating.none')}</span>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '../lib/api';
 import type { CycleHistoryDetailResponse, CycleHistoryListResponse } from '../lib/types';
+import { translateActive } from '../i18n';
 
 export function useCycleHistory(userId: number | null) {
   const [state, setState] = useState<{
@@ -23,7 +24,7 @@ export function useCycleHistory(userId: number | null) {
       setState({ userId, list: data, loading: false, error: null });
     } catch (e) {
       if (requestId !== sequence.current || userId !== currentUserId.current) return;
-      setState({ userId, list: null, loading: false, error: e instanceof ApiError ? e.message : 'שגיאה בטעינת היסטוריית המחזורים' });
+      setState({ userId, list: null, loading: false, error: e instanceof ApiError ? e.message : translateActive('common.load.cycleHistory') });
     }
   }, [userId]);
 
@@ -65,7 +66,7 @@ export function useCycleDetail(userId: number | null, cycleId: number | null) {
       if (requestId !== sequence.current || key !== currentKey.current) return;
       setState({
         key, detail: null, loadStatus: 'error',
-        loadError: e instanceof ApiError ? e.message : 'שגיאה בטעינת המחזור',
+        loadError: e instanceof ApiError ? e.message : translateActive('common.load.cycle'),
       });
     }
   }, [userId, cycleId, key]);
