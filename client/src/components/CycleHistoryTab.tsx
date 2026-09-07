@@ -9,6 +9,7 @@ import { EvidenceGallery } from './EvidenceGallery';
 import { ExecutionHeatmap } from './ExecutionHeatmap';
 import type { ArchiveSearchTarget } from '../lib/archiveSearchTypes';
 import styles from './CycleHistoryTab.module.css';
+import { useTranslation, translateActive } from '../i18n';
 
 const noop = async () => undefined;
 
@@ -34,22 +35,24 @@ function navigationFromSelection(key: string, targetUserId: number, selection: C
       !validId(selection.week) || selection.week > 12 ||
       (selection.goalId !== undefined && !validId(selection.goalId)) ||
       (selection.tacticId !== undefined && !validId(selection.tacticId))) {
-    return { key, cycleId: null, week: 1, error: 'תוצאת החיפוש אינה תואמת למשתמש או למחזור המבוקש. חזרו לרשימה ובחרו מחזור.' };
+    return { key, cycleId: null, week: 1, error: translateActive('insights.history.badSelection') };
   }
   return { key, cycleId: selection.cycleId, week: selection.week, goalId: selection.goalId, tacticId: selection.tacticId, error: null };
 }
 
 function CycleHistoryHeatmap({ userId, cycleId }: { userId: number; cycleId: number }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   return (
     <details className={styles.heatmapDisclosure} onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary>מפת הביצוע היומי לכל המחזור · תאריכים משוערים</summary>
+      <summary>{t('insights.history.heatmapSummary')}</summary>
       {open && <ExecutionHeatmap userId={userId} cycleId={cycleId} />}
     </details>
   );
 }
 
 export function CycleHistoryTab({ targetUserId, selection, onSelectionChange }: CycleHistoryTabProps) {
+  const { t } = useTranslation();
   const { list, loading, error, reload: reloadList } = useCycleHistory(targetUserId);
   const selectionKey = JSON.stringify([targetUserId, selection?.userId, selection?.cycleId, selection?.week, selection?.goalId, selection?.tacticId]);
   const [navigation, setNavigation] = useState(() => navigationFromSelection(selectionKey, targetUserId, selection));
@@ -93,7 +96,7 @@ export function CycleHistoryTab({ targetUserId, selection, onSelectionChange }: 
     changeNavigation({ key: selectionKey, cycleId: null, week: 1, error: null });
   };
   const setViewedWeek = (week: number) => changeNavigation({ ...current, week });
-  const backButton = <button type="button" className="btn btn-ghost btn-sm" onClick={goBack}>→ חזרה לרשימת המחזורים</button>;
+  const backButton = <button type="button" className="btn btn-ghost btn-sm" onClick={goBack}>{t('insights.history.back')}</button>;
 
   if (current.error) {
     return <div className={`card ${styles.message}`}><p role="alert">{current.error}</p>{backButton}</div>;
@@ -102,16 +105,16 @@ export function CycleHistoryTab({ targetUserId, selection, onSelectionChange }: 
     if (loadStatus === 'error') {
       return (
         <div className={`card ${styles.message}`}>
-          <p role="alert">{loadError} — ייתכן שהמחזור אינו זמין עוד או שההרשאה השתנתה.</p>
+          <p role="alert">{t('insights.history.detailError', { error: loadError ?? '' })}</p>
           <div className={styles.actions}>
-            <button type="button" className="btn btn-ghost" onClick={() => void reloadDetail()}>ניסיון נוסף</button>
+            <button type="button" className="btn btn-ghost" onClick={() => void reloadDetail()}>{t('insights.history.retry')}</button>
             {backButton}
           </div>
         </div>
       );
     }
     if (loadStatus !== 'ready' || !detail) {
-      return <div className={`card ${styles.message}`}><p role="status">טוען מחזור...</p>{backButton}</div>;
+      return <div className={`card ${styles.message}`}><p role="status">{t('insights.history.loadingCycle')}</p>{backButton}</div>;
     }
     const wantsMatch = current.goalId !== undefined || current.tacticId !== undefined;
     const matchedGoal = current.goalId !== undefined
@@ -126,15 +129,17 @@ export function CycleHistoryTab({ targetUserId, selection, onSelectionChange }: 
 
         <div className={`card ${styles.banner}`} role="status">
           {detail.cycle.isActive
-            ? 'זהו המחזור הפעיל הנוכחי — לעריכה, עברו ללשוניות "לוח השבוע" / "מטרות וטקטיקות".'
-            : '🔒 מחזור זה הסתיים ונשמר לצמיתות כהיסטוריה לקריאה בלבד — לא ניתן לערוך אותו.'}
+            ? t('insights.history.activeBanner')
+            : t('insights.history.archivedBanner')}
         </div>
 
         <div className={`card ${styles.header}`} ref={wantsMatch ? undefined : focusRef} tabIndex={-1}>
           <h2 className={styles.title}>{detail.cycle.name}</h2>
           <p className={styles.meta}>
-            שבוע אחרון שנרשם: {detail.cycle.currentWeek} מתוך 12 · ממוצע:{' '}
-            {detail.averageScore !== null ? detail.averageScore : 'אין נתונים'}
+            {t('insights.history.lastWeekMeta', {
+              week: detail.cycle.currentWeek,
+              average: detail.averageScore ?? t('insights.history.noData'),
+            })}
           </p>
         </div>
 
@@ -143,33 +148,45 @@ export function CycleHistoryTab({ targetUserId, selection, onSelectionChange }: 
             ref={focusRef}
             tabIndex={-1}
             role="region"
-            aria-label="תוצאת החיפוש במחזור"
+            aria-label={t('insights.history.matchLabel')}
             className={`card ${styles.searchMatch}`}
           >
             {missingMatch ? (
               <>
-                <p role="alert">המטרה או הטקטיקה שחיפשתם אינה נמצאת עוד במחזור זה.</p>
+                <p role="alert">{t('insights.history.matchMissing')}</p>
                 <div className={styles.actions}>
-                  <button type="button" className="btn btn-ghost" onClick={() => void reloadDetail()}>ניסיון נוסף</button>
-                  <button type="button" className="btn btn-ghost" onClick={() => changeNavigation({ ...current, goalId: undefined, tacticId: undefined })}>הצגת כל המחזור</button>
+                  <button type="button" className="btn btn-ghost" onClick={() => void reloadDetail()}>{t('insights.history.retry')}</button>
+                  <button type="button" className="btn btn-ghost" onClick={() => changeNavigation({ ...current, goalId: undefined, tacticId: undefined })}>{t('insights.history.showWholeCycle')}</button>
                 </div>
               </>
             ) : (
               <>
-                <p className={styles.meta}>תוצאת החיפוש · {matchedTactic ? 'טקטיקה' : 'מטרה'} · שבוע {viewedWeek} · לקריאה בלבד</p>
+                <p className={styles.meta}>
+                  {matchedTactic
+                    ? t('insights.history.matchMetaTactic', { week: viewedWeek })
+                    : t('insights.history.matchMetaGoal', { week: viewedWeek })}
+                </p>
                 <h3 className={styles.matchTitle}>{matchedTactic?.title ?? matchedGoal!.title}</h3>
-                {matchedTactic && <p className={styles.meta}>מטרה: {matchedGoal!.title} · שבועות {matchedTactic.startWeek}–{matchedTactic.endWeek}</p>}
+                {matchedTactic && (
+                  <p className={styles.meta}>
+                    {t('insights.history.matchGoalLine', {
+                      goal: matchedGoal!.title,
+                      start: matchedTactic.startWeek,
+                      end: matchedTactic.endWeek,
+                    })}
+                  </p>
+                )}
               </>
             )}
           </div>
         )}
 
         <div className={styles.weekNav}>
-          <span>צפייה בשבוע:</span>
-          <select value={viewedWeek} onChange={(e) => setViewedWeek(Number(e.target.value))} aria-label="בחירת שבוע להצגה במחזור ההיסטורי">
+          <span>{t('insights.history.viewWeek')}</span>
+          <select value={viewedWeek} onChange={(e) => setViewedWeek(Number(e.target.value))} aria-label={t('insights.history.weekSelectLabel')}>
             {Array.from({ length: 12 }, (_, i) => i + 1).map((w) => (
               <option key={w} value={w}>
-                שבוע {w}
+                {t('insights.history.week', { week: w })}
               </option>
             ))}
           </select>
@@ -208,35 +225,35 @@ export function CycleHistoryTab({ targetUserId, selection, onSelectionChange }: 
     );
   }
 
-  if (loading) return <div className={`card ${styles.message}`} role="status">טוען היסטוריית מחזורים...</div>;
+  if (loading) return <div className={`card ${styles.message}`} role="status">{t('insights.history.loadingList')}</div>;
   if (error) return (
     <div className={`card ${styles.message}`}>
       <p role="alert">{error}</p>
-      <button type="button" className="btn btn-ghost" onClick={() => void reloadList()}>ניסיון נוסף</button>
+      <button type="button" className="btn btn-ghost" onClick={() => void reloadList()}>{t('insights.history.retry')}</button>
     </div>
   );
   if (!list) return null;
 
   return (
-    <div className={styles.wrap} ref={listFocusRef} tabIndex={-1} role="region" aria-label="היסטוריית מחזורים">
+    <div className={styles.wrap} ref={listFocusRef} tabIndex={-1} role="region" aria-label={t('insights.history.regionLabel')}>
       {list.cycles.length === 0 ? (
         <div className={`card ${styles.emptyState}`}>
-          <h3 className={styles.emptyTitle}>אין עדיין מחזורים</h3>
-          <p className={styles.emptyText}>ברגע שייווצר מחזור, הוא יופיע כאן — כולל מחזורים שהסתיימו בעבר.</p>
+          <h3 className={styles.emptyTitle}>{t('insights.history.emptyTitle')}</h3>
+          <p className={styles.emptyText}>{t('insights.history.emptyText')}</p>
         </div>
       ) : (
         <div className={`card ${styles.listCard}`}>
-          <h3 className={styles.listTitle}>כל המחזורים ({list.cycles.length})</h3>
+          <h3 className={styles.listTitle}>{t('insights.history.listTitle', { count: list.cycles.length })}</h3>
           <ul className={styles.list}>
             {list.cycles.map((c) => (
               <li key={c.id} className={styles.row}>
                 <span className={styles.name}>{c.name}</span>
                 <span className={`${styles.badge} ${c.isActive ? styles.active : ''}`}>
-                  {c.isActive ? 'פעיל' : 'הסתיים'}
+                  {c.isActive ? t('insights.history.active') : t('insights.history.ended')}
                 </span>
-                <span className={styles.miniInfo}>שבוע {c.currentWeek}/12</span>
+                <span className={styles.miniInfo}>{t('insights.history.weekOf12', { week: c.currentWeek })}</span>
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => changeNavigation({ key: selectionKey, cycleId: c.id, week: 1, error: null })}>
-                  צפייה
+                  {t('insights.history.view')}
                 </button>
               </li>
             ))}
