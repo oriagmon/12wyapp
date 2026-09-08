@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>שחזור אימונים מכתובת זו</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        margin: 0 auto;
+        padding: 28px 20px 48px;
+        max-width: 560px;
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+        line-height: 1.55;
+        background: #f7f4ef;
+        color: #2b2a29;
+      }
+      @media (prefers-color-scheme: dark) {
+        body { background: #302e2d; color: #f2efe9; }
+      }
+      h1 { font-size: 1.3rem; margin: 0 0 16px; }
+      .count { font-size: 2.4rem; font-weight: 700; margin: 0; }
+      .muted { opacity: 0.7; }
+      code { font-size: 0.85em; opacity: 0.7; word-break: break-all; }
+      a.action {
+        display: block;
+        margin: 22px 0 10px;
+        padding: 15px 20px;
+        border-radius: 999px;
+        background: #d8607a;
+        color: #fff;
+        font-size: 1.05rem;
+        font-weight: 700;
+        text-align: center;
+        text-decoration: none;
+      }
+      a.secondary { display: inline-block; margin-top: 10px; }
+    </style>
+  </head>
+  <body>
+    <!--
+      Rescues a workout log that is stranded at this particular address.
+
+      Browsers keep local storage separate per origin, and they partition it again inside
+      iframes -- so no page can read another address's storage on its behalf, no matter how
+      it is embedded. The only way to read what is saved here is to be served from here,
+      which is exactly what this page is for.
+
+      Once it has the log it hands it to the main app through the URL fragment. Fragments are
+      never sent to a server, so the workouts travel device-side only, and the app folds them
+      into whatever it already has rather than replacing it. That also means this works
+      without signing in again at this old address.
+    -->
+    <h1>שחזור אימונים</h1>
+    <p class="muted">כתובת נוכחית: <code id="where"></code></p>
+
+    <p class="count" id="count">…</p>
+    <p id="detail" class="muted"></p>
+
+    <div id="actions"></div>
+
+    <script>
+      (function () {
+        var KEYS = ['gym-tracker-v1', 'ori-gym-tracker-v1'];
+        var CANONICAL = 'https://gymtracker.12wy.duckdns.org/';
+
+        document.getElementById('where').textContent = location.origin;
+
+        // Every copy this address holds, folded together and de-duplicated the same way the
+        // app itself does it, so a session saved under both the old and new key counts once.
+        var byId = Object.create(null);
+        var unreadable = false;
+
+        KEYS.forEach(function (key) {
+          var raw;
+          try {
+            raw = localStorage.getItem(key);
+          } catch (err) {
+            unreadable = true;
+            return;
+          }
+          if (!raw) return;
+
+          try {
+            var parsed = JSON.parse(raw);
+            var sessions = Array.isArray(parsed.sessions) ? parsed.sessions : [];
+            sessions.forEach(function (session) {
+              if (session && typeof session.id === 'string') byId[session.id] = session;
+            });
+          } catch (err) {
+            unreadable = true;
+          }
+        });
+
+        var sessions = Object.keys(byId).map(function (id) { return byId[id]; });
+        var count = document.getElementById('count');
+        var detail = document.getElementById('detail');
+        var actions = document.getElementById('actions');
+
+        function link(href, text, className) {
+          var a = document.createElement('a');
+          a.className = className || 'action';
+          a.href = href;
+          a.textContent = text;
+          actions.appendChild(a);
+          return a;
+        }
+
+        if (sessions.length === 0) {
+          count.textContent = '0';
+          detail.textContent = unreadable
+            ? 'לא נמצאו אימונים כאן, ומשהו ששמור כאן גם לא ניתן לקריאה.'
+            : 'אין אימונים שמורים בכתובת הזו.';
+          link('/find-my-log.html', 'חזרה לרשימת הכתובות', 'secondary');
+          return;
+        }
+
+        var latest = null;
+        sessions.forEach(function (s) {
+          if (typeof s.completedAt === 'string' && (latest === null || s.completedAt > latest)) {
+            latest = s.completedAt;
+          }
+        });
+
+        count.textContent = String(sessions.length);
+        detail.textContent =
+          'אימונים שמורים בכתובת הזו' +
+          (latest ? ' · האחרון ב־' + latest.slice(0, 10).split('-').reverse().join('.') : '');
+
+        var alreadyHome = location.origin + '/' === CANONICAL;
+        if (alreadyHome) {
+          link('/', 'פתחו את האפליקציה — האימונים כאן כבר נקראים אוטומטית');
+          return;
+        }
+
+        // base64url, so the payload survives being put in a URL.
+        var json = JSON.stringify({ sessions: sessions, active: null });
+        var bytes = new TextEncoder().encode(json);
+        var binary = '';
+        bytes.forEach(function (b) { binary += String.fromCharCode(b); });
+        var payload = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+        link(CANONICAL + '#import=' + payload, 'העבירו ' + sessions.length + ' אימונים לאפליקציה');
+        var note = document.createElement('p');
+        note.className = 'muted';
+        note.textContent =
+          'האימונים נשארים שמורים גם כאן — ההעברה רק מוסיפה אותם לאפליקציה הראשית.';
+        actions.appendChild(note);
+        link('/find-my-log.html', 'חזרה לרשימת הכתובות', 'secondary');
+      })();
+    </script>
+  </body>
+</html>

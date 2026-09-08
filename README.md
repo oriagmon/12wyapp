@@ -93,13 +93,16 @@ anywhere in this repo to leak.
 
 ## A note on language
 
-The app ships in English. Hebrew is a first-class option, not a translation bolted on — pick it from
-the switcher in the top bar and the whole interface flips to right-to-left, including the emails.
-Your choice is remembered per account, so the Tuesday reminder arrives in the language you actually
-read.
+The app ships in Hebrew, right-to-left, because that's what my partner and I read. English is a
+first-class option, not a translation bolted on — pick it from the switcher in the top bar and the
+whole interface flips, including the emails. Your choice is remembered per account, so the Tuesday
+reminder arrives in the language you actually read.
 
-I built it in Hebrew first, because that's what my partner and I read, and pulled the English out
-afterwards. If you want to add a third language, everything lives in
+Only an explicit choice is honoured; the browser's own language setting is ignored on purpose. Most
+people here run their phone in English while reading Hebrew, so trusting that setting just served
+the wrong language to everyone.
+
+If you want to add a third language, everything lives in
 [`client/src/i18n/dict/`](client/src/i18n/dict) and [`server/src/lib/i18n/dict/`](server/src/lib/i18n/dict)
 — one file per feature area, and a test that fails if any language is missing a key the others have.
 

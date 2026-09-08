@@ -3,7 +3,7 @@ import { getEmailConfig } from '../config.js';
 import { currentIsoWeek } from './isoWeek.js';
 import { sendEmail } from './emailSender.js';
 import { renderBrandedEmail, type BrandedEmail } from './emailBranding.js';
-import { t } from './i18n/index.js';
+import { fallbackLocale, t } from './i18n/index.js';
 import type { Locale } from './i18n/core.js';
 
 interface PartnershipPairRow {
@@ -117,7 +117,7 @@ export function monthlyReviewPromptForWeek(currentWeek: number | null): MonthlyR
 export function buildReminderEmail(
   appUrl: string,
   monthlyReview: MonthlyReviewPrompt | null,
-  locale: Locale = 'en'
+  locale: Locale = fallbackLocale()
 ): BrandedEmail {
   const tl = (key: string, params?: Record<string, string | number>) => t(locale, key, params);
   const subject = monthlyReview

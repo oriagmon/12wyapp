@@ -11,8 +11,8 @@ import { beforeEach } from 'vitest';
  * the dictionary parity test and by tests that mount `LocaleProvider` with an explicit
  * locale, so both languages stay exercised.
  */
-window.localStorage.setItem('12wy.locale', 'he');
+window.localStorage.setItem('12wy.locale.v2', 'he');
 
 beforeEach(() => {
-  window.localStorage.setItem('12wy.locale', 'he');
+  window.localStorage.setItem('12wy.locale.v2', 'he');
 });

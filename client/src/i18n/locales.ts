@@ -3,11 +3,21 @@ export type Locale = 'en' | 'he';
 export const LOCALES: readonly Locale[] = ['en', 'he'] as const;
 
 /**
- * English is the default so the app is usable by anyone who finds it. Hebrew stays a
- * first-class option rather than a translation afterthought - it is what the app was
- * originally written in.
+ * Hebrew is the default: this app is run by and for Hebrew readers, so a visitor who has not
+ * chosen yet — including anyone still on the sign-in screen — gets Hebrew. English is a
+ * first-class option one switch away, not a fallback.
  */
-export const DEFAULT_LOCALE: Locale = 'en';
+export const DEFAULT_LOCALE: Locale = 'he';
+
+/**
+ * The dictionary every key is guaranteed to exist in, used when a translation is missing.
+ *
+ * Deliberately separate from `DEFAULT_LOCALE`: which language people see by default is a
+ * product decision, while which one backstops a missing string is about completeness. Tying
+ * the two together would mean a key missing from Hebrew renders as the raw key id, which is
+ * worse than showing the English wording.
+ */
+export const FALLBACK_LOCALE: Locale = 'en';
 
 export const LOCALE_DIR: Record<Locale, 'ltr' | 'rtl'> = {
   en: 'ltr',

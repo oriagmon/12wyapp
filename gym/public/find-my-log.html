@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>איפה האימונים שלי?</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        margin: 0 auto;
+        padding: 28px 20px 48px;
+        max-width: 560px;
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+        line-height: 1.55;
+        background: #f7f4ef;
+        color: #2b2a29;
+      }
+      @media (prefers-color-scheme: dark) {
+        body { background: #302e2d; color: #f2efe9; }
+      }
+      h1 { font-size: 1.35rem; margin: 0 0 8px; }
+      p.lede { margin: 0 0 22px; opacity: 0.78; }
+      ol { padding-inline-start: 0; list-style: none; margin: 0; }
+      li { margin-bottom: 12px; }
+      a.site {
+        display: block;
+        padding: 14px 18px;
+        border: 1px solid rgba(128, 128, 128, 0.4);
+        border-radius: 12px;
+        text-decoration: none;
+        color: inherit;
+      }
+      a.site strong { display: block; font-size: 1.02rem; }
+      a.site span { font-size: 0.85rem; opacity: 0.65; word-break: break-all; }
+      .footnote { margin-top: 26px; font-size: 0.9rem; opacity: 0.7; }
+    </style>
+  </head>
+  <body>
+    <!--
+      A short menu of every address this tracker has ever answered on.
+
+      These have to be real top-level links rather than anything cleverer: browsers partition
+      storage inside iframes, so an embedded page is handed an empty bucket rather than the
+      address's actual saved log. Only a page genuinely served from an address can read what
+      is stored there, which makes "tap each one in turn" the honest answer rather than a
+      lazy one.
+    -->
+    <h1>איפה האימונים שלי?</h1>
+    <p class="lede">
+      האפליקציה התארחה בכמה כתובות לאורך הזמן, ולכל כתובת יש זיכרון נפרד בדפדפן — אימון שנשמר
+      באחת מהן פשוט לא נראה מהאחרות. פתחו כל כתובת בתורה; כל אחת תגיד כמה אימונים שמורים בה,
+      ותציע להעביר אותם לאפליקציה הראשית.
+    </p>
+
+    <ol id="sites"></ol>
+
+    <p class="footnote">
+      חשוב: יש לפתוח את הדף הזה מאותו מכשיר שבו תיעדתם את האימונים. אימונים ששמורים בטלפון אחר
+      לא יופיעו כאן.
+    </p>
+
+    <script>
+      (function () {
+        var SITES = [
+          { label: 'הכתובת הנוכחית', host: 'gymtracker.12wy.duckdns.org', probe: 'https://gymtracker.12wy.duckdns.org/storage-probe.html' },
+          { label: 'הכתובת הראשית', host: '12wy.duckdns.org', probe: 'https://12wy.duckdns.org/gym/storage-probe.html' },
+          { label: 'הכתובת הישנה', host: 'w12.israelcentral.cloudapp.azure.com', probe: 'https://w12.israelcentral.cloudapp.azure.com/gym/storage-probe.html' },
+          { label: 'הכתובת הישנה ביותר', host: '12week.20-217-194-187.sslip.io', probe: 'https://12week.20-217-194-187.sslip.io/gym/storage-probe.html' },
+        ];
+
+        var list = document.getElementById('sites');
+        SITES.forEach(function (site) {
+          var li = document.createElement('li');
+          var a = document.createElement('a');
+          a.className = 'site';
+          a.href = site.probe;
+
+          var strong = document.createElement('strong');
+          strong.textContent = site.label;
+          var span = document.createElement('span');
+          span.textContent = site.host;
+
+          a.appendChild(strong);
+          a.appendChild(span);
+          li.appendChild(a);
+          list.appendChild(li);
+        });
+      })();
+    </script>
+  </body>
+</html>

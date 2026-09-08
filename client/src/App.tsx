@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { MotionProvider } from './context/MotionProvider';
 import { AuthCard } from './components/AuthCard';
+import { readReturnTarget } from './lib/returnTarget';
 import { TopBar } from './components/TopBar';
 import { DashboardPage } from './pages/DashboardPage';
 import { readAndClearResetTokenFromUrl } from './lib/resetToken';
@@ -39,6 +40,15 @@ function AppContent() {
 
   if (!user) {
     return <AuthCard />;
+  }
+
+  // Arriving here already signed in — from the gym tracker's "sign in" link, say, when the
+  // session cookie was valid all along — should still hand people back rather than stranding
+  // them on the dashboard they did not ask for.
+  const returnTo = readReturnTarget();
+  if (returnTo) {
+    window.location.replace(returnTo);
+    return null;
   }
 
   return (

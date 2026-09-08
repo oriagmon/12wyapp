@@ -18,7 +18,7 @@ import {
   recordInMemoryAttempt,
   type PasswordResetTokenRow,
 } from '../lib/passwordReset.js';
-import { tReq } from '../lib/i18n/index.js';
+import { localeFromRequest, tReq } from '../lib/i18n/index.js';
 
 export const authRouter = Router();
 
@@ -66,8 +66,8 @@ authRouter.post('/register', async (req, res) => {
   const insert = db.transaction(() => {
     if (!getAccessPolicy().registrationOpen) return null;
     const info = db
-      .prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)')
-      .run(email, passwordHash);
+      .prepare('INSERT INTO users (email, password_hash, locale) VALUES (?, ?, ?)')
+      .run(email, passwordHash, localeFromRequest(req));
     const userId = Number(info.lastInsertRowid);
     db.prepare('INSERT INTO user_settings (user_id, theme) VALUES (?, ?)').run(userId, 'dark');
     return { userId, ...createSession(db, userId) };

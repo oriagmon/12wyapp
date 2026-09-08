@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE, type Dict, type Locale } from './locales';
+import { FALLBACK_LOCALE, type Dict, type Locale } from './locales';
 
 const PARAM_PATTERN = /\{(\w+)\}/g;
 
@@ -52,7 +52,7 @@ export function createTranslator(
     const direct = lookup(dictionaries[locale], key, params);
     if (direct !== undefined) return interpolate(direct, params);
 
-    const fallback = lookup(dictionaries[DEFAULT_LOCALE], key, params);
+    const fallback = lookup(dictionaries[FALLBACK_LOCALE], key, params);
     if (fallback !== undefined) {
       warnOnce(`missing "${locale}" translation for "${key}"`);
       return interpolate(fallback, params);

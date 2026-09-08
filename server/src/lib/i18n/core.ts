@@ -13,7 +13,13 @@
 export type Locale = 'en' | 'he';
 
 export const LOCALES: readonly Locale[] = ['en', 'he'] as const;
-export const DEFAULT_LOCALE: Locale = 'en';
+
+/**
+ * Hebrew is the default: this app is run by and for Hebrew readers, so anything addressed to
+ * someone we have not identified yet should arrive in the language they actually read. English
+ * is fully supported and one switch away — it is a choice, not the starting point.
+ */
+export const DEFAULT_LOCALE: Locale = 'he';
 
 export function isLocale(value: unknown): value is Locale {
   return typeof value === 'string' && (LOCALES as readonly string[]).includes(value);
@@ -22,8 +28,8 @@ export function isLocale(value: unknown): value is Locale {
 /**
  * The language to use when a request tells us nothing about who is reading.
  *
- * Defaults to English. A deployment whose users all read Hebrew can set `APP_DEFAULT_LOCALE=he`
- * and skip the negotiation entirely.
+ * A deployment whose users read English can set `APP_DEFAULT_LOCALE=en` to flip this without
+ * touching code.
  */
 export function fallbackLocale(): Locale {
   const configured = process.env.APP_DEFAULT_LOCALE;

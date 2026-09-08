@@ -18,7 +18,7 @@ export function t(locale: Locale, key: string, params?: TParams): string {
  * The client sends `Accept-Language` on every call, so an in-flight language switch is
  * reflected immediately without waiting for the preference to be saved. When the header is
  * missing or asks for something we don't speak, we fall back to the signed-in user's saved
- * choice, then to English.
+ * choice, then to the deployment default.
  */
 export function localeFromRequest(req: Request): Locale {
   const negotiated = negotiateLocale(req?.headers?.['accept-language'] ?? null);

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api, ApiError } from '../lib/api';
+import { readReturnTarget } from '../lib/returnTarget';
 import { useAuthPolicy } from '../hooks/useAuthPolicy';
 import { useTranslation } from '../i18n';
 import styles from './AuthCard.module.css';
@@ -63,7 +64,13 @@ export function AuthCard({ initialMode = 'login', resetToken = null, onResetHand
         await login(email, password);
       } else if (mode === 'register' && policy.registrationOpen) {
         await register(email, password);
+      } else {
+        return;
       }
+
+      // Straight back to wherever they came from — the gym tracker signs in through here.
+      const returnTo = readReturnTarget();
+      if (returnTo) window.location.assign(returnTo);
     } catch {
       // error already surfaced via context state
     } finally {

@@ -356,8 +356,57 @@ function nextWorkoutId(current?: WorkoutId): WorkoutId {
   return WORKOUT_ORDER[(WORKOUT_ORDER.indexOf(current) + 1) % WORKOUT_ORDER.length]
 }
 
+/**
+ * Adopt a log handed over from one of this tracker's older addresses.
+ *
+ * Browsers keep storage separate per origin, so a history saved at a previous hostname is
+ * invisible here and no amount of embedding can reach it. The recovery page served from that
+ * address hands its log over in the URL fragment instead — fragments are never sent to a
+ * server, so the workouts travel device-side only, and no second sign-in is needed at the old
+ * address.
+ *
+ * Anything malformed is ignored rather than thrown: the fragment is user-supplied, and the
+ * worst outcome for a recovery path is refusing to open at all.
+ */
+function readHandedOverLog(): Partial<AppData> | null {
+  const match = /[#&]import=([^&]+)/.exec(window.location.hash)
+  if (!match) return null
+
+  try {
+    const base64 = match[1].replace(/-/g, '+').replace(/_/g, '/')
+    const binary = atob(base64)
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+    const parsed = JSON.parse(new TextDecoder().decode(bytes)) as Partial<AppData>
+    return Array.isArray(parsed?.sessions) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
 function createId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`
+}
+
+/**
+ * Where to send someone who needs to sign in.
+ *
+ * This app answers on two shapes of address: under `/gym` on the dashboard's own host, and at
+ * the root of a dedicated hostname of its own. On that dedicated host the root path IS this
+ * app, so a plain `href="/"` quietly reloads the tracker instead of opening the sign-in screen
+ * — indistinguishable, from the outside, from a button that does nothing.
+ *
+ * Dropping the leading label gets us back to the dashboard, which is also the domain the
+ * session cookie is scoped to; signing in there is precisely what makes this app authenticated.
+ */
+function dashboardUrl(): string {
+  // Come back here once they are signed in, rather than leaving them on the dashboard.
+  const next = `?next=${encodeURIComponent(window.location.href)}`
+
+  if (window.location.pathname.startsWith('/gym')) return `/${next}`
+
+  const labels = window.location.hostname.split('.')
+  if (labels.length > 2) return `${window.location.protocol}//${labels.slice(1).join('.')}/${next}`
+  return `/${next}`
 }
 
 type ParsedStore =
@@ -517,6 +566,7 @@ function App() {
     'loading',
   )
   const [syncError, setSyncError] = useState<string | null>(null)
+  const [handedOverCount, setHandedOverCount] = useState(0)
   const [savingWeight, setSavingWeight] = useState(false)
   const hydrated = useRef(false)
 
@@ -530,6 +580,22 @@ function App() {
       })
     }
   }, [data, persistenceEnabled])
+
+  /**
+   * Take in a log handed over from an older address before anything else runs, so the normal
+   * sync path treats it as just another local copy and pushes it up like any other change.
+   */
+  useEffect(() => {
+    const handedOver = readHandedOverLog()
+    if (!handedOver) return
+
+    setData((local) => mergeLogs(local, handedOver))
+    setHandedOverCount(Array.isArray(handedOver.sessions) ? handedOver.sessions.length : 0)
+
+    // Keep a copy of the workouts out of the address bar, and out of browser history, now
+    // that they are safely folded in.
+    window.history.replaceState(null, '', window.location.pathname + window.location.search)
+  }, [])
 
   /**
    * Pull everything down once on open and fold it into whatever this browser already had,
@@ -567,6 +633,39 @@ function App() {
       cancelled = true
     }
   }, [])
+
+  /**
+   * Signing in happens on the dashboard — another tab, or on a phone another app entirely —
+   * so this page can sit on a "not signed in" banner that stopped being true minutes ago.
+   * Re-check whenever it comes back to the foreground; otherwise the only way out is a manual
+   * reload, which is not an obvious thing to reach for on a home-screen app.
+   */
+  useEffect(() => {
+    if (syncState !== 'signed-out') return
+
+    const recheck = () => {
+      if (document.visibilityState !== 'visible') return
+
+      fetchState<AppData>()
+        .then((remote) => {
+          setWeights(Array.isArray(remote?.weights) ? remote.weights : [])
+          if (typeof remote?.today === 'string' && remote.today !== '') setToday(remote.today)
+          setData((local) => mergeLogs(local, remote?.data))
+          hydrated.current = true
+          setSyncState('ready')
+        })
+        .catch(() => {
+          // Still signed out, or offline. The banner already says exactly that.
+        })
+    }
+
+    document.addEventListener('visibilitychange', recheck)
+    window.addEventListener('focus', recheck)
+    return () => {
+      document.removeEventListener('visibilitychange', recheck)
+      window.removeEventListener('focus', recheck)
+    }
+  }, [syncState])
 
   /**
    * Push the log up shortly after it stops changing. Logging a set fires several state
@@ -1012,10 +1111,16 @@ function App() {
         </span>
       </header>
 
+      {handedOverCount > 0 && (
+        <section className="error-banner" role="status">
+          <p>נקלטו {handedOverCount} אימונים מכתובת קודמת.</p>
+        </section>
+      )}
+
       {syncState === 'signed-out' && (
         <section className="error-banner" role="alert">
           <p>לא מחובר — האימונים נשמרים במכשיר הזה בלבד ולא מגובים.</p>
-          <a className="signin-link" href="/">
+          <a className="signin-link" href={dashboardUrl()}>
             התחברות
           </a>
         </section>

@@ -11,6 +11,7 @@ vi.mock('../lib/emailSender.js', () => ({
 
 import { sendEmail } from '../lib/emailSender.js';
 import { sendWeeklyWamReminders, monthlyReviewPromptForWeek } from '../lib/wamReminders.js';
+import { fallbackLocale, t } from '../lib/i18n/index.js';
 
 const sendEmailMock = vi.mocked(sendEmail);
 
@@ -181,16 +182,29 @@ describe('weekly WAM email reminders', () => {
       const aCall = sendEmailMock.mock.calls.find((call) => call[0].to === 'a@a.com')!;
       const bCall = sendEmailMock.mock.calls.find((call) => call[0].to === 'b@a.com')!;
 
-      expect(aCall[0].subject).toContain(`Week ${targetWeek}`);
-      expect(aCall[0].html).toContain(`Week ${targetWeek}`);
-      expect(aCall[0].html).toContain(`month ${monthNumber}`);
-      expect(aCall[0].plainText).toContain(`Week ${targetWeek}`);
+      // Derived from the dictionary rather than pinned as literals: these recipients are
+      // registered without an Accept-Language, so they land on the deployment default, and
+      // the point of the assertion is the wiring — that the right key reaches the right
+      // recipient with the right numbers — not the wording of the copy.
+      const locale = fallbackLocale();
+      const calloutTitle = t(locale, 'emails.wamReminder.monthlyCalloutTitle');
+      const calloutText = t(locale, 'emails.wamReminder.monthlyCalloutText', {
+        week: targetWeek,
+        month: monthNumber,
+      });
+
+      expect(aCall[0].subject).toBe(
+        t(locale, 'emails.wamReminder.subjectMonthly', { week: targetWeek })
+      );
+      expect(aCall[0].html).toContain(calloutTitle);
+      expect(aCall[0].html).toContain(calloutText);
+      expect(aCall[0].plainText).toContain(calloutText);
       // The base weekly ask is still present alongside the monthly prompt.
       expect(aCall[0].html).toContain('WAM');
 
       // The partner (still on week 1) gets only the normal weekly reminder.
-      expect(bCall[0].subject).not.toContain('Monthly review');
-      expect(bCall[0].html).not.toContain('Monthly review');
+      expect(bCall[0].subject).toBe(t(locale, 'emails.wamReminder.subject'));
+      expect(bCall[0].html).not.toContain(calloutTitle);
     });
 
     it.each([1, 2, 4, 5, 6, 8, 9, 10, 12])('week %i (not one week before a review) adds no monthly prompt', async (currentWeek) => {
