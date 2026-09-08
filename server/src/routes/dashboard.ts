@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { resolveAccess } from '../lib/access.js';
 import { getActiveCycle } from '../lib/repo.js';
 import { buildCycleBundle } from '../lib/cycleBundle.js';
+import { tReq } from '../lib/i18n/index.js';
 
 export const dashboardRouter = Router();
 dashboardRouter.use(requireAuth);
@@ -13,13 +14,13 @@ dashboardRouter.get('/:userId', (req, res) => {
   const viewerId = req.user!.id;
   const targetUserId = Number(req.params.userId);
   if (!Number.isInteger(targetUserId) || targetUserId <= 0) {
-    res.status(400).json({ error: 'מזהה משתמש לא תקין' });
+    res.status(400).json({ error: tReq(req, 'api.dashboard.invalidUserId') });
     return;
   }
 
   const access = resolveAccess(db, viewerId, targetUserId);
   if (access === 'none') {
-    res.status(403).json({ error: 'אין הרשאה לצפות בלוח הזה' });
+    res.status(403).json({ error: tReq(req, 'api.dashboard.forbidden') });
     return;
   }
 
@@ -27,7 +28,7 @@ dashboardRouter.get('/:userId', (req, res) => {
     | { id: number; email: string }
     | undefined;
   if (!targetUser) {
-    res.status(404).json({ error: 'המשתמש לא נמצא' });
+    res.status(404).json({ error: tReq(req, 'api.dashboard.userNotFound') });
     return;
   }
 

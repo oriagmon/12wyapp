@@ -21,12 +21,12 @@ goalsRouter.post('/', (req, res) => {
   const userId = req.user!.id;
   const cycle = getActiveCycle(db, userId);
   if (!cycle) {
-    res.status(404).json({ error: 'יש ליצור מחזור לפני הוספת מטרות' });
+    res.status(404).json({ error: tReq(req, 'api.goals.noCycle') });
     return;
   }
   const existingGoals = getGoalsForCycle(db, cycle.id);
   if (existingGoals.length >= MAX_GOALS) {
-    res.status(409).json({ error: `ניתן להוסיף עד ${MAX_GOALS} מטרות למחזור` });
+    res.status(409).json({ error: tReq(req, 'api.goals.tooMany') });
     return;
   }
   const color = parsed.data.color ?? nextGoalColor(db, cycle.id);
@@ -47,11 +47,11 @@ goalsRouter.patch('/:id', (req, res) => {
   const goalId = Number(req.params.id);
   const goal = goalBelongsToUser(db, goalId, req.user!.id);
   if (!goal) {
-    res.status(404).json({ error: 'המטרה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.goals.notFound') });
     return;
   }
   if (goal.cycle_is_active !== 1) {
-    res.status(400).json({ error: 'המחזור הסתיים — לא ניתן לערוך מטרות בהיסטוריה' });
+    res.status(400).json({ error: tReq(req, 'api.goals.cycleEnded') });
     return;
   }
   const title = parsed.data.title ?? goal.title;
@@ -68,16 +68,16 @@ goalsRouter.delete('/:id', (req, res) => {
   const goalId = Number(req.params.id);
   const goal = goalBelongsToUser(db, goalId, req.user!.id);
   if (!goal) {
-    res.status(404).json({ error: 'המטרה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.goals.notFound') });
     return;
   }
   if (goal.cycle_is_active !== 1) {
-    res.status(400).json({ error: 'המחזור הסתיים — לא ניתן למחוק מטרות בהיסטוריה' });
+    res.status(400).json({ error: tReq(req, 'api.goals.cycleEnded') });
     return;
   }
   const body = req.body as { confirm?: unknown };
   if (body?.confirm !== true) {
-    res.status(400).json({ error: 'יש לאשר את המחיקה (confirm: true)' });
+    res.status(400).json({ error: tReq(req, 'api.goals.confirmRequired') });
     return;
   }
   // Collected *before* the cascading delete below (goal → tactics → tactic_evidence) removes

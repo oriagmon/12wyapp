@@ -73,6 +73,8 @@ export interface IcsEventInput {
   summary: string;
   description: string;
   url: string;
+  /** Language of `summary`/`description`, reported in PRODID. */
+  locale?: string;
 }
 
 /**
@@ -85,7 +87,7 @@ export function buildWamIcs(input: IcsEventInput): string {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//12-Week Dashboard//WAM Calendar Invitations//HE',
+    `PRODID:-//12-Week Dashboard//WAM Calendar Invitations//${(input.locale ?? 'en').toUpperCase()}`,
     'METHOD:REQUEST',
     'CALSCALE:GREGORIAN',
     'BEGIN:VEVENT',

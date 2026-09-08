@@ -3,9 +3,10 @@ import { LOCALES } from '../core.js';
 import { errors } from './errors.js';
 import { emails } from './emails.js';
 import { wams } from './wams.js';
+import { archiveSearch } from './archiveSearch.js';
 import { api } from './api.js';
 
-const AREAS: AreaDict[] = [errors, emails, wams, api];
+const AREAS: AreaDict[] = [errors, emails, wams, archiveSearch, api];
 
 function merge(locale: Locale): Dict {
   const merged: Dict = {};
@@ -24,4 +25,4 @@ export const dictionaries: Record<Locale, Dict> = Object.fromEntries(
   LOCALES.map((locale) => [locale, merge(locale)])
 ) as Record<Locale, Dict>;
 
-export { errors, emails, wams, api };
+export { errors, emails, wams, archiveSearch, api };

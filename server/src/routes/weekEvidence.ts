@@ -28,7 +28,7 @@ function failure(req: express.Request, cycleId: number, write: boolean) {
   const db = getDb();
   const session = getValidSession(db, req.cookies?.[config.sessionCookieName]);
   if (!session || session.user_id !== req.user?.id || !isUserAdmitted(session.user_id)) {
-    return { status: 401, error: 'ההתחברות פגה, יש להתחבר מחדש' };
+    return { status: 401, error: 'api.weekEvidence.sessionExpired' };
   }
   const access = weekEvidenceAccess(db, session.user_id, cycleId, write);
   return access.ok ? null : access;
@@ -36,16 +36,16 @@ function failure(req: express.Request, cycleId: number, write: boolean) {
 
 weekEvidenceRouter.use('/:cycleId', (req, res, next) => {
   const parsed = scopeSchema.safeParse(req.params);
-  if (!parsed.success) { res.status(400).json({ error: 'פרמטרים לא תקינים' }); return; }
+  if (!parsed.success) { res.status(400).json({ error: tReq(req, 'api.weekEvidence.invalidParams') }); return; }
   const denied = failure(req, parsed.data.cycleId, req.method !== 'GET');
-  if (denied) { res.status(denied.status).json({ error: denied.error }); return; }
+  if (denied) { res.status(denied.status).json({ error: tReq(req, denied.error) }); return; }
   res.set('Cache-Control', 'private, no-store');
   next();
 });
 
 function scope(req: express.Request, res: express.Response) {
   const parsed = scopeSchema.safeParse(req.params);
-  if (!parsed.success) { res.status(400).json({ error: 'פרמטרים לא תקינים' }); return null; }
+  if (!parsed.success) { res.status(400).json({ error: tReq(req, 'api.weekEvidence.invalidParams') }); return null; }
   return parsed.data;
 }
 
@@ -53,7 +53,7 @@ weekEvidenceRouter.get(['/:cycleId', '/:cycleId/:week'], (req, res) => {
   const params = scope(req, res);
   if (!params) return;
   const access = weekEvidenceAccess(getDb(), req.user!.id, params.cycleId);
-  if (!access.ok) { res.status(access.status).json({ error: access.error }); return; }
+  if (!access.ok) { res.status(access.status).json({ error: tReq(req, access.error) }); return; }
   res.json({ access: access.access, items: listWeekEvidence(getDb(), params.cycleId, params.week).map(serializeWeekEvidence) });
 });
 
@@ -62,7 +62,7 @@ weekEvidenceRouter.post('/:cycleId/:week', (req, res) => {
   if (!params) return;
   const input = weekEvidenceMetadata.safeParse(req.body);
   if (!input.success) { res.status(400).json({ error: tReq(req, input.error.issues[0]?.message ?? 'errors.validation.generic') }); return; }
-  if (!input.data.note && !input.data.link) { res.status(400).json({ error: 'יש להוסיף הערה, קישור או קובץ' }); return; }
+  if (!input.data.note && !input.data.link) { res.status(400).json({ error: tReq(req, 'api.weekEvidence.needNoteOrLink') }); return; }
   res.status(201).json(serializeWeekEvidence(createWeekEvidence(getDb(), params.cycleId, params.week!, input.data)));
 });
 
@@ -73,9 +73,9 @@ weekEvidenceRouter.put('/:cycleId/:week/:id', (req, res) => {
   if (!input.success) { res.status(400).json({ error: tReq(req, input.error.issues[0]?.message ?? 'errors.validation.generic') }); return; }
   const db = getDb();
   const row = findWeekEvidence(db, params.cycleId, params.week!, params.id!);
-  if (!row) { res.status(404).json({ error: 'הפריט לא נמצא בשבוע הזה' }); return; }
+  if (!row) { res.status(404).json({ error: tReq(req, 'api.weekEvidence.itemNotFound') }); return; }
   if (!input.data.note && !input.data.link && !row.file_stored_name) {
-    res.status(400).json({ error: 'יש להשאיר הערה, קישור או קובץ' }); return;
+    res.status(400).json({ error: tReq(req, 'api.weekEvidence.keepNoteOrLink') }); return;
   }
   updateWeekEvidenceMetadata(db, row, input.data);
   res.json(serializeWeekEvidence(findWeekEvidence(db, params.cycleId, params.week!, params.id!)!));
@@ -85,7 +85,7 @@ weekEvidenceRouter.post(
   '/:cycleId/:week/files',
   (req, res, next) => {
     if (Number(req.headers['content-length'] || 0) > MAX_EVIDENCE_FILE_BYTES) {
-      req.resume(); res.status(413).json({ error: 'הקובץ גדול מדי — הגודל המרבי הוא 8MB' }); return;
+      req.resume(); res.status(413).json({ error: tReq(req, 'api.weekEvidence.fileTooLarge') }); return;
     }
     next();
   },
@@ -94,13 +94,13 @@ weekEvidenceRouter.post(
     const params = scope(req, res);
     if (!params) return;
     if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
-      res.status(400).json({ error: 'יש להעלות PNG, JPEG, WebP, PDF, DOCX או TXT בלבד' }); return;
+      res.status(400).json({ error: tReq(req, 'api.weekEvidence.unsupportedFileType') }); return;
     }
     let name = '';
     try { name = normalizeOriginalFilename(decodeURIComponent(req.get('X-Evidence-Filename') ?? '')); } catch { /* Invalid display metadata is ignored. */ }
     const sniffed = sniffEvidenceFile(req.body, name);
     if (!sniffed || sniffed.mime !== (req.get('Content-Type') ?? '').split(';')[0].trim()) {
-      res.status(400).json({ error: 'תוכן הקובץ אינו תואם לפורמט הנתמך שהוצהר' }); return;
+      res.status(400).json({ error: tReq(req, 'api.weekEvidence.fileContentMismatch') }); return;
     }
     const storedName = generateStoredFilename(sniffed.ext);
     let committed = false;
@@ -109,7 +109,7 @@ weekEvidenceRouter.post(
       const denied = failure(req, params.cycleId, true);
       if (denied) {
         await deleteEvidenceFile(storedName).catch(() => undefined);
-        res.status(denied.status).json({ error: denied.error }); return;
+        res.status(denied.status).json({ error: tReq(req, denied.error) }); return;
       }
       const item = createWeekEvidence(getDb(), params.cycleId, params.week!, {
         fileOriginalName: name || null, fileStoredName: storedName, fileMime: sniffed.mime, fileSize: req.body.length,
@@ -129,12 +129,12 @@ weekEvidenceRouter.get('/:cycleId/:week/:id/file', async (req, res, next) => {
   try {
     const db = getDb();
     const row = findWeekEvidence(db, params.cycleId, params.week!, params.id!);
-    if (!row?.file_stored_name || !row.file_mime) { res.status(404).json({ error: 'לא נמצא קובץ' }); return; }
+    if (!row?.file_stored_name || !row.file_mime) { res.status(404).json({ error: tReq(req, 'api.weekEvidence.fileNotFound') }); return; }
     const data = await readEvidenceFile(row.file_stored_name);
     const denied = failure(req, params.cycleId, false);
     if (denied) { res.status(denied.status).json({ error: denied.error }); return; }
     if (findWeekEvidence(db, params.cycleId, params.week!, params.id!)?.file_stored_name !== row.file_stored_name) {
-      res.status(409).json({ error: 'הקובץ השתנה או הוסר. יש לרענן' }); return;
+      res.status(409).json({ error: tReq(req, 'api.weekEvidence.fileChangedOrRemoved') }); return;
     }
     const inline = row.file_mime.startsWith('image/') || row.file_mime === 'application/pdf';
     const { asciiFallback, utf8Encoded } = buildContentDispositionFilenameParts(row.file_original_name);
@@ -154,7 +154,7 @@ function deleteWeekEvidence(fileOnly: boolean): express.RequestHandler {
     try {
       const db = getDb();
       const row = findWeekEvidence(db, params.cycleId, params.week!, params.id!);
-      if (!row) { res.status(404).json({ error: 'הפריט לא נמצא בשבוע הזה' }); return; }
+      if (!row) { res.status(404).json({ error: tReq(req, 'api.weekEvidence.itemNotFound') }); return; }
       const storedName = removeWeekEvidence(db, row, fileOnly);
       await deleteEvidenceFile(storedName).catch(() => undefined);
       res.json({ ok: true });

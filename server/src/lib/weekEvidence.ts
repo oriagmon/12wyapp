@@ -17,17 +17,17 @@ export const weekEvidenceMetadata = z.object({
     .refine((value) => {
       if (value === null) return true;
       try { return ['http:', 'https:'].includes(new URL(value).protocol); } catch { return false; }
-    }, 'הקישור חייב להיות כתובת http:// או https:// תקינה'),
+    }, 'errors.validation.linkMustBeUrl'),
 });
 
 export function weekEvidenceAccess(db: Database.Database, viewerId: number, cycleId: number, write = false):
   | { ok: true; access: 'owner' | 'partner' }
   | { ok: false; status: 403 | 404; error: string } {
   const cycle = db.prepare('SELECT user_id FROM cycles WHERE id = ?').get(cycleId) as { user_id: number } | undefined;
-  if (!cycle) return { ok: false, status: 404, error: 'המחזור לא נמצא' };
+  if (!cycle) return { ok: false, status: 404, error: 'api.weekEvidence.cycleNotFound' };
   const access = resolveAccess(db, viewerId, cycle.user_id);
   if (access === 'none' || (write && access !== 'owner')) {
-    return { ok: false, status: 403, error: write ? 'רק הבעלים יכול/ה לערוך את אלבום השבוע' : 'אין הרשאה לצפות באלבום' };
+    return { ok: false, status: 403, error: write ? 'api.weekEvidence.onlyOwnerCanEdit' : 'api.weekEvidence.forbidden' };
   }
   return { ok: true, access };
 }

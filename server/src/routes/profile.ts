@@ -24,20 +24,20 @@ const profileUpdateSchema = z.object({
   displayName: z
     .string()
     .trim()
-    .min(1, 'שם התצוגה לא יכול להיות ריק')
-    .max(MAX_DISPLAY_NAME, `שם התצוגה ארוך מדי (עד ${MAX_DISPLAY_NAME} תווים)`)
+    .min(1, 'errors.validation.displayNameEmpty')
+    .max(MAX_DISPLAY_NAME, 'errors.validation.displayNameTooLong')
     .optional(),
-  bio: z.string().trim().max(MAX_BIO, `הביוגרפיה ארוכה מדי (עד ${MAX_BIO} תווים)`).optional(),
+  bio: z.string().trim().max(MAX_BIO, 'errors.validation.bioTooLong').optional(),
   locale: z.enum(LOCALES as unknown as [Locale, ...Locale[]]).optional(),
 });
 
 const passwordChangeSchema = z
   .object({
-    currentPassword: z.string().min(1, 'נדרשת הסיסמה הנוכחית'),
+    currentPassword: z.string().min(1, 'errors.validation.currentPasswordRequired'),
     newPassword: passwordSchema,
   })
   .refine((v) => v.newPassword !== v.currentPassword, {
-    message: 'הסיסמה החדשה חייבת להיות שונה מהסיסמה הנוכחית',
+    message: 'errors.validation.newPasswordSameAsCurrent',
     path: ['newPassword'],
   });
 
@@ -83,7 +83,7 @@ function rejectOversizedAvatar(req: express.Request, res: express.Response, next
     // closing the socket — otherwise a client still mid-write when we respond can see
     // ECONNRESET/EPIPE instead of cleanly receiving this 413 response.
     req.resume();
-    res.status(413).json({ error: 'התמונה גדולה מדי — הגודל המרבי הוא 2MB' });
+    res.status(413).json({ error: tReq(req, 'api.payload.avatarTooLarge') });
     return;
   }
   next();
@@ -135,14 +135,14 @@ profileRouter.patch('/password', async (req, res) => {
   const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user!.id) as {
     password_hash: string;
   } | undefined;
-  const staleChangeError = { error: 'ההרשאה לשינוי הסיסמה פגה. יש להתחבר מחדש ולנסות שוב' };
+  const staleChangeError = { error: tReq(req, 'api.profile.staleSession') };
   if (!row) {
     res.status(401).json(staleChangeError);
     return;
   }
   const ok = await verifyPassword(parsed.data.currentPassword, row.password_hash);
   if (!ok) {
-    res.status(401).json({ error: 'הסיסמה הנוכחית שגויה' });
+    res.status(401).json({ error: tReq(req, 'api.profile.incorrectCurrentPassword') });
     return;
   }
 
@@ -183,13 +183,13 @@ profileRouter.get('/avatar', (req, res) => {
   const targetParam = Array.isArray(rawTarget) ? rawTarget[0] : rawTarget;
   const requestedUserId = targetParam === undefined ? req.user!.id : Number(targetParam);
   if (!Number.isInteger(requestedUserId) || requestedUserId <= 0) {
-    res.status(404).json({ error: 'לא הוגדרה תמונת פרופיל' });
+    res.status(404).json({ error: tReq(req, 'api.profile.noAvatar') });
     return;
   }
   if (requestedUserId !== req.user!.id) {
     const partnership = getAcceptedPartnershipForUser(db, req.user!.id);
     if (!partnership || !isPartnershipMember(partnership, requestedUserId)) {
-      res.status(404).json({ error: 'לא הוגדרה תמונת פרופיל' });
+      res.status(404).json({ error: tReq(req, 'api.profile.noAvatar') });
       return;
     }
   }
@@ -197,7 +197,7 @@ profileRouter.get('/avatar', (req, res) => {
     | { avatar_mime: string | null; avatar_data: Buffer | null }
     | undefined;
   if (!row || !row.avatar_mime || !row.avatar_data) {
-    res.status(404).json({ error: 'לא הוגדרה תמונת פרופיל' });
+    res.status(404).json({ error: tReq(req, 'api.profile.noAvatar') });
     return;
   }
   res.set('Content-Type', row.avatar_mime);
@@ -213,12 +213,12 @@ profileRouter.put(
   express.raw({ type: [...AVATAR_MIME_TYPES], limit: MAX_AVATAR_BYTES }),
   (req, res) => {
     if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
-      res.status(400).json({ error: 'סוג קובץ לא נתמך — יש להעלות תמונת PNG, JPEG או WebP בלבד' });
+      res.status(400).json({ error: tReq(req, 'api.profile.unsupportedFileType') });
       return;
     }
     const sniffed = sniffImageMime(req.body);
     if (!sniffed) {
-      res.status(400).json({ error: 'תוכן הקובץ אינו תמונה תקינה מסוג נתמך' });
+      res.status(400).json({ error: tReq(req, 'api.profile.invalidImageContent') });
       return;
     }
     const db = getDb();

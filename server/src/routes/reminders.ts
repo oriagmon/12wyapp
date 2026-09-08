@@ -20,23 +20,23 @@ export const remindersRouter = Router();
 remindersRouter.use(requireAuth);
 
 const createSchema = z.object({
-  title: z.string().trim().min(1, 'כותרת התזכורת לא יכולה להיות ריקה').max(MAX_TITLE_LENGTH, `כותרת ארוכה מדי (עד ${MAX_TITLE_LENGTH} תווים)`),
-  body: z.string().trim().max(MAX_BODY_LENGTH, `תוכן ארוך מדי (עד ${MAX_BODY_LENGTH} תווים)`).optional(),
+  title: z.string().trim().min(1, 'errors.validation.reminderTitleEmpty').max(MAX_TITLE_LENGTH, 'errors.validation.reminderTitleTooLong'),
+  body: z.string().trim().max(MAX_BODY_LENGTH, 'errors.validation.reminderBodyTooLong').optional(),
   // Israel wall-clock "YYYY-MM-DDTHH:mm" as produced by a datetime-local input — never a
   // pre-converted UTC value; the server is the sole authority converting/validating it.
-  scheduledFor: z.string().min(1, 'יש לבחור מועד לתזכורת'),
+  scheduledFor: z.string().min(1, 'errors.validation.scheduledForRequired'),
   recipientUserId: z.number().int().positive().optional(),
   recipientUserIds: z.array(z.number().int().positive()).min(1).max(2)
-    .refine((ids) => new Set(ids).size === ids.length, 'לא ניתן לבחור את אותו נמען/ת יותר מפעם אחת')
+    .refine((ids) => new Set(ids).size === ids.length, 'errors.validation.duplicateRecipient')
     .optional(),
 }).refine(
   (data) => (data.recipientUserId !== undefined) !== (data.recipientUserIds !== undefined),
-  'יש לבחור נמען/ת או רשימת נמענים, אך לא את שניהם'
+  'errors.validation.exactlyOneRecipient'
 );
 
 const updateSchema = z.object({
-  title: z.string().trim().min(1, 'כותרת התזכורת לא יכולה להיות ריקה').max(MAX_TITLE_LENGTH, `כותרת ארוכה מדי (עד ${MAX_TITLE_LENGTH} תווים)`).optional(),
-  body: z.string().trim().max(MAX_BODY_LENGTH, `תוכן ארוך מדי (עד ${MAX_BODY_LENGTH} תווים)`).optional(),
+  title: z.string().trim().min(1, 'errors.validation.reminderTitleEmpty').max(MAX_TITLE_LENGTH, 'errors.validation.reminderTitleTooLong').optional(),
+  body: z.string().trim().max(MAX_BODY_LENGTH, 'errors.validation.reminderBodyTooLong').optional(),
   scheduledFor: z.string().min(1).optional(),
   recipientUserId: z.number().int().positive().optional(),
   recipientUserIds: z.never().optional(),
@@ -86,17 +86,13 @@ remindersRouter.post('/', (req, res) => {
     for (const recipientUserId of recipientUserIds) {
       const recipient = resolveAllowedRecipient(db, creatorUserId, recipientUserId);
       if (!recipient) {
-        return { ok: false, status: 400, error: 'ניתן לשלוח תזכורת רק לעצמך או לשותף/ה המחובר/ת כרגע' } as const;
+        return { ok: false, status: 400, error: 'api.reminders.recipientNotAllowed' } as const;
       }
       recipients.push(recipient);
     }
 
     if (countActiveReminders(db, creatorUserId) + recipients.length > MAX_ACTIVE_REMINDERS_PER_CREATOR) {
-      return {
-        ok: false,
-        status: 429,
-        error: `הגעת למגבלה של ${MAX_ACTIVE_REMINDERS_PER_CREATOR} תזכורות פעילות (ממתינות/נכשלות). יש לבטל או להמתין לתזכורות קיימות לפני יצירת תזכורת נוספת`,
-      } as const;
+      return { ok: false, status: 429, error: 'api.reminders.tooManyActive' } as const;
     }
 
     const scheduled = validateScheduledFor(input.scheduledFor);
@@ -118,7 +114,7 @@ remindersRouter.post('/', (req, res) => {
   }).immediate();
 
   if (!result.ok) {
-    res.status(result.status).json({ error: result.error });
+    res.status(result.status).json({ error: tReq(req, result.error) });
     return;
   }
   res.status(201).json(input.recipientUserIds ? { reminders: result.reminders } : result.reminders[0]);
@@ -136,12 +132,12 @@ remindersRouter.patch('/:id', (req, res) => {
   const db = getDb();
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) {
-    res.status(400).json({ error: 'מזהה לא תקין' });
+    res.status(400).json({ error: tReq(req, 'api.reminders.invalidId') });
     return;
   }
   const existing = loadOwnReminder(db, id, req.user!.id);
   if (!existing) {
-    res.status(404).json({ error: 'התזכורת לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.reminders.notFound') });
     return;
   }
 
@@ -154,7 +150,7 @@ remindersRouter.patch('/:id', (req, res) => {
   const recipientUserId = parsed.data.recipientUserId ?? existing.recipient_user_id;
   const recipient = resolveAllowedRecipient(db, req.user!.id, recipientUserId);
   if (!recipient) {
-    res.status(400).json({ error: 'ניתן לשלוח תזכורת רק לעצמך או לשותף/ה המחובר/ת כרגע' });
+    res.status(400).json({ error: tReq(req, 'api.reminders.recipientNotAllowed') });
     return;
   }
 
@@ -163,12 +159,12 @@ remindersRouter.patch('/:id', (req, res) => {
     ? validateScheduledFor(scheduledForWallTime)
     : ({ ok: true, iso: existing.scheduled_for } as const);
   if (!scheduled.ok) {
-    res.status(400).json({ error: scheduled.error });
+    res.status(400).json({ error: tReq(req, scheduled.error) });
     return;
   }
   // Even an unchanged existing schedule must still be in the future to keep editing it.
   if (new Date(scheduled.iso).getTime() <= Date.now()) {
-    res.status(400).json({ error: 'מועד התזכורת חייב להיות בעתיד' });
+    res.status(400).json({ error: tReq(req, 'api.reminders.mustBeFuture') });
     return;
   }
 
@@ -183,7 +179,7 @@ remindersRouter.patch('/:id', (req, res) => {
   });
   if (casResult === 'conflict') {
     res.status(409).json({
-      error: 'לא ניתן היה לעדכן את התזכורת — היא כבר עברה עיבוד (למשל נשלחה או בוטלה) בינתיים. יש לרענן ולנסות שוב',
+      error: tReq(req, 'api.reminders.updateConflict'),
     });
     return;
   }
@@ -199,19 +195,19 @@ remindersRouter.post('/:id/cancel', (req, res) => {
   const db = getDb();
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) {
-    res.status(400).json({ error: 'מזהה לא תקין' });
+    res.status(400).json({ error: tReq(req, 'api.reminders.invalidId') });
     return;
   }
   const existing = loadOwnReminder(db, id, req.user!.id);
   if (!existing) {
-    res.status(404).json({ error: 'התזכורת לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.reminders.notFound') });
     return;
   }
 
   const casResult = casCancelReminder(db, id);
   if (casResult === 'conflict') {
     res.status(409).json({
-      error: 'לא ניתן היה לבטל את התזכורת — היא כבר עברה עיבוד (למשל נשלחה) בינתיים. יש לרענן ולנסות שוב',
+      error: tReq(req, 'api.reminders.cancelConflict'),
     });
     return;
   }

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getDb } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { searchArchive } from '../lib/archiveSearch.js';
+import { tReq, localeFromRequest } from '../lib/i18n/index.js';
 
 export const archiveSearchRouter = Router();
 archiveSearchRouter.use(requireAuth);
@@ -18,8 +19,8 @@ archiveSearchRouter.get('/', (req, res) => {
   res.set('Cache-Control', 'no-store');
   const parsed = querySchema.safeParse(req.query);
   if (!parsed.success) {
-    res.status(400).json({ error: 'יש להזין חיפוש באורך 1–120 תווים ומגבלה של 1–20 תוצאות לקבוצה' });
+    res.status(400).json({ error: tReq(req, 'api.archiveSearch.invalidQuery') });
     return;
   }
-  res.json(searchArchive(getDb(), req.user!.id, parsed.data.q, parsed.data.limit ?? 5));
+  res.json(searchArchive(getDb(), req.user!.id, parsed.data.q, parsed.data.limit ?? 5, localeFromRequest(req)));
 });

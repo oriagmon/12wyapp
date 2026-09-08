@@ -1,6 +1,8 @@
 import crypto from 'node:crypto';
 import type Database from 'better-sqlite3';
 import { renderBrandedEmail, type BrandedEmail } from './emailBranding.js';
+import { t } from './i18n/index.js';
+import type { Locale } from './i18n/core.js';
 import { getEmailConfig } from '../config.js';
 import { sendEmail } from './emailSender.js';
 import { isUserAdmitted } from './accessPolicy.js';
@@ -173,7 +175,9 @@ export async function deliverResetPasswordEmail(
     }
     const { appUrl } = getEmailConfig();
     const resetUrl = buildResetUrl(appUrl, token);
-    const { subject, html, plainText, attachments } = buildResetPasswordEmail(resetUrl);
+    const row = db.prepare('SELECT locale FROM users WHERE id = ?').get(user.id) as { locale: string | null } | undefined;
+    const locale: Locale = row?.locale === 'he' ? 'he' : 'en';
+    const { subject, html, plainText, attachments } = buildResetPasswordEmail(resetUrl, locale);
     await sendEmail({ to: user.email, subject, html, plainText, attachments });
   } catch (err) {
     invalidateTokenByHash(db, hashResetToken(token), new Date().toISOString());
@@ -185,21 +189,23 @@ export async function deliverResetPasswordEmail(
 }
 
 export function buildResetPasswordEmail(
-  resetUrl: string
+  resetUrl: string,
+  locale: Locale = 'en'
 ): BrandedEmail {
+  const tl = (key: string, params?: Record<string, string | number>) => t(locale, key, params);
   return renderBrandedEmail({
-    subject: 'איפוס סיסמה לחשבון 12WY שלך',
-    eyebrow: 'איפוס סיסמה',
-    title: 'איפוס הסיסמה שלך',
+    subject: tl('emails.passwordReset.subject'),
+    eyebrow: tl('emails.passwordReset.eyebrow'),
+    title: tl('emails.passwordReset.title'),
     paragraphs: [
-      'קיבלנו בקשה לאיפוס הסיסמה לחשבון שלך ב-12WY. לחיצה על הכפתור למטה תוביל לעמוד קביעת סיסמה חדשה.',
-      'אם לא ביקשת לאפס את הסיסמה, אפשר להתעלם מהודעה זו — הסיסמה הנוכחית שלך תישאר ללא שינוי.',
+      tl('emails.passwordReset.body1'),
+      tl('emails.passwordReset.body2'),
     ],
     callout: {
-      title: 'קישור אישי לשימוש חד־פעמי',
-      text: `הקישור בתוקף למשך ${RESET_TOKEN_TTL_MINUTES} דקות ואפשר להשתמש בו פעם אחת בלבד.`,
+      title: tl('emails.passwordReset.calloutTitle'),
+      text: tl('emails.passwordReset.calloutText', { minutes: RESET_TOKEN_TTL_MINUTES }),
     },
-    cta: { label: 'איפוס הסיסמה', url: resetUrl },
-    footer: 'זוהי הודעה אוטומטית שנשלחה על ידי 12WY.\nאין להעביר את הקישור לאדם אחר.',
-  });
+    cta: { label: tl('emails.passwordReset.cta'), url: resetUrl },
+    footer: tl('emails.passwordReset.footer'),
+  }, locale);
 }

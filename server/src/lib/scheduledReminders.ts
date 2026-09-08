@@ -4,6 +4,7 @@ import { israelWallTimeToUtcIso, utcIsoToIsraelWallTime } from './israelTime.js'
 import { getAcceptedPartner } from './access.js';
 import { sendEmail } from './emailSender.js';
 import { renderBrandedEmail, type BrandedEmail } from './emailBranding.js';
+import { t, type Locale } from './i18n/index.js';
 
 export const MAX_TITLE_LENGTH = 200;
 export const MAX_BODY_LENGTH = 2000;
@@ -84,11 +85,11 @@ export function validateScheduledFor(wallTime: string, now: Date = new Date()): 
   if (!iso) {
     return {
       ok: false,
-      error: 'מועד לא תקין (שעון ישראל) — ייתכן שמדובר בשעה שאינה קיימת עקב מעבר לשעון קיץ/חורף',
+      error: 'api.reminders.invalidIsraelTime',
     };
   }
   if (new Date(iso).getTime() <= now.getTime()) {
-    return { ok: false, error: 'מועד התזכורת חייב להיות בעתיד' };
+    return { ok: false, error: 'api.reminders.mustBeFuture' };
   }
   return { ok: true, iso };
 }
@@ -245,7 +246,7 @@ export function casCancelReminder(db: Database.Database, id: number): CasResult 
 /** Sanitizes an error into a short, safe-to-persist/display message — never a raw stack
  *  trace or internal detail. */
 function sanitizeError(err: unknown): string {
-  const message = err instanceof Error ? err.message : 'שגיאה לא ידועה בשליחת האימייל';
+  const message = err instanceof Error ? err.message : 'unknown email send error';
   return message.length > 500 ? `${message.slice(0, 500)}…` : message;
 }
 
@@ -253,28 +254,31 @@ export function buildReminderEmail(
   appUrl: string,
   reminder: ScheduledEmailReminderRow,
   recipientIsCreator: boolean,
-  scheduledByLabel: string
+  scheduledByLabel: string,
+  locale: Locale = 'en'
 ): BrandedEmail {
-  const israelTime = new Intl.DateTimeFormat('he-IL', {
+  const tl = (key: string, params?: Record<string, string | number>) => t(locale, key, params);
+  const tz = locale === 'he' ? 'he-IL' : 'en-US';
+  const israelTime = new Intl.DateTimeFormat(tz, {
     timeZone: 'Asia/Jerusalem',
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(reminder.scheduled_for));
 
   const intro = recipientIsCreator
-    ? 'זוהי תזכורת אישית שקבעת לעצמך.'
-    : `זוהי תזכורת ש${scheduledByLabel} קבע/ה עבורך.`;
+    ? tl('emails.reminder.selfIntro')
+    : tl('emails.reminder.partnerIntro', { name: scheduledByLabel });
 
   return renderBrandedEmail({
-    subject: `תזכורת: ${reminder.title}`,
-    eyebrow: 'תזכורת מתוזמנת',
+    subject: `${tl('emails.reminder.subjectPrefix')}: ${reminder.title}`,
+    eyebrow: tl('emails.reminder.eyebrow'),
     title: reminder.title,
     preheader: intro,
     paragraphs: [intro, ...(reminder.body ? [reminder.body] : [])],
-    callout: { title: 'מועד התזכורת', text: `${israelTime} (שעון ישראל)` },
-    cta: { label: 'פתיחת 12WY', url: appUrl },
-    footer: 'זוהי תזכורת אוטומטית שנשלחה על ידי 12WY.',
-  });
+    callout: { title: tl('emails.reminder.calloutTitle'), text: `${israelTime} (${tl('emails.reminder.israelTime')})` },
+    cta: { label: tl('emails.cta.openApp'), url: appUrl },
+    footer: tl('emails.reminder.footer'),
+  }, locale);
 }
 
 export interface ScheduledReminderRunResult {
@@ -349,14 +353,14 @@ export async function runDueScheduledReminders(
           db,
           claimed.id,
           nowIso,
-          'הנמען אינו עוד עצמך או השותף/ה המחובר/ת כרגע — התזכורת בוטלה אוטומטית ולא נשלחה'
+          'recipient is no longer self or current partner — auto-cancelled'
         );
         result.autoCancelled += 1;
         continue;
       }
 
-      const recipient = db.prepare('SELECT id, email FROM users WHERE id = ?').get(claimed.recipient_user_id) as
-        | { id: number; email: string }
+      const recipient = db.prepare('SELECT id, email, locale FROM users WHERE id = ?').get(claimed.recipient_user_id) as
+        | { id: number; email: string; locale: string | null }
         | undefined;
       const creator = db.prepare('SELECT id, email, display_name FROM users WHERE id = ?').get(claimed.creator_user_id) as
         | { id: number; email: string; display_name: string }
@@ -365,7 +369,7 @@ export async function runDueScheduledReminders(
       // Both rows are FK-referenced with ON DELETE CASCADE, so if either user were deleted
       // this reminder row would already be gone too — this is only a defensive guard.
       if (!recipient || !creator) {
-        markFailed(db, claimed.id, nowIso, 'הנמען או היוצר של התזכורת לא נמצאו', null);
+        markFailed(db, claimed.id, nowIso, 'recipient or creator not found', null);
         result.failed += 1;
         result.failures.push({ id: claimed.id, error: 'recipient/creator missing' });
         continue;
@@ -373,7 +377,8 @@ export async function runDueScheduledReminders(
 
       const recipientIsCreator = claimed.recipient_user_id === claimed.creator_user_id;
       const scheduledByLabel = creator.display_name?.trim() || creator.email;
-      const { subject, html, plainText, attachments } = buildReminderEmail(appUrl, claimed, recipientIsCreator, scheduledByLabel);
+      const recipientLocale: Locale = recipient.locale === 'he' ? 'he' : 'en';
+      const { subject, html, plainText, attachments } = buildReminderEmail(appUrl, claimed, recipientIsCreator, scheduledByLabel, recipientLocale);
 
       result.attempted += 1;
       await sendEmail({ to: recipient.email, subject, html, plainText, attachments });

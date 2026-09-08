@@ -181,16 +181,16 @@ describe('weekly WAM email reminders', () => {
       const aCall = sendEmailMock.mock.calls.find((call) => call[0].to === 'a@a.com')!;
       const bCall = sendEmailMock.mock.calls.find((call) => call[0].to === 'b@a.com')!;
 
-      expect(aCall[0].subject).toContain(`שבוע ${targetWeek}`);
-      expect(aCall[0].html).toContain(`שבוע ${targetWeek}`);
-      expect(aCall[0].html).toContain(`חודש ${monthNumber}`);
-      expect(aCall[0].plainText).toContain(`שבוע ${targetWeek}`);
+      expect(aCall[0].subject).toContain(`Week ${targetWeek}`);
+      expect(aCall[0].html).toContain(`Week ${targetWeek}`);
+      expect(aCall[0].html).toContain(`month ${monthNumber}`);
+      expect(aCall[0].plainText).toContain(`Week ${targetWeek}`);
       // The base weekly ask is still present alongside the monthly prompt.
       expect(aCall[0].html).toContain('WAM');
 
       // The partner (still on week 1) gets only the normal weekly reminder.
-      expect(bCall[0].subject).not.toContain('סקירה חודשית');
-      expect(bCall[0].html).not.toContain('סקירה חודשית');
+      expect(bCall[0].subject).not.toContain('Monthly review');
+      expect(bCall[0].html).not.toContain('Monthly review');
     });
 
     it.each([1, 2, 4, 5, 6, 8, 9, 10, 12])('week %i (not one week before a review) adds no monthly prompt', async (currentWeek) => {
@@ -202,8 +202,8 @@ describe('weekly WAM email reminders', () => {
       await sendWeeklyWamReminders(getDb(), FIXED_TUESDAY);
 
       const aCall = sendEmailMock.mock.calls.find((call) => call[0].to === 'a@a.com')!;
-      expect(aCall[0].subject).not.toContain('סקירה חודשית');
-      expect(aCall[0].html).not.toContain('סקירה חודשית');
+      expect(aCall[0].subject).not.toContain('Monthly review');
+      expect(aCall[0].html).not.toContain('Monthly review');
     });
 
     it('adds no monthly prompt for a recipient with no active cycle', async () => {
@@ -215,7 +215,7 @@ describe('weekly WAM email reminders', () => {
       await sendWeeklyWamReminders(getDb(), FIXED_TUESDAY);
 
       for (const call of sendEmailMock.mock.calls) {
-        expect(call[0].html).not.toContain('סקירה חודשית');
+        expect(call[0].html).not.toContain('Monthly review');
       }
     });
   });

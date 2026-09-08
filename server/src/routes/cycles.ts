@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { resolveAccess } from '../lib/access.js';
 import { getAllCyclesForUser, getCycleById } from '../lib/repo.js';
 import { buildCycleBundle } from '../lib/cycleBundle.js';
+import { tReq } from '../lib/i18n/index.js';
 
 export const cyclesRouter = Router();
 cyclesRouter.use(requireAuth);
@@ -15,12 +16,12 @@ cyclesRouter.get('/:userId', (req, res) => {
   const viewerId = req.user!.id;
   const targetUserId = Number(req.params.userId);
   if (!Number.isInteger(targetUserId) || targetUserId <= 0) {
-    res.status(400).json({ error: 'מזהה משתמש לא תקין' });
+    res.status(400).json({ error: tReq(req, 'api.cycles.invalidUserId') });
     return;
   }
   const access = resolveAccess(db, viewerId, targetUserId);
   if (access === 'none') {
-    res.status(403).json({ error: 'אין הרשאה לצפות בהיסטוריית המחזורים' });
+    res.status(403).json({ error: tReq(req, 'api.cycles.forbidden') });
     return;
   }
   const cycles = getAllCyclesForUser(db, targetUserId).map((c) => ({
@@ -44,17 +45,17 @@ cyclesRouter.get('/:userId/:cycleId', (req, res) => {
   const targetUserId = Number(req.params.userId);
   const cycleId = Number(req.params.cycleId);
   if (!Number.isInteger(targetUserId) || targetUserId <= 0 || !Number.isInteger(cycleId) || cycleId <= 0) {
-    res.status(400).json({ error: 'מזהה לא תקין' });
+    res.status(400).json({ error: tReq(req, 'api.cycles.invalidId') });
     return;
   }
   const access = resolveAccess(db, viewerId, targetUserId);
   if (access === 'none') {
-    res.status(403).json({ error: 'אין הרשאה לצפות במחזור זה' });
+    res.status(403).json({ error: tReq(req, 'api.cycles.cycleForbidden') });
     return;
   }
   const cycle = getCycleById(db, cycleId);
   if (!cycle || cycle.user_id !== targetUserId) {
-    res.status(404).json({ error: 'המחזור לא נמצא' });
+    res.status(404).json({ error: tReq(req, 'api.cycles.cycleNotFound') });
     return;
   }
   res.json({ access, ...buildCycleBundle(db, cycle) });

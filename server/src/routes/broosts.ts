@@ -41,8 +41,13 @@ class BroostTargetError extends Error {
 
 /** GET /presets — the single source of truth for preset copy (see lib/broosts.ts); the
  *  client never hardcodes its own duplicate list. */
-broostsRouter.get('/presets', (_req, res) => {
-  res.json({ presets: BROOST_PRESETS });
+broostsRouter.get('/presets', (req, res) => {
+  res.json({
+    presets: BROOST_PRESETS.map((p) => ({
+      key: p.key,
+      message: tReq(req, `wams.broostPreset.${p.key}`),
+    })),
+  });
 });
 
 /** GET /history — this user's own combined sent+received BROOST history (never a third
@@ -118,7 +123,7 @@ broostsRouter.post('/', (req, res) => {
   }
   const resolved = resolveBroostMessage(parsed.data);
   if (!resolved.ok) {
-    res.status(400).json({ error: resolved.error });
+    res.status(400).json({ error: tReq(req, resolved.error) });
     return;
   }
 
@@ -127,17 +132,17 @@ broostsRouter.post('/', (req, res) => {
     const insert = db.transaction(() => {
       const partner = getAcceptedPartner(db, senderId);
       if (!partner) {
-        throw new BroostTargetError(400, 'יש להתחבר לשותף/ה כדי לשלוח BROOST');
+        throw new BroostTargetError(400, 'api.broosts.noPartner');
       }
       if (parsed.data.replyToBroostId !== undefined) {
         const original = db.prepare(
           'SELECT sender_id FROM partner_broosts WHERE id = ? AND recipient_id = ?'
         ).get(parsed.data.replyToBroostId, senderId) as { sender_id: number } | undefined;
         if (!original) {
-          throw new BroostTargetError(404, 'ה-BROOST שאליו רצית להשיב לא נמצא');
+          throw new BroostTargetError(404, 'api.broosts.replyTargetNotFound');
         }
         if (original.sender_id !== partner.id) {
-          throw new BroostTargetError(409, 'לא ניתן להשיב — השולח/ת כבר אינו/ה השותף/ה הנוכחי/ת');
+          throw new BroostTargetError(409, 'api.broosts.replyPartnerChanged');
         }
       }
       const rateLimit = checkBroostRateLimit(db, senderId, partner.id);
@@ -156,11 +161,11 @@ broostsRouter.post('/', (req, res) => {
     broostId = insert.immediate();
   } catch (err) {
     if (err instanceof BroostTargetError) {
-      res.status(err.status).json({ error: err.message });
+      res.status(err.status).json({ error: tReq(req, err.message) });
       return;
     }
     if (err instanceof BroostRateLimitedError) {
-      res.status(429).json({ error: err.message });
+      res.status(429).json({ error: tReq(req, err.message) });
       return;
     }
     // A synchronous throw from a non-async handler is normally forwarded to Express's own
@@ -169,7 +174,7 @@ broostsRouter.post('/', (req, res) => {
     // and so the sanitized detail is logged with the BROOST context for debugging.
     // eslint-disable-next-line no-console
     console.error(`[broosts] failed to create BROOST for sender ${senderId}: ${sanitizeError(err)}`);
-    res.status(500).json({ error: 'שגיאה בשליחת ה-BROOST. יש לנסות שוב' });
+    res.status(500).json({ error: tReq(req, 'api.broosts.sendFailed') });
     return;
   }
 
@@ -182,7 +187,7 @@ broostsRouter.post('/', (req, res) => {
     // left to crash the process or hang the request.
     // eslint-disable-next-line no-console
     console.error(`[broosts] failed to load/serialize just-created BROOST ${broostId}: ${sanitizeError(err)}`);
-    res.status(500).json({ error: 'ה-BROOST נשלח אך אירעה שגיאה בטעינתו. יש לרענן' });
+    res.status(500).json({ error: tReq(req, 'api.broosts.loadFailed') });
     return;
   }
 
@@ -212,16 +217,16 @@ broostsRouter.post('/:id/read', (req, res) => {
   const db = getDb();
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) {
-    res.status(400).json({ error: 'מזהה לא תקין' });
+    res.status(400).json({ error: tReq(req, 'api.broosts.invalidId') });
     return;
   }
   const row = db.prepare('SELECT * FROM partner_broosts WHERE id = ?').get(id) as BroostRow | undefined;
   if (!row || (row.sender_id !== req.user!.id && row.recipient_id !== req.user!.id)) {
-    res.status(404).json({ error: 'ה-BROOST לא נמצא' });
+    res.status(404).json({ error: tReq(req, 'api.broosts.notFound') });
     return;
   }
   if (row.recipient_id !== req.user!.id) {
-    res.status(403).json({ error: 'רק הנמען/ת יכול/ה לסמן BROOST כנקרא' });
+    res.status(403).json({ error: tReq(req, 'api.broosts.onlyRecipientCanRead') });
     return;
   }
 

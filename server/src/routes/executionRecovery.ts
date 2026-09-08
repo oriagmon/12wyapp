@@ -97,28 +97,28 @@ function loadContext(
 ): RecoveryContext | null {
   const targetUserId = Number(req.params.userId);
   if (!Number.isInteger(targetUserId) || targetUserId <= 0) {
-    res.status(400).json({ error: 'מזהה משתמש לא תקין' });
+    res.status(400).json({ error: tReq(req, 'api.executionRecovery.invalidUserId') });
     return null;
   }
   const access = resolveAccess(db, req.user!.id, targetUserId);
   if (access === 'none') {
-    res.status(403).json({ error: 'אין הרשאה לצפות בתוכנית החילוץ' });
+    res.status(403).json({ error: tReq(req, 'api.executionRecovery.forbidden') });
     return null;
   }
   if (options.requireOwner && access !== 'owner') {
-    res.status(403).json({ error: 'רק בעל/ת הלוח יכול/ה לערוך את תוכנית החילוץ' });
+    res.status(403).json({ error: tReq(req, 'api.executionRecovery.onlyOwnerCanEdit') });
     return null;
   }
   const cycle = getActiveCycle(db, targetUserId);
   if (!cycle) {
-    res.status(400).json({ error: 'אין מחזור פעיל' });
+    res.status(400).json({ error: tReq(req, 'api.executionRecovery.noActiveCycle') });
     return null;
   }
   return { targetUserId, cycle, access };
 }
 
 const maneuverSchema = z.object({
-  note: z.string().trim().min(1, 'יש להזין תיאור קונקרטי של מהלך החילוץ').max(2000),
+  note: z.string().trim().min(1, 'errors.validation.maneuverNoteEmpty').max(2000),
 });
 
 /** A user realistically has a small handful of tactics; this is a generous upper bound that
@@ -134,15 +134,15 @@ const reduceNextWeekSchema = z.object({
         weekdays: z.array(z.number().int().min(0).max(6)).max(7),
       })
     )
-    .min(1, 'יש לכלול לפחות טקטיקה אחת')
-    .max(MAX_REDUCE_TACTICS, `ניתן לכלול עד ${MAX_REDUCE_TACTICS} טקטיקות בבקשה אחת`)
+    .min(1, 'errors.validation.reduceAtLeastOneTactic')
+    .max(MAX_REDUCE_TACTICS, 'errors.validation.reduceTooManyTactics')
     // Rejected here, before any before/after math ever runs: a duplicate tacticId would
     // otherwise let an attacker double-count that tactic's "before" baseline (inflating
     // totalBefore) while a later duplicate entry silently overwrites which "after" selection
     // actually gets persisted — letting a submission that looks like a reduction on paper
     // (totalAfter < inflated totalBefore) actually *increase* that tactic's real schedule.
     .refine((tactics) => new Set(tactics.map((t) => t.tacticId)).size === tactics.length, {
-      message: 'כל טקטיקה יכולה להופיע פעם אחת בלבד בבקשה אחת',
+      message: 'errors.validation.reduceDuplicateTactic',
     }),
 });
 
@@ -154,12 +154,12 @@ executionRecoveryRouter.get('/:userId', (req, res) => {
   const db = getDb();
   const targetUserId = Number(req.params.userId);
   if (!Number.isInteger(targetUserId) || targetUserId <= 0) {
-    res.status(400).json({ error: 'מזהה משתמש לא תקין' });
+    res.status(400).json({ error: tReq(req, 'api.executionRecovery.invalidUserId') });
     return;
   }
   const access = resolveAccess(db, req.user!.id, targetUserId);
   if (access === 'none') {
-    res.status(403).json({ error: 'אין הרשאה לצפות בתוכנית החילוץ' });
+    res.status(403).json({ error: tReq(req, 'api.executionRecovery.forbidden') });
     return;
   }
   const cycle = getActiveCycle(db, targetUserId);
@@ -199,12 +199,12 @@ executionRecoveryRouter.put('/:userId', (req, res) => {
   const existing = findPlan(db, ctx.cycle.id, ctx.cycle.current_week);
   if (existing && existing.strategy === 'reduce_next_week') {
     res.status(400).json({
-      error: 'לשבוע זה כבר קיימת תוכנית צמצום השבוע הבא — לא ניתן להמיר אותה או לדרוס אותה במהלך חילוץ',
+      error: tReq(req, 'api.executionRecovery.existingReducePlanCannotConvert'),
     });
     return;
   }
   if (existing && existing.status === 'resolved') {
-    res.status(400).json({ error: 'יש לפתוח מחדש את התוכנית לפני עריכתה' });
+    res.status(400).json({ error: tReq(req, 'api.executionRecovery.mustBeOpenToEdit') });
     return;
   }
 
@@ -245,7 +245,7 @@ executionRecoveryRouter.post('/:userId/reduce-next-week', (req, res) => {
 
   if (ctx.cycle.current_week >= 12) {
     res.status(400).json({
-      error: 'המחזור בשבוע 12, השבוע האחרון — אין שבוע הבא לצמצם. ניתן ליצור מהלך חילוץ לשבוע הנוכחי בלבד',
+      error: tReq(req, 'api.executionRecovery.atFinalWeek'),
     });
     return;
   }
@@ -254,7 +254,7 @@ executionRecoveryRouter.post('/:userId/reduce-next-week', (req, res) => {
   const existingPlan = findPlan(db, ctx.cycle.id, ctx.cycle.current_week);
   if (existingPlan) {
     res.status(409).json({
-      error: 'לשבוע זה כבר קיימת תוכנית חילוץ — לא ניתן ליצור צמצום שבוע הבא נוסף או לדרוס תוכנית קיימת בשקט',
+      error: tReq(req, 'api.executionRecovery.alreadyHasPlan'),
     });
     return;
   }
@@ -288,7 +288,7 @@ executionRecoveryRouter.post('/:userId/reduce-next-week', (req, res) => {
   const missingOrExtra =
     submittedByTacticId.size !== expectedIds.size || [...expectedIds].some((id) => !submittedByTacticId.has(id));
   if (missingOrExtra) {
-    res.status(400).json({ error: 'יש לכלול בבחירה את כל הטקטיקות המתוכננות לשבוע הבא, ורק אותן' });
+    res.status(400).json({ error: tReq(req, 'api.executionRecovery.mustIncludeAllNextWeekTactics') });
     return;
   }
 
@@ -309,12 +309,12 @@ executionRecoveryRouter.post('/:userId/reduce-next-week', (req, res) => {
 
   if (totalAfter >= totalBefore) {
     res.status(400).json({
-      error: 'סך הפעולות המתוכננות לשבוע הבא חייב לרדת לעומת המצב הנוכחי כדי שהצמצום יהיה משמעותי',
+      error: tReq(req, 'api.executionRecovery.mustReduce'),
     });
     return;
   }
   if (totalAfter < 1) {
-    res.status(400).json({ error: 'חייבת להישאר לפחות פעולה מתוכננת אחת לשבוע הבא' });
+    res.status(400).json({ error: tReq(req, 'api.executionRecovery.mustKeepOneTactic') });
     return;
   }
 
@@ -358,11 +358,11 @@ executionRecoveryRouter.post('/:userId/resolve', (req, res) => {
 
   const existing = findPlan(db, ctx.cycle.id, ctx.cycle.current_week);
   if (!existing) {
-    res.status(404).json({ error: 'לא נמצאה תוכנית חילוץ לשבוע הנוכחי' });
+    res.status(404).json({ error: tReq(req, 'api.executionRecovery.planNotFound') });
     return;
   }
   if (existing.status === 'resolved') {
-    res.status(409).json({ error: 'התוכנית כבר סומנה כפתורה' });
+    res.status(409).json({ error: tReq(req, 'api.executionRecovery.alreadyResolved') });
     return;
   }
   db.prepare(
@@ -387,17 +387,17 @@ executionRecoveryRouter.post('/:userId/reopen', (req, res) => {
 
   const existing = findPlan(db, ctx.cycle.id, ctx.cycle.current_week);
   if (!existing) {
-    res.status(404).json({ error: 'לא נמצאה תוכנית חילוץ לשבוע הנוכחי' });
+    res.status(404).json({ error: tReq(req, 'api.executionRecovery.planNotFound') });
     return;
   }
   if (existing.strategy === 'reduce_next_week') {
     res.status(400).json({
-      error: 'לא ניתן לפתוח מחדש תוכנית צמצום השבוע הבא — הצמצום כבר בוצע בפועל ואינו הפיך',
+      error: tReq(req, 'api.executionRecovery.cannotReopenReduce'),
     });
     return;
   }
   if (existing.status === 'active') {
-    res.status(409).json({ error: 'התוכנית כבר פעילה' });
+    res.status(409).json({ error: tReq(req, 'api.executionRecovery.alreadyActive') });
     return;
   }
   db.prepare(

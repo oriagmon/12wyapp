@@ -18,7 +18,7 @@ cycleRouter.post('/', (req, res) => {
   const userId = req.user!.id;
   const existing = getActiveCycle(db, userId);
   if (existing) {
-    res.status(409).json({ error: 'כבר קיים מחזור פעיל' });
+    res.status(409).json({ error: tReq(req, 'api.cycle.alreadyActive') });
     return;
   }
   const info = db
@@ -38,7 +38,7 @@ cycleRouter.patch('/', (req, res) => {
   const userId = req.user!.id;
   const cycle = getActiveCycle(db, userId);
   if (!cycle) {
-    res.status(404).json({ error: 'אין מחזור פעיל' });
+    res.status(404).json({ error: tReq(req, 'api.cycle.noActiveCycle') });
     return;
   }
   const name = parsed.data.name ?? cycle.name;
@@ -75,7 +75,7 @@ cycleRouter.patch('/', (req, res) => {
 cycleRouter.post('/reset', (req, res) => {
   const body = req.body as { name?: unknown; confirm?: unknown };
   if (body.confirm !== true) {
-    res.status(400).json({ error: 'יש לאשר את סיום המחזור (confirm: true)' });
+    res.status(400).json({ error: tReq(req, 'api.cycle.confirmRequired') });
     return;
   }
   const parsed = cycleCreateSchema.safeParse({ name: body.name });

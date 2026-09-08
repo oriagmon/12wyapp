@@ -470,8 +470,8 @@ export function upsertEvidenceFileRecord(db: Database.Database, input: EvidenceF
     if (!existing) {
       if (!hasCompletedEvidenceScope(db, input.tacticId, input.week, input.weekday)) {
         return { status: 'aborted', reason: input.weekday === WEEKLY_EVIDENCE_SLOT
-          ? 'ניתן להוסיף עדות שבועית לאחר השלמת ביצוע אחד לפחות בשבוע'
-          : 'ניתן להוסיף עדות רק לביצוע שהושלם' };
+          ? 'api.tacticEvidence.noWeeklyCompletionForEvidence'
+          : 'api.tacticEvidence.noCompletionForEvidence' };
       }
     }
 

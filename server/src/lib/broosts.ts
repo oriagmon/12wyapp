@@ -2,6 +2,8 @@ import type Database from 'better-sqlite3';
 import { getEmailConfig } from '../config.js';
 import { sendEmail } from './emailSender.js';
 import { renderBrandedEmail, type BrandedEmail } from './emailBranding.js';
+import { t } from './i18n/index.js';
+import type { Locale } from './i18n/core.js';
 
 /**
  * BROOST ("Bro" + "Boost"): a short supportive/playful message one partner sends the other.
@@ -57,14 +59,14 @@ export interface BroostPreset {
 }
 
 export const BROOST_PRESETS: BroostPreset[] = [
-  { key: 'great_job', message: 'יש ביצועים ויש את זה. ריספקט 🫡' },
-  { key: 'crushing_it', message: 'הטבלה ירוקה. מישהו פה הגיע לעבוד 🟩' },
-  { key: 'keep_going', message: 'הקאמבק של השבוע מתחיל עכשיו 🎬' },
-  { key: 'proud_of_you', message: '85%? יש קבלות 🧾' },
-  { key: 'daily_boost', message: 'קפה, פלייליסט, וי. זה הסדר ☕' },
-  { key: 'you_got_this', message: 'עוד וי אחד. בשביל העלילה 🎯' },
-  { key: 'king_queen', message: 'הביצוע הזה שווה שידור חוזר 🔁' },
-  { key: 'sending_love', message: 'גם ביום בלי וי — יש פה גב 🤝' },
+  { key: 'great_job', message: 'You showed up and delivered. Respect. 🫡' },
+  { key: 'crushing_it', message: 'All green. Someone came to work. 🟩' },
+  { key: 'keep_going', message: 'This week\'s comeback starts now. 🎬' },
+  { key: 'proud_of_you', message: '85%? Receipts. 🧾' },
+  { key: 'daily_boost', message: 'Coffee, playlist, check. That\'s the order. ☕' },
+  { key: 'you_got_this', message: 'One more check. For the story. 🎯' },
+  { key: 'king_queen', message: 'That execution deserves a replay. 🔁' },
+  { key: 'sending_love', message: 'Even on a no-check day — I\'ve got your back. 🤝' },
 ];
 
 export function getPresetByKey(key: string): BroostPreset | undefined {
@@ -84,20 +86,20 @@ export function resolveBroostMessage(input: { presetKey?: string; customMessage?
   const hasCustom = trimmedCustom.length > 0;
 
   if (hasPreset && hasCustom) {
-    return { ok: false, error: 'יש לבחור הודעה מוכנה או להקליד הודעה אישית — לא את שני האפשרויות יחד' };
+    return { ok: false, error: 'api.broosts.needOneMessage' };
   }
   if (!hasPreset && !hasCustom) {
-    return { ok: false, error: 'יש לבחור הודעה מוכנה או להקליד הודעה אישית' };
+    return { ok: false, error: 'api.broosts.needPresetOrCustom' };
   }
   if (hasPreset) {
     const preset = getPresetByKey(input.presetKey!);
     if (!preset) {
-      return { ok: false, error: 'ההודעה המוכנה שנבחרה אינה קיימת' };
+      return { ok: false, error: 'api.broosts.presetNotFound' };
     }
     return { ok: true, presetKey: preset.key, message: preset.message };
   }
   if (trimmedCustom.length > MAX_CUSTOM_MESSAGE_LENGTH) {
-    return { ok: false, error: `ההודעה האישית ארוכה מדי (עד ${MAX_CUSTOM_MESSAGE_LENGTH} תווים)` };
+    return { ok: false, error: 'api.broosts.customTooLong' };
   }
   return { ok: true, presetKey: null, message: trimmedCustom };
 }
@@ -128,7 +130,7 @@ export function checkBroostRateLimit(
   if (countRow.count >= MAX_BROOSTS_PER_PAIR_PER_WINDOW) {
     return {
       limited: true,
-      error: `הגעת למגבלה של ${MAX_BROOSTS_PER_PAIR_PER_WINDOW} BROOSTs ב-24 השעות האחרונות לשותף/ה הזה — נסה/י שוב מאוחר יותר`,
+      error: 'api.broosts.dailyLimitReached',
     };
   }
   const lastRow = db
@@ -137,7 +139,7 @@ export function checkBroostRateLimit(
   if (lastRow) {
     const elapsedMs = nowMs - new Date(lastRow.created_at).getTime();
     if (elapsedMs < COOLDOWN_SECONDS * 1000) {
-      return { limited: true, error: `יש להמתין לפחות ${COOLDOWN_SECONDS} שניות בין BROOST אחד למשנהו` };
+      return { limited: true, error: 'api.broosts.cooldownRequired' };
     }
   }
   return { limited: false };
@@ -245,7 +247,7 @@ function backoffMinutesForAttempt(attempt: number): number {
  *  sanitization when logging a background scheduling failure (see
  *  scheduleImmediateBroostSend below). */
 export function sanitizeError(err: unknown): string {
-  const message = err instanceof Error ? err.message : 'שגיאה לא ידועה בשליחת האימייל';
+  const message = err instanceof Error ? err.message : 'unknown email send error';
   return message.length > 500 ? `${message.slice(0, 500)}…` : message;
 }
 
@@ -304,17 +306,19 @@ function markFailed(db: Database.Database, id: number, error: string, nextAttemp
 export function buildBroostEmail(
   appUrl: string,
   message: string,
-  senderLabel: string
+  senderLabel: string,
+  locale: Locale = 'en'
 ): BrandedEmail {
+  const tl = (key: string, params?: Record<string, string | number>) => t(locale, key, params);
   return renderBrandedEmail({
-    subject: 'קיבלת BROOST 💪',
-    eyebrow: 'BROOST · תמיכה בדרך',
-    title: `${senderLabel} שלח/ה לך תמיכה!`,
-    preheader: 'מילה טובה מהשותף או השותפה שלך מחכה לך ב-12WY.',
-    paragraphs: [`${senderLabel} שלח/ה לך BROOST:`, message],
-    cta: { label: 'פתיחת 12WY', url: appUrl },
-    footer: 'זוהי הודעה אוטומטית שנשלחה על ידי 12WY.',
-  });
+    subject: tl('emails.broost.subject'),
+    eyebrow: tl('emails.broost.eyebrow'),
+    title: tl('emails.broost.title', { name: senderLabel }),
+    preheader: tl('emails.broost.preheader'),
+    paragraphs: [tl('emails.broost.intro', { name: senderLabel }), message],
+    cta: { label: tl('emails.cta.openApp'), url: appUrl },
+    footer: tl('emails.broost.footer'),
+  }, locale);
 }
 
 export type ClaimedBroostOutcome = { status: 'sent' } | { status: 'failed'; error: string };
@@ -338,8 +342,8 @@ export async function processClaimedBroost(db: Database.Database, claimed: Broos
   const nowIso = now.toISOString();
   let emailAcceptedByProvider = false;
   try {
-    const recipient = db.prepare('SELECT id, email FROM users WHERE id = ?').get(claimed.recipient_id) as
-      | { id: number; email: string }
+    const recipient = db.prepare('SELECT id, email, locale FROM users WHERE id = ?').get(claimed.recipient_id) as
+      | { id: number; email: string; locale: string | null }
       | undefined;
     const sender = db.prepare('SELECT id, email, display_name FROM users WHERE id = ?').get(claimed.sender_id) as
       | { id: number; email: string; display_name: string }
@@ -347,14 +351,15 @@ export async function processClaimedBroost(db: Database.Database, claimed: Broos
     // Both rows are FK-referenced with ON DELETE CASCADE, so if either user were deleted this
     // BROOST row would already be gone too — this is only a defensive guard.
     if (!recipient || !sender) {
-      const error = 'הנמען או השולח של ה-BROOST לא נמצאו';
+      const error = 'recipient or sender not found';
       markFailed(db, claimed.id, error, null);
       return { status: 'failed', error };
     }
 
     const { appUrl } = getEmailConfig();
     const senderLabel = sender.display_name?.trim() || sender.email;
-    const { subject, html, plainText, attachments } = buildBroostEmail(appUrl, claimed.message, senderLabel);
+    const recipientLocale: Locale = recipient.locale === 'he' ? 'he' : 'en';
+    const { subject, html, plainText, attachments } = buildBroostEmail(appUrl, claimed.message, senderLabel, recipientLocale);
 
     await sendEmail({ to: recipient.email, subject, html, plainText, attachments });
     emailAcceptedByProvider = true;

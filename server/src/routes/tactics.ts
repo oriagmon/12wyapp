@@ -19,11 +19,11 @@ tacticsRouter.post('/', (req, res) => {
   const { goalId, title, weekdays, startWeek, endWeek } = parsed.data;
   const goal = goalBelongsToUser(db, goalId, req.user!.id);
   if (!goal) {
-    res.status(404).json({ error: 'המטרה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.tactics.goalNotFound') });
     return;
   }
   if (goal.cycle_is_active !== 1) {
-    res.status(400).json({ error: 'המחזור הסתיים — לא ניתן להוסיף טקטיקות בהיסטוריה' });
+    res.status(400).json({ error: tReq(req, 'api.tactics.cycleEnded') });
     return;
   }
   const info = db
@@ -45,11 +45,11 @@ tacticsRouter.patch('/:id', (req, res) => {
   const tacticId = Number(req.params.id);
   const tactic = tacticBelongsToUser(db, tacticId, req.user!.id);
   if (!tactic) {
-    res.status(404).json({ error: 'הטקטיקה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.tactics.notFound') });
     return;
   }
   if (tactic.cycle_is_active !== 1) {
-    res.status(400).json({ error: 'המחזור הסתיים — לא ניתן לערוך טקטיקות בהיסטוריה' });
+    res.status(400).json({ error: tReq(req, 'api.tactics.cycleEnded') });
     return;
   }
   const title = parsed.data.title ?? tactic.title;
@@ -59,7 +59,7 @@ tacticsRouter.patch('/:id', (req, res) => {
   const startWeek = parsed.data.startWeek ?? tactic.start_week;
   const endWeek = parsed.data.endWeek ?? tactic.end_week;
   if (endWeek < startWeek) {
-    res.status(400).json({ error: 'שבוע הסיום חייב להיות אחרי שבוע ההתחלה או שווה לו' });
+    res.status(400).json({ error: tReq(req, 'errors.validation.endWeekBeforeStart') });
     return;
   }
   db.prepare(
@@ -79,17 +79,17 @@ tacticsRouter.put('/:id/adaptation', (req, res) => {
   const tacticId = Number(req.params.id);
   const tactic = tacticBelongsToUser(db, tacticId, req.user!.id);
   if (!tactic) {
-    res.status(404).json({ error: 'הטקטיקה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.tactics.notFound') });
     return;
   }
   if (tactic.cycle_is_active !== 1) {
-    res.status(400).json({ error: 'המחזור הסתיים — לא ניתן לערוך טקטיקות בהיסטוריה' });
+    res.status(400).json({ error: tReq(req, 'api.tactics.cycleEnded') });
     return;
   }
 
   const nextWeek = tactic.cycle_current_week + 1;
   if (nextWeek > 12 || nextWeek > tactic.end_week) {
-    res.status(400).json({ error: 'אין לטקטיקה שבוע עתידי במחזור הנוכחי' });
+    res.status(400).json({ error: tReq(req, 'api.tactics.noFutureWeek') });
     return;
   }
 
@@ -138,17 +138,17 @@ tacticsRouter.delete('/:id/adaptation', (req, res) => {
   const tacticId = Number(req.params.id);
   const tactic = tacticBelongsToUser(db, tacticId, req.user!.id);
   if (!tactic) {
-    res.status(404).json({ error: 'הטקטיקה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.tactics.notFound') });
     return;
   }
   if (tactic.cycle_is_active !== 1) {
-    res.status(400).json({ error: 'המחזור הסתיים — לא ניתן לערוך טקטיקות בהיסטוריה' });
+    res.status(400).json({ error: tReq(req, 'api.tactics.cycleEnded') });
     return;
   }
 
   const nextWeek = tactic.cycle_current_week + 1;
   if (nextWeek > 12 || nextWeek > tactic.end_week) {
-    res.status(400).json({ error: 'אין לטקטיקה שבוע עתידי במחזור הנוכחי' });
+    res.status(400).json({ error: tReq(req, 'api.tactics.noFutureWeek') });
     return;
   }
 
@@ -163,11 +163,11 @@ tacticsRouter.delete('/:id', (req, res) => {
   const tacticId = Number(req.params.id);
   const tactic = tacticBelongsToUser(db, tacticId, req.user!.id);
   if (!tactic) {
-    res.status(404).json({ error: 'הטקטיקה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.tactics.notFound') });
     return;
   }
   if (tactic.cycle_is_active !== 1) {
-    res.status(400).json({ error: 'המחזור הסתיים — לא ניתן למחוק טקטיקות בהיסטוריה' });
+    res.status(400).json({ error: tReq(req, 'api.tactics.cycleEnded') });
     return;
   }
   // Collected *before* the cascading delete below removes the tactic_evidence rows

@@ -18,12 +18,12 @@ const REMINDER: ScheduledEmailReminderRow = {
   created_at: '2026-09-01T12:00:00Z', updated_at: '2026-09-01T12:00:00Z',
 };
 const BUILDERS = [
-  ['weekly', (url: string) => buildWeeklyEmail(url, null)],
-  ['monthly', (url: string) => buildWeeklyEmail(url, { targetWeek: 4, monthNumber: 1 })],
-  ['calendar', (url: string) => buildInviteEmail('פגישת ה-WAM הבאה', new Date('2026-09-05T12:00:00Z'), 60, url)],
-  ['scheduled', (url: string) => buildScheduledEmail(url, REMINDER, false, 'שותף/ה לבדיקה')],
-  ['reset', (url: string) => buildResetPasswordEmail(`${url}#resetToken=test-only-token`)],
-  ['broost', (url: string) => buildBroostEmail(url, 'כל הכבוד על ההתמדה!', 'שותף/ה לבדיקה')],
+  ['weekly', (url: string) => buildWeeklyEmail(url, null, 'he')],
+  ['monthly', (url: string) => buildWeeklyEmail(url, { targetWeek: 4, monthNumber: 1 }, 'he')],
+  ['calendar', (url: string) => buildInviteEmail(new Date('2026-09-05T12:00:00Z'), 60, url, 'he')],
+  ['scheduled', (url: string) => buildScheduledEmail(url, REMINDER, false, 'שותף/ה לבדיקה', 'he')],
+  ['reset', (url: string) => buildResetPasswordEmail(`${url}#resetToken=test-only-token`, 'he')],
+  ['broost', (url: string) => buildBroostEmail(url, 'כל הכבוד על ההתמדה!', 'שותף/ה לבדיקה', 'he')],
 ] as const;
 
 describe('consistent branded email rendering', () => {
@@ -87,7 +87,7 @@ describe('consistent branded email rendering', () => {
   });
 
   it('keeps exact meeting timing and ICS instructions in both calendar alternatives', () => {
-    const email = buildInviteEmail('פגישת ה-WAM הבאה', new Date('2026-09-05T12:00:00Z'), 45, URL);
+    const email = buildInviteEmail(new Date('2026-09-05T12:00:00Z'), 45, URL, 'he');
     for (const text of [email.html, email.plainText]) {
       expect(text).toContain('15:00');
       expect(text).toContain('45 דקות');
@@ -97,7 +97,7 @@ describe('consistent branded email rendering', () => {
   });
 
   it('retains reset expiry, single use and unsolicited-request guidance in both alternatives', () => {
-    const email = buildResetPasswordEmail(`${URL}#resetToken=test-only-token`);
+    const email = buildResetPasswordEmail(`${URL}#resetToken=test-only-token`, 'he');
     for (const text of [email.html, email.plainText]) {
       expect(text).toContain('45 דקות');
       expect(text).toContain('פעם אחת בלבד');
@@ -108,13 +108,13 @@ describe('consistent branded email rendering', () => {
 
   it.each([4, 8, 12] as const)('preserves monthly review week %i, without a prompt on ordinary weeks', (targetWeek) => {
     const monthNumber = (targetWeek / 4) as 1 | 2 | 3;
-    const email = buildWeeklyEmail(URL, { targetWeek, monthNumber });
+    const email = buildWeeklyEmail(URL, { targetWeek, monthNumber }, 'he');
     expect(email.subject).toContain(`שבוע ${targetWeek}`);
     for (const text of [email.html, email.plainText]) {
       expect(text).toContain(`שבוע ${targetWeek}`);
       expect(text).toContain(`חודש ${monthNumber}`);
     }
-    expect(buildWeeklyEmail(URL, null).html).not.toContain('הסקירה החודשית');
+    expect(buildWeeklyEmail(URL, null, 'he').html).not.toContain('הסקירה החודשית');
   });
 
   it.each(['javascript:alert(1)', 'data:text/html,test', '//example.test', '/relative', 'not a URL'])(

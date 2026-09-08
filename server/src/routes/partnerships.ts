@@ -57,7 +57,7 @@ partnershipsRouter.post('/pair', (req, res) => {
   const targetUserId = parsed.data.targetUserId;
 
   if (targetUserId === userId) {
-    res.status(400).json({ error: 'לא ניתן לבחור את עצמך כשותף/ה' });
+    res.status(400).json({ error: tReq(req, 'api.partnerships.cannotSelectSelf') });
     return;
   }
 
@@ -65,18 +65,18 @@ partnershipsRouter.post('/pair', (req, res) => {
     | { id: number; email: string }
     | undefined;
   if (!targetUser || !isUserAdmitted(targetUserId)) {
-    res.status(404).json({ error: 'המשתמש/ת לא נמצא/ה' });
+    res.status(404).json({ error: tReq(req, 'api.partnerships.userNotFound') });
     return;
   }
 
   let conflict: string | null = null;
   const pair = db.transaction(() => {
     if (getAcceptedPartner(db, userId)) {
-      conflict = 'כבר יש לך שותף/ה פעיל/ה. יש להסיר את השיתוף הקיים לפני בחירת שותף/ה חדש/ה';
+      conflict = tReq(req, 'api.partnerships.senderHasPartner');
       return;
     }
     if (getAcceptedPartner(db, targetUserId)) {
-      conflict = 'למשתמש/ת שנבחר/ה כבר יש שותף/ה אחר/ת';
+      conflict = tReq(req, 'api.partnerships.targetHasPartner');
       return;
     }
     db.prepare('INSERT INTO partnerships (initiator_id, invitee_id) VALUES (?, ?)').run(userId, targetUserId);
@@ -101,12 +101,12 @@ partnershipsRouter.delete('/:id', (req, res) => {
     | PartnershipRow
     | undefined;
   if (!partnership) {
-    res.status(404).json({ error: 'לא נמצא' });
+    res.status(404).json({ error: tReq(req, 'api.partnerships.notFound') });
     return;
   }
   const isParticipant = partnership.initiator_id === userId || partnership.invitee_id === userId;
   if (!isParticipant) {
-    res.status(403).json({ error: 'אין הרשאה' });
+    res.status(403).json({ error: tReq(req, 'api.partnerships.forbidden') });
     return;
   }
   db.prepare('DELETE FROM partnerships WHERE id = ?').run(id);

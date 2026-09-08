@@ -1,5 +1,6 @@
 import type { RequestHandler } from 'express';
 import cors from 'cors';
+import { tReq } from '../lib/i18n/index.js';
 import { getAllowedRequestOrigins } from '../config.js';
 
 /** SameSite cookies do not protect against an attacker-controlled sibling origin. Check
@@ -14,7 +15,7 @@ export function createOriginGuard(): RequestHandler[] {
       (origin !== undefined && !allowed.has(origin)) ||
       (origin === undefined && unsafe && (fetchSite === 'cross-site' || fetchSite === 'same-site'))
     ) {
-      res.status(403).json({ error: 'מקור הבקשה אינו מורשה' });
+      res.status(403).json({ error: tReq(req, 'api.origin.forbidden') });
       return;
     }
     next();

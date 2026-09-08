@@ -19,11 +19,11 @@ completionsRouter.post('/toggle', (req, res) => {
   const { tacticId, week, weekday, done } = parsed.data;
   const tactic = tacticBelongsToUser(db, tacticId, req.user!.id);
   if (!tactic) {
-    res.status(404).json({ error: 'הטקטיקה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.tactics.notFound') });
     return;
   }
   if (tactic.cycle_is_active !== 1) {
-    res.status(400).json({ error: 'המחזור הסתיים — לא ניתן לעדכן ביצועים בהיסטוריה' });
+    res.status(400).json({ error: tReq(req, 'api.completions.cycleEnded') });
     return;
   }
   const override = db
@@ -39,7 +39,7 @@ completionsRouter.post('/toggle', (req, res) => {
     weekday
   );
   if (!scheduled) {
-    res.status(400).json({ error: 'לא ניתן לסמן ביצוע ליום שאינו מתוזמן' });
+    res.status(400).json({ error: tReq(req, 'api.completions.dayNotScheduled') });
     return;
   }
 

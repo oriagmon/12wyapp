@@ -6,6 +6,7 @@ import { closeDb, getDb } from '../db.js';
 import { config } from '../config.js';
 import { createSession } from '../lib/sessions.js';
 import { hashPassword, verifyPassword } from '../lib/password.js';
+import { fallbackLocale, t } from '../lib/i18n/index.js';
 import {
   createResetToken, hashResetToken, invalidateOutstandingTokens, invalidateTokenByHash,
 } from '../lib/passwordReset.js';
@@ -136,7 +137,7 @@ describe('final credential authorization after asynchronous bcrypt', () => {
     barrier.release();
     const response = await staleLogin;
     expect(response.status).toBe(401);
-    expect(response.body).toEqual({ error: 'אימייל או סיסמה שגויים' });
+    expect(response.body).toEqual({ error: t(fallbackLocale(), 'api.auth.invalidCredentials') });
     expect(response.headers['set-cookie']).toBeUndefined();
     expect(sessionCount()).toBe(0);
     expect(storedHash()).toBe(recoveredHash);

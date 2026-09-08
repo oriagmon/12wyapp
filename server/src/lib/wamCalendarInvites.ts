@@ -3,10 +3,13 @@ import { getEmailConfig } from '../config.js';
 import { sendEmail } from './emailSender.js';
 import { buildWamIcs } from './ics.js';
 import { renderBrandedEmail, type BrandedEmail } from './emailBranding.js';
+import { t, fallbackLocale } from './i18n/index.js';
+import type { Locale } from './i18n/core.js';
 
 export interface CalendarInviteRecipient {
   userId: number;
   email: string;
+  locale?: Locale;
 }
 
 export interface CalendarInviteWam {
@@ -52,8 +55,9 @@ function recordDelivery(
   ).run(wamId, userId, eventSequence, status, error, status === 'sent' ? new Date().toISOString() : null);
 }
 
-function formatIsraelTime(date: Date): string {
-  return new Intl.DateTimeFormat('he-IL', {
+function formatIsraelTime(date: Date, locale: Locale = 'en'): string {
+  const tz = locale === 'he' ? 'he-IL' : 'en-US';
+  return new Intl.DateTimeFormat(tz, {
     timeZone: 'Asia/Jerusalem',
     year: 'numeric',
     month: '2-digit',
@@ -64,25 +68,32 @@ function formatIsraelTime(date: Date): string {
 }
 
 export function buildInviteEmail(
-  summary: string,
   dtStart: Date,
   durationMinutes: number,
-  appUrl: string
+  appUrl: string,
+  locale: Locale = 'en'
 ): BrandedEmail {
-  const when = `${formatIsraelTime(dtStart)} (שעון ישראל)`;
+  const tl = (key: string, params?: Record<string, string | number>) => t(locale, key, params);
+  const when = `${formatIsraelTime(dtStart, locale)} (${tl('emails.calendar.israelTime')})`;
+  // The title is resolved here rather than passed in: the ICS attachment can only carry one
+  // language for both attendees, but each email must be entirely in its own recipient's.
+  const summary = tl('emails.calendar.wamTitle');
   return renderBrandedEmail({
-    subject: `הזמנה: ${summary}`,
-    eyebrow: 'הזמנה ליומן',
+    subject: `${tl('emails.calendar.subjectPrefix')}: ${summary}`,
+    eyebrow: tl('emails.calendar.eyebrow'),
     title: summary,
-    preheader: `הפגישה הבאה נקבעה: ${when}`,
+    preheader: tl('emails.calendar.preheader', { when }),
     paragraphs: [
-      'נקבע מועד לפגישת ה-WAM הבאה שלכם — זמן משותף לסקירת הביצוע ולהתקדמות לשבוע הבא.',
-      'מצורפת הזמנת יומן (ICS). אפשר לפתוח את הקובץ המצורף ולהוסיף את הפגישה ליומן.',
+      tl('emails.calendar.body1'),
+      tl('emails.calendar.body2'),
     ],
-    callout: { title: 'פרטי הפגישה', text: `${when} · משך הפגישה: ${durationMinutes} דקות` },
-    cta: { label: 'פתיחת 12WY', url: appUrl },
-    footer: 'זוהי הזמנת יומן אוטומטית שנשלחה על ידי 12WY.\nמועד הפגישה מוצג לפי שעון ישראל.',
-  });
+    callout: {
+      title: tl('emails.calendar.calloutTitle'),
+      text: `${when} · ${tl('emails.calendar.duration', { minutes: durationMinutes })}`,
+    },
+    cta: { label: tl('emails.cta.openApp'), url: appUrl },
+    footer: tl('emails.calendar.footer'),
+  }, locale);
 }
 
 export interface CalendarInviteRunResult {
@@ -115,8 +126,13 @@ export async function sendWamCalendarInvitations(
   const dtEnd = new Date(dtStart.getTime() + wam.nextWamDurationMinutes * 60_000);
   const dtStamp = new Date();
 
-  const summary = 'פגישת ה-WAM הבאה';
-  const description = `תיאום הפגישה השבועית הבאה של פגישות ה-WAM (Weekly Accountability Meeting) שלכם. למעבר לאפליקציה: ${appUrl}`;
+  // The ICS is one shared document attached to both invitations, so it can carry only one
+  // language. Use the recipients' language when they agree and the deployment default when
+  // they don't; the email wrapped around it is always in that recipient's own language.
+  const recipientLocales = new Set(recipients.map((r) => r.locale ?? fallbackLocale()));
+  const icsLocale: Locale = recipientLocales.size === 1 ? [...recipientLocales][0]! : fallbackLocale();
+  const summary = t(icsLocale, 'emails.calendar.wamTitle');
+  const description = `${t(icsLocale, 'emails.calendar.icsDescription')} ${appUrl}`;
 
   const ics = buildWamIcs({
     uid: wam.calendarEventUid,
@@ -129,13 +145,14 @@ export async function sendWamCalendarInvitations(
     summary,
     description,
     url: appUrl,
+    locale: icsLocale,
   });
   const attachment = {
     name: 'wam-invite.ics',
     contentType: 'text/calendar; method=REQUEST; charset=UTF-8',
     contentInBase64: Buffer.from(ics, 'utf8').toString('base64'),
   };
-  const { subject, html, plainText, attachments } = buildInviteEmail(summary, dtStart, wam.nextWamDurationMinutes, appUrl);
+
 
   const result: CalendarInviteRunResult = {
     allSucceeded: true,
@@ -155,11 +172,13 @@ export async function sendWamCalendarInvitations(
 
     result.attempted += 1;
     try {
-      await sendEmail({ to: recipient.email, subject, html, plainText, attachments: [attachment, ...attachments] });
+      const recipientLocale: Locale = recipient.locale ?? fallbackLocale();
+      const { subject, html, plainText, attachments: emailAttachments } = buildInviteEmail(dtStart, wam.nextWamDurationMinutes, appUrl, recipientLocale);
+      await sendEmail({ to: recipient.email, subject, html, plainText, attachments: [attachment, ...emailAttachments] });
       recordDelivery(db, wam.id, recipient.userId, wam.calendarEventSequence, 'sent', null);
       result.sent += 1;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'שגיאה לא ידועה בשליחת הזמנת יומן';
+      const message = err instanceof Error ? err.message : 'unknown calendar invite send error';
       recordDelivery(db, wam.id, recipient.userId, wam.calendarEventSequence, 'failed', message);
       result.failed += 1;
       result.failures.push({ userId: recipient.userId, error: message });

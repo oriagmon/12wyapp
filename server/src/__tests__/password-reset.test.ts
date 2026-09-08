@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, afterAll, afterEach, vi } from 'vites
 import request from 'supertest';
 import { freshApp, extractCookie } from './helpers.js';
 import { closeDb, getDb } from '../db.js';
+import { fallbackLocale, t, type Locale } from '../lib/i18n/index.js';
 
 // Mocks the actual ACS network call so these tests never contact Azure — only the
 // business logic in lib/passwordReset.ts and routes/auth.ts is exercised.
@@ -26,7 +27,9 @@ import {
 
 const sendEmailMock = vi.mocked(sendEmail);
 
-const GENERIC_MESSAGE = 'אם קיים חשבון המשויך לכתובת האימייל הזו, נשלח אליו קישור לאיפוס הסיסמה';
+// Derived from the dictionary rather than pinned as a literal: the property under test is
+// that every /forgot-password outcome returns the *same* message, not what that copy says.
+const GENERIC_MESSAGE = t(fallbackLocale(), 'api.auth.passwordResetEmailSent');
 
 /** The email send is deliberately deferred (via setImmediate) until after the response has
  *  already been sent (see routes/auth.ts). Awaiting one macrotask tick from the test side is
@@ -128,7 +131,12 @@ describe('password reset: POST /forgot-password', () => {
 
     const call = sendEmailMock.mock.calls[0][0];
     expect(call.to).toBe('owner@a.com');
-    expect(call.subject).toContain('איפוס סיסמה');
+    // Emails are written in the recipient's stored language, not the request's — a reset is
+    // often opened from a different device than the one that asked for it.
+    const recipientLocale = (
+      getDb().prepare('SELECT locale FROM users WHERE email = ?').get('owner@a.com') as { locale: Locale }
+    ).locale;
+    expect(call.subject).toBe(t(recipientLocale, 'emails.passwordReset.subject'));
     expect(call.html).toContain('https://dashboard.example.com');
     expect(call.attachments).toBeDefined();
     expect(call.attachments?.length).toBeGreaterThan(0);

@@ -85,40 +85,40 @@ function loadContext(
   const cycleId = Number(req.params.cycleId);
   const targetWeek = Number(req.params.targetWeek);
   if (!Number.isInteger(cycleId) || cycleId <= 0) {
-    res.status(400).json({ error: 'מזהה מחזור לא תקין' });
+    res.status(400).json({ error: tReq(req, 'api.weeklyPlanning.invalidCycleId') });
     return null;
   }
   if (!Number.isInteger(targetWeek) || targetWeek < 2 || targetWeek > 12) {
-    res.status(400).json({ error: 'שבוע יעד לא תקין — יש לבחור שבוע בין 2 ל-12' });
+    res.status(400).json({ error: tReq(req, 'api.weeklyPlanning.invalidTargetWeek') });
     return null;
   }
   const cycle = getCycleById(db, cycleId);
   if (!cycle) {
-    res.status(404).json({ error: 'המחזור לא נמצא' });
+    res.status(404).json({ error: tReq(req, 'api.weeklyPlanning.cycleNotFound') });
     return null;
   }
   const access = resolveAccess(db, req.user!.id, cycle.user_id);
   if (access === 'none') {
-    res.status(403).json({ error: 'אין הרשאה לצפות בטקס התכנון השבועי' });
+    res.status(403).json({ error: tReq(req, 'api.weeklyPlanning.forbidden') });
     return null;
   }
   if (options.requireOwner && access !== 'owner') {
-    res.status(403).json({ error: 'רק בעל/ת הלוח יכול/ה לערוך את טקס התכנון השבועי' });
+    res.status(403).json({ error: tReq(req, 'api.weeklyPlanning.onlyOwnerCanEdit') });
     return null;
   }
   if (options.requireActive && cycle.is_active !== 1) {
-    res.status(400).json({ error: 'המחזור הסתיים — לא ניתן לערוך את טקס התכנון השבועי בהיסטוריה' });
+    res.status(400).json({ error: tReq(req, 'api.weeklyPlanning.cycleEnded') });
     return null;
   }
   if (options.requireNextWeek) {
     if (cycle.current_week >= 12) {
       res
         .status(400)
-        .json({ error: 'המחזור הגיע לשבוע 12, השבוע האחרון — יש לסיים ולסקור את המחזור לפני תכנון שבוע נוסף' });
+        .json({ error: tReq(req, 'api.weeklyPlanning.atFinalWeek') });
       return null;
     }
     if (targetWeek !== cycle.current_week + 1) {
-      res.status(400).json({ error: 'ניתן לתכנן רק את השבוע הבא ביחס לשבוע הנוכחי במחזור' });
+      res.status(400).json({ error: tReq(req, 'api.weeklyPlanning.mustBeNextWeek') });
       return null;
     }
   }
@@ -153,7 +153,7 @@ weeklyPlanningRouter.put('/:cycleId/:targetWeek', (req, res) => {
 
   const existing = findRitual(db, ctx.cycleId, ctx.targetWeek);
   if (existing && existing.status === 'complete') {
-    res.status(400).json({ error: 'יש לפתוח מחדש את הטקס לפני עריכת התוכן' });
+    res.status(400).json({ error: tReq(req, 'api.weeklyPlanning.mustBeOpenToEdit') });
     return;
   }
 
@@ -200,23 +200,23 @@ weeklyPlanningRouter.post('/:cycleId/:targetWeek/complete', (req, res) => {
 
   const existing = findRitual(db, ctx.cycleId, ctx.targetWeek);
   if (!existing) {
-    res.status(400).json({ error: 'יש לשמור טיוטה של הטקס לפני השלמתו' });
+    res.status(400).json({ error: tReq(req, 'api.weeklyPlanning.noDraftToComplete') });
     return;
   }
   if (existing.status === 'complete') {
-    res.status(409).json({ error: 'הטקס כבר הושלם. יש לפתוח מחדש כדי לעדכן ולהשלים שוב' });
+    res.status(409).json({ error: tReq(req, 'api.weeklyPlanning.alreadyComplete') });
     return;
   }
   if (existing.tactics_reviewed !== 1) {
-    res.status(400).json({ error: 'יש לאשר שבדקתם והתאמתם את הטקטיקות לשבוע הבא' });
+    res.status(400).json({ error: tReq(req, 'api.weeklyPlanning.tacticsReviewRequired') });
     return;
   }
   if (existing.weekly_focus.trim().length === 0) {
-    res.status(400).json({ error: 'יש להגדיר את המיקוד המרכזי לשבוע הבא' });
+    res.status(400).json({ error: tReq(req, 'api.weeklyPlanning.weeklyFocusRequired') });
     return;
   }
   if (existing.commitment.trim().length === 0) {
-    res.status(400).json({ error: 'יש להזין את ההתחייבות לשבוע הבא' });
+    res.status(400).json({ error: tReq(req, 'api.weeklyPlanning.commitmentRequired') });
     return;
   }
 
@@ -240,11 +240,11 @@ weeklyPlanningRouter.post('/:cycleId/:targetWeek/reopen', (req, res) => {
 
   const existing = findRitual(db, ctx.cycleId, ctx.targetWeek);
   if (!existing) {
-    res.status(404).json({ error: 'הטקס לא נמצא' });
+    res.status(404).json({ error: tReq(req, 'api.weeklyPlanning.ritualNotFound') });
     return;
   }
   if (existing.status === 'draft') {
-    res.status(409).json({ error: 'הטקס כבר במצב טיוטה' });
+    res.status(409).json({ error: tReq(req, 'api.weeklyPlanning.alreadyDraft') });
     return;
   }
 

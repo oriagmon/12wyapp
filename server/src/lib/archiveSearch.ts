@@ -1,3 +1,5 @@
+import { t } from './i18n/index.js';
+import type { Locale } from './i18n/core.js';
 import type Database from 'better-sqlite3';
 import { getAcceptedPartnershipForUser, otherUserId } from './wam.js';
 
@@ -78,15 +80,15 @@ const sources: readonly SearchSource[] = [
     category: 'cycles', from: 'cycles c', where: cycleScope,
     columns: `c.id, c.name AS title, ${cycleColumns}`,
     fields: [
-      ['c.name', 'שם המחזור'], ['c.vision', 'חזון'], ['c.success_definition', 'הגדרת הצלחה'],
-      ['c.why_it_matters', 'למה זה חשוב'], ['c.blockers', 'חסמים'], ['c.risks', 'סיכונים'],
-      ['c.lag_measures', 'מדדי תוצאה'], ['c.lead_measures', 'מדדי ביצוע'], ['c.notes', 'הערות'],
+      ['c.name', 'archiveSearch.field.cycleName'], ['c.vision', 'archiveSearch.field.vision'], ['c.success_definition', 'archiveSearch.field.successDefinition'],
+      ['c.why_it_matters', 'archiveSearch.field.whyItMatters'], ['c.blockers', 'archiveSearch.field.blockers'], ['c.risks', 'archiveSearch.field.risks'],
+      ['c.lag_measures', 'archiveSearch.field.lagMeasures'], ['c.lead_measures', 'archiveSearch.field.leadMeasures'], ['c.notes', 'archiveSearch.field.notes'],
     ],
     order: cycleOrder,
   },
   {
     category: 'goals', from: 'goals g JOIN cycles c ON c.id = g.cycle_id', where: cycleScope,
-    columns: `g.id, g.title, ${cycleColumns}`, fields: [['g.title', 'מטרה']],
+    columns: `g.id, g.title, ${cycleColumns}`, fields: [['g.title', 'archiveSearch.field.goalTitle']],
     order: `${cycleOrder}, g.sort_order ASC, g.id ASC`,
   },
   {
@@ -95,32 +97,32 @@ const sources: readonly SearchSource[] = [
     columns: `t.id, t.title, g.id AS goalId, c.user_id AS userId, c.id AS cycleId,
       c.name AS cycleName, 1 - c.is_active AS isArchived,
       MAX(t.start_week, MIN(t.end_week, c.current_week)) AS week`,
-    fields: [['t.title', 'טקטיקה']], order: `${cycleOrder}, g.sort_order ASC, g.id ASC, t.id ASC`,
+    fields: [['t.title', 'archiveSearch.field.tacticTitle']], order: `${cycleOrder}, g.sort_order ASC, g.id ASC, t.id ASC`,
   },
   {
     category: 'wams', from: `wams w ${wamJoins}`, where: 'w.partnership_id = @partnershipId',
     columns: `w.id, '' AS title, ${wamColumns}`,
     fields: [
-      ['w.wins', 'הצלחות'], ['w.misses', 'פספוסים'], ['w.blockers', 'חסמים'],
-      ['w.lessons_learned', 'לקחים'], ['w.notes', 'הערות'], ['w.adjustment_notes', 'התאמות'],
+      ['w.wins', 'archiveSearch.field.wins'], ['w.misses', 'archiveSearch.field.misses'], ['w.blockers', 'archiveSearch.field.blockers'],
+      ['w.lessons_learned', 'archiveSearch.field.lessonsLearned'], ['w.notes', 'archiveSearch.field.notes'], ['w.adjustment_notes', 'archiveSearch.field.adjustmentNotes'],
     ],
     order: wamOrder,
   },
   {
     category: 'commitments', from: `wam_commitments m JOIN wams w ON w.id = m.wam_id ${wamJoins}`,
     where: 'w.partnership_id = @partnershipId', columns: `m.id, m.label AS title, ${wamColumns}`,
-    fields: [['m.label', 'התחייבות']], order: `${wamOrder}, m.sort_order ASC, m.id ASC`,
+    fields: [['m.label', 'archiveSearch.field.commitment']], order: `${wamOrder}, m.sort_order ASC, m.id ASC`,
   },
   {
     category: 'punishments', from: `wam_punishments p JOIN wams w ON w.id = p.source_wam_id ${wamJoins}`,
     where: 'w.partnership_id = @partnershipId', columns: `p.id, p.label AS title, ${wamColumns}`,
-    fields: [['p.label', 'עונש']], order: `${wamOrder}, p.id ASC`,
+    fields: [['p.label', 'archiveSearch.field.punishment']], order: `${wamOrder}, p.id ASC`,
   },
   {
     category: 'reminders', from: 'scheduled_email_reminders r', where: 'r.creator_user_id = @viewerId',
     columns: `r.id, r.title, r.creator_user_id AS userId, NULL AS cycleId, NULL AS cycleName,
       NULL AS isArchived, 0 AS week`,
-    fields: [['r.title', 'כותרת התזכורת'], ['r.body', 'תוכן התזכורת']],
+    fields: [['r.title', 'archiveSearch.field.reminderTitle'], ['r.body', 'archiveSearch.field.reminderBody']],
     order: `CASE WHEN r.status IN ('pending', 'failed') THEN 0 ELSE 1 END,
       r.scheduled_for ASC, r.id ASC`,
   },
@@ -145,7 +147,7 @@ function targetFor(category: ArchiveSearchCategory, row: SearchRow): ArchiveSear
 /** Only fixed, reviewed identifiers enter SQL; all request values remain bound parameters.
  * Counts and capped excerpts share a read transaction, never counts of just the loaded page.
  * Punishments appear once, at their source WAM (also where the existing detail API exposes them). */
-export function searchArchive(db: Database.Database, viewerId: number, query: string, limit: number) {
+export function searchArchive(db: Database.Database, viewerId: number, query: string, limit: number, locale: Locale = 'en') {
   return db.transaction(() => {
     const partnership = getAcceptedPartnershipForUser(db, viewerId);
     const bindings = {
@@ -167,9 +169,9 @@ export function searchArchive(db: Database.Database, viewerId: number, query: st
         FROM ${source.from} WHERE ${where} ORDER BY ${source.order} LIMIT @limit`).all(bindings) as SearchRow[];
       const items: ArchiveSearchItem[] = rows.map((row) => ({
         id: row.id,
-        title: source.category === 'wams' ? `פגישת אחריותיות · שבוע ${row.week}` : clip(row.title, 96),
+        title: source.category === 'wams' ? t(locale, 'archiveSearch.wamTitle', { week: row.week }) : clip(row.title, 96),
         snippet: excerpt(row.matchedText, query),
-        matchedField: row.matchedField,
+        matchedField: t(locale, row.matchedField),
         cycleName: row.cycleName === null ? null : clip(row.cycleName, 96),
         isArchived: row.isArchived === null ? null : row.isArchived === 1,
         ownership: row.wamId !== undefined ? 'shared' : row.userId === viewerId ? 'mine' : 'partner',

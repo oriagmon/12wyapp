@@ -3,20 +3,25 @@ import { getEmailConfig } from '../config.js';
 import { currentIsoWeek } from './isoWeek.js';
 import { sendEmail } from './emailSender.js';
 import { renderBrandedEmail, type BrandedEmail } from './emailBranding.js';
+import { t } from './i18n/index.js';
+import type { Locale } from './i18n/core.js';
 
 interface PartnershipPairRow {
   partnershipId: number;
   aId: number;
   aEmail: string;
+  aLocale: string;
   aCurrentWeek: number | null;
   bId: number;
   bEmail: string;
+  bLocale: string;
   bCurrentWeek: number | null;
 }
 
 export interface ReminderRecipient {
   userId: number;
   email: string;
+  locale: string | null;
   partnershipId: number;
   /** The recipient's own active cycle's current week (1-12), or null if they have no
    *  active cycle right now — used only to decide whether to append the monthly review
@@ -32,8 +37,8 @@ export function getReminderRecipients(db: Database.Database): ReminderRecipient[
   const rows = db
     .prepare(
       `SELECT p.id as partnershipId,
-              ua.id as aId, ua.email as aEmail, ca.current_week as aCurrentWeek,
-              ub.id as bId, ub.email as bEmail, cb.current_week as bCurrentWeek
+              ua.id as aId, ua.email as aEmail, ua.locale as aLocale, ca.current_week as aCurrentWeek,
+              ub.id as bId, ub.email as bEmail, ub.locale as bLocale, cb.current_week as bCurrentWeek
        FROM partnerships p
        JOIN users ua ON ua.id = p.initiator_id
        JOIN users ub ON ub.id = p.invitee_id
@@ -44,8 +49,8 @@ export function getReminderRecipients(db: Database.Database): ReminderRecipient[
 
   const recipients: ReminderRecipient[] = [];
   for (const row of rows) {
-    recipients.push({ userId: row.aId, email: row.aEmail, partnershipId: row.partnershipId, currentWeek: row.aCurrentWeek });
-    recipients.push({ userId: row.bId, email: row.bEmail, partnershipId: row.partnershipId, currentWeek: row.bCurrentWeek });
+    recipients.push({ userId: row.aId, email: row.aEmail, locale: row.aLocale, partnershipId: row.partnershipId, currentWeek: row.aCurrentWeek });
+    recipients.push({ userId: row.bId, email: row.bEmail, locale: row.bLocale, partnershipId: row.partnershipId, currentWeek: row.bCurrentWeek });
   }
   return recipients;
 }
@@ -111,26 +116,28 @@ export function monthlyReviewPromptForWeek(currentWeek: number | null): MonthlyR
 
 export function buildReminderEmail(
   appUrl: string,
-  monthlyReview: MonthlyReviewPrompt | null
+  monthlyReview: MonthlyReviewPrompt | null,
+  locale: Locale = 'en'
 ): BrandedEmail {
+  const tl = (key: string, params?: Record<string, string | number>) => t(locale, key, params);
   const subject = monthlyReview
-    ? `תזכורת: קבעתם שעה ל-WAM השבוע? הסקירה החודשית בשבוע הבא (שבוע ${monthlyReview.targetWeek})`
-    : 'תזכורת: קבעתם שעה לפגישת ה-WAM השבוע?';
+    ? tl('emails.wamReminder.subjectMonthly', { week: monthlyReview.targetWeek })
+    : tl('emails.wamReminder.subject');
   return renderBrandedEmail({
     subject,
-    eyebrow: 'הפגישה השבועית שלכם',
-    title: 'קבעתם זמן ל-WAM השבוע?',
+    eyebrow: tl('emails.wamReminder.eyebrow'),
+    title: tl('emails.wamReminder.title'),
     paragraphs: [
-      'פגישת ה-WAM (סקירת ההתקדמות השבועית) היא המקום לעצור, לבדוק ביצוע, לחגוג התקדמות ולתכנן את המהלך הבא.',
-      'אם עדיין לא קבעתם מועד — זה הזמן לתאם עם השותף או השותפה.',
+      tl('emails.wamReminder.body1'),
+      tl('emails.wamReminder.body2'),
     ],
     callout: monthlyReview ? {
-      title: 'הסקירה החודשית מתקרבת',
-      text: `שבוע ${monthlyReview.targetWeek} (השבוע הבא) מסכם את חודש ${monthlyReview.monthNumber} במחזור. ודאו שכבר עכשיו קבעתם זמן ל-WAM המורחב, בנוסף לפגישה השבועית הרגילה.`,
+      title: tl('emails.wamReminder.monthlyCalloutTitle'),
+      text: tl('emails.wamReminder.monthlyCalloutText', { week: monthlyReview.targetWeek, month: monthlyReview.monthNumber }),
     } : undefined,
-    cta: { label: 'פתיחת 12WY', url: appUrl },
-    footer: '12 שבועות. פגישה אחת בכל שבוע. התקדמות עקבית.\nזוהי תזכורת אוטומטית שבועית שנשלחה על ידי 12WY.',
-  });
+    cta: { label: tl('emails.cta.openApp'), url: appUrl },
+    footer: tl('emails.wamReminder.footer'),
+  }, locale);
 }
 
 export interface ReminderRunResult {
@@ -170,7 +177,8 @@ export async function sendWeeklyWamReminders(
     // depends on each recipient's own current cycle week — one combined email either way,
     // never a separate second email.
     const monthlyReview = monthlyReviewPromptForWeek(recipient.currentWeek);
-    const { subject, html, plainText, attachments } = buildReminderEmail(appUrl, monthlyReview);
+    const recipientLocale: Locale = recipient.locale === 'he' ? 'he' : 'en';
+    const { subject, html, plainText, attachments } = buildReminderEmail(appUrl, monthlyReview, recipientLocale);
 
     result.attempted += 1;
     try {

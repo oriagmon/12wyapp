@@ -6,6 +6,7 @@ import { getActiveCycle, getCycleById } from '../lib/repo.js';
 import { buildExecutionHeatmap, emptyHeatmapSummary } from '../lib/executionHeatmap.js';
 import { TARGET_SCORE } from '../lib/scoring.js';
 import { formatIsraelWallTime } from '../lib/israelTime.js';
+import { tReq } from '../lib/i18n/index.js';
 
 export const executionHeatmapRouter = Router();
 executionHeatmapRouter.use(requireAuth);
@@ -21,18 +22,18 @@ executionHeatmapRouter.get('/:userId', (req, res) => {
   const targetUserId = positiveId(req.params.userId);
   const cycleId = req.query.cycleId === undefined ? undefined : positiveId(req.query.cycleId);
   if (targetUserId === null || cycleId === null) {
-    res.status(400).json({ error: 'מזהה משתמש או מחזור לא תקין' });
+    res.status(400).json({ error: tReq(req, 'api.executionHeatmap.invalidParams') });
     return;
   }
   const db = getDb();
   const access = resolveAccess(db, req.user!.id, targetUserId);
   if (access === 'none') {
-    res.status(403).json({ error: 'אין הרשאה לצפות במפת הביצוע הזו' });
+    res.status(403).json({ error: tReq(req, 'api.executionHeatmap.forbidden') });
     return;
   }
   const cycle = cycleId === undefined ? getActiveCycle(db, targetUserId) : getCycleById(db, cycleId);
   if (cycleId !== undefined && (!cycle || cycle.user_id !== targetUserId)) {
-    res.status(404).json({ error: 'המחזור לא נמצא' });
+    res.status(404).json({ error: tReq(req, 'api.executionHeatmap.cycleNotFound') });
     return;
   }
   res.setHeader('Cache-Control', 'private, no-store');

@@ -30,8 +30,7 @@ import { tReq } from '../lib/i18n/index.js';
 export const wamsRouter = Router();
 wamsRouter.use(requireAuth);
 
-const HISTORICAL_LOCK_MESSAGE =
-  'פגישה זו שייכת למחזור שכבר הסתיים ולכן היא נעולה כהיסטוריה בלתי ניתנת לעריכה';
+const HISTORICAL_LOCK_KEY = 'api.wams.isHistorical';
 
 interface WamRow {
   id: number;
@@ -469,7 +468,7 @@ wamsRouter.post('/', (req, res) => {
   const db = getDb();
   const partnership = getAcceptedPartnershipForUser(db, req.user!.id);
   if (!partnership) {
-    res.status(409).json({ error: 'נדרש שותף/ה מאושר/ת כדי לקיים פגישת אחריותיות' });
+    res.status(409).json({ error: tReq(req, 'api.wams.noPartner') });
     return;
   }
   const { week } = parsed.data;
@@ -521,13 +520,13 @@ wamsRouter.post('/', (req, res) => {
 wamsRouter.get('/by-week/:week', (req, res) => {
   const week = Number(req.params.week);
   if (!Number.isInteger(week) || week < 1 || week > 12) {
-    res.status(400).json({ error: 'שבוע לא תקין' });
+    res.status(400).json({ error: tReq(req, 'api.wams.invalidWeek') });
     return;
   }
   const db = getDb();
   const partnership = getAcceptedPartnershipForUser(db, req.user!.id);
   if (!partnership) {
-    res.status(404).json({ error: 'אין שותף/ה מאושר/ת' });
+    res.status(404).json({ error: tReq(req, 'api.wams.byWeekNoPartner') });
     return;
   }
   const initiatorCycleId = currentActiveCycleId(db, partnership.initiatorId);
@@ -539,7 +538,7 @@ wamsRouter.get('/by-week/:week', (req, res) => {
     )
     .get(partnership.id, week, initiatorCycleId, inviteeCycleId) as WamRow | undefined;
   if (!wam) {
-    res.status(404).json({ error: 'עדיין לא נוצרה פגישה לשבוע זה' });
+    res.status(404).json({ error: tReq(req, 'api.wams.byWeekNotFound') });
     return;
   }
   res.json(serializeWamDetail(db, wam, partnership, req.user!.id));
@@ -549,7 +548,7 @@ wamsRouter.get('/:id', (req, res) => {
   const db = getDb();
   const found = loadWamForMember(db, Number(req.params.id), req.user!.id);
   if (!found) {
-    res.status(404).json({ error: 'הפגישה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.wams.notFound') });
     return;
   }
   res.json(serializeWamDetail(db, found.wam, found.partnership, req.user!.id));
@@ -559,15 +558,15 @@ wamsRouter.patch('/:id', (req, res) => {
   const db = getDb();
   const found = loadWamForMember(db, Number(req.params.id), req.user!.id);
   if (!found) {
-    res.status(404).json({ error: 'הפגישה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.wams.notFound') });
     return;
   }
   if (isWamHistorical(db, found.wam)) {
-    res.status(400).json({ error: HISTORICAL_LOCK_MESSAGE });
+    res.status(400).json({ error: tReq(req, HISTORICAL_LOCK_KEY) });
     return;
   }
   if (found.wam.status !== 'draft') {
-    res.status(400).json({ error: 'יש לפתוח מחדש את הפגישה לפני עריכת התוכן' });
+    res.status(400).json({ error: tReq(req, 'api.wams.mustBeOpenToEdit') });
     return;
   }
   const parsed = wamContentUpdateSchema.safeParse(req.body);
@@ -611,13 +610,13 @@ function lockedWamAction(scheduleOnly: boolean): RequestHandler {
     const db = getDb();
     const id = Number(req.params.id);
     if (!loadWamForMember(db, id, req.user!.id)) {
-      res.status(404).json({ error: 'הפגישה לא נמצאה' });
+      res.status(404).json({ error: tReq(req, 'api.wams.notFound') });
       return;
     }
     const active = completingWams.get(db) ?? new Set<number>();
     completingWams.set(db, active);
     if (active.has(id)) {
-      res.status(409).json({ error: 'עדכון הפגישה כבר מתבצע. נא להמתין ולרענן' });
+      res.status(409).json({ error: tReq(req, 'api.wams.updating') });
       return;
     }
     active.add(id);
@@ -632,17 +631,17 @@ async function completeWam(req: Request, res: Response, scheduleOnly: boolean) {
   const db = getDb();
   const found = loadWamForMember(db, Number(req.params.id), req.user!.id);
   if (!found) {
-    res.status(404).json({ error: 'הפגישה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.wams.notFound') });
     return;
   }
   if (isWamHistorical(db, found.wam)) {
-    res.status(400).json({ error: HISTORICAL_LOCK_MESSAGE });
+    res.status(400).json({ error: tReq(req, HISTORICAL_LOCK_KEY) });
     return;
   }
   // Scheduling the next meeting is independent of freezing this one: a draft may send
   // invitations without being completed, and a completed WAM may still be rescheduled.
   if (!scheduleOnly && found.wam.status === 'complete') {
-    res.status(409).json({ error: 'הפגישה כבר הושלמה. יש לפתוח מחדש כדי לעדכן ולהשלים שוב' });
+    res.status(409).json({ error: tReq(req, 'api.wams.alreadyComplete') });
     return;
   }
   const parsed = wamCompleteSchema.safeParse(req.body ?? {});
@@ -652,20 +651,20 @@ async function completeWam(req: Request, res: Response, scheduleOnly: boolean) {
   }
   const { nextWamAt, nextWamDurationMinutes } = parsed.data;
   if (scheduleOnly && !nextWamAt) {
-    res.status(400).json({ error: 'יש לבחור מועד לפגישה הבאה. אין תמיכה בביטול תיאום קיים' });
+    res.status(400).json({ error: tReq(req, 'api.wams.nextWamRequired') });
     return;
   }
   if (nextWamAt) {
     const dt = new Date(nextWamAt);
     if (Number.isNaN(dt.getTime()) || dt.getTime() <= Date.now()) {
-      res.status(400).json({ error: 'מועד הפגישה הבאה חייב להיות בעתיד' });
+      res.status(400).json({ error: tReq(req, 'api.wams.nextWamMustBeFuture') });
       return;
     }
   }
   if (!nextWamAt && found.wam.next_wam_at) {
     res.status(400).json({
       error:
-        'לא ניתן להשלים את הפגישה ללא תיאום לאחר שכבר נקבע מועד לפגישה הבאה. ניתן לשנות את המועד, אך לא לבטלו — אין תמיכה בביטול הזמנות יומן שכבר נשלחו.',
+        tReq(req, 'api.wams.cannotClearScheduledWam'),
     });
     return;
   }
@@ -677,7 +676,7 @@ async function completeWam(req: Request, res: Response, scheduleOnly: boolean) {
     try {
       emailConfig = getEmailConfig();
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'תצורת דוא"ל לשליחת הזמנות חסרה' });
+      res.status(500).json({ error: tReq(req, 'api.wams.completeFailed') });
       return;
     }
 
@@ -694,9 +693,11 @@ async function completeWam(req: Request, res: Response, scheduleOnly: boolean) {
     ).run(nextWamAt, duration, uid, sequence, wam.id);
 
     const meta = getPartnershipMeta(db, partnership);
+    const localeRows = db.prepare('SELECT id, locale FROM users WHERE id IN (?, ?)').all(partnership.initiatorId, partnership.inviteeId) as Array<{ id: number; locale: string | null }>;
+    const localeMap = Object.fromEntries(localeRows.map((r) => [r.id, r.locale === 'he' ? 'he' : 'en'] as const));
     const recipients = [
-      { userId: partnership.initiatorId, email: meta.initiatorEmail },
-      { userId: partnership.inviteeId, email: meta.inviteeEmail },
+      { userId: partnership.initiatorId, email: meta.initiatorEmail, locale: localeMap[partnership.initiatorId] ?? 'en' as const },
+      { userId: partnership.inviteeId, email: meta.inviteeEmail, locale: localeMap[partnership.inviteeId] ?? 'en' as const },
     ];
 
     const inviteResult = await sendWamCalendarInvitations(
@@ -708,15 +709,15 @@ async function completeWam(req: Request, res: Response, scheduleOnly: boolean) {
     // The partnership/cycle may have changed while the email service was responding.
     const current = loadWamForMember(db, wam.id, req.user!.id);
     if (!current) {
-      res.status(404).json({ error: 'הפגישה לא נמצאה' });
+      res.status(404).json({ error: tReq(req, 'api.wams.notFound') });
       return;
     }
     if (isWamHistorical(db, current.wam)) {
-      res.status(400).json({ error: HISTORICAL_LOCK_MESSAGE });
+      res.status(400).json({ error: tReq(req, HISTORICAL_LOCK_KEY) });
       return;
     }
     if (current.wam.status !== wam.status) {
-      res.status(409).json({ error: 'מצב הפגישה השתנה. יש לרענן לפני ניסיון נוסף' });
+      res.status(409).json({ error: tReq(req, 'api.wams.statusChanged') });
       return;
     }
 
@@ -724,8 +725,8 @@ async function completeWam(req: Request, res: Response, scheduleOnly: boolean) {
       const updatedWam = db.prepare('SELECT * FROM wams WHERE id = ?').get(wam.id) as WamRow;
       res.status(502).json({
         error: scheduleOnly
-          ? 'התיאום נשמר, אך חלק מההזמנות לא נשלחו. ניתן לנסות שוב; מצב הפגישה והציונים השמורים לא השתנו.'
-          : 'שליחת הזמנות היומן נכשלה עבור לפחות אחד/ת מהמשתתפים. הפגישה נשארה כטיוטה — ניתן לנסות שוב.',
+          ? tReq(req, 'api.wams.partialInvites')
+          : tReq(req, 'api.wams.invitesFailed'),
         wam: serializeWamDetail(db, updatedWam, partnership, req.user!.id),
       });
       return;
@@ -785,7 +786,7 @@ async function completeWam(req: Request, res: Response, scheduleOnly: boolean) {
     console.error(
       `[wams] failed to complete WAM ${wam.id}: ${err instanceof Error ? err.message : 'unknown error'}`
     );
-    res.status(500).json({ error: 'שגיאה בהשלמת הפגישה. נא לנסות שוב' });
+    res.status(500).json({ error: tReq(req, 'api.wams.completeFailed') });
     return;
   }
 
@@ -803,19 +804,19 @@ wamsRouter.post('/:id/reopen', (req, res) => {
   const db = getDb();
   const found = loadWamForMember(db, Number(req.params.id), req.user!.id);
   if (!found) {
-    res.status(404).json({ error: 'הפגישה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.wams.notFound') });
     return;
   }
   if (isWamHistorical(db, found.wam)) {
-    res.status(400).json({ error: HISTORICAL_LOCK_MESSAGE });
+    res.status(400).json({ error: tReq(req, HISTORICAL_LOCK_KEY) });
     return;
   }
   if (completingWams.get(db)?.has(found.wam.id)) {
-    res.status(409).json({ error: 'עדכון הפגישה כבר מתבצע. נא להמתין ולרענן' });
+    res.status(409).json({ error: tReq(req, 'api.wams.updating') });
     return;
   }
   if (found.wam.status === 'draft') {
-    res.status(409).json({ error: 'הפגישה כבר במצב טיוטה' });
+    res.status(409).json({ error: tReq(req, 'api.wams.alreadyDraft') });
     return;
   }
   db.prepare(
@@ -837,11 +838,11 @@ wamsRouter.patch('/:id/rating', (req, res) => {
   const db = getDb();
   const found = loadWamForMember(db, Number(req.params.id), req.user!.id);
   if (!found) {
-    res.status(404).json({ error: 'הפגישה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.wams.notFound') });
     return;
   }
   if (isWamHistorical(db, found.wam)) {
-    res.status(400).json({ error: HISTORICAL_LOCK_MESSAGE });
+    res.status(400).json({ error: tReq(req, HISTORICAL_LOCK_KEY) });
     return;
   }
   db.prepare(
@@ -861,15 +862,15 @@ wamsRouter.post('/:id/commitments', (req, res) => {
   const db = getDb();
   const found = loadWamForMember(db, Number(req.params.id), req.user!.id);
   if (!found) {
-    res.status(404).json({ error: 'הפגישה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.wams.notFound') });
     return;
   }
   if (isWamHistorical(db, found.wam)) {
-    res.status(400).json({ error: HISTORICAL_LOCK_MESSAGE });
+    res.status(400).json({ error: tReq(req, HISTORICAL_LOCK_KEY) });
     return;
   }
   if (found.wam.status !== 'draft') {
-    res.status(400).json({ error: 'יש לפתוח מחדש את הפגישה כדי להוסיף התחייבויות' });
+    res.status(400).json({ error: tReq(req, 'api.wams.mustBeOpenForCommitments') });
     return;
   }
   const count = (
@@ -891,11 +892,11 @@ wamsRouter.patch('/:id/commitments/:commitmentId', (req, res) => {
   const db = getDb();
   const found = loadWamForMember(db, Number(req.params.id), req.user!.id);
   if (!found) {
-    res.status(404).json({ error: 'הפגישה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.wams.notFound') });
     return;
   }
   if (isWamHistorical(db, found.wam)) {
-    res.status(400).json({ error: HISTORICAL_LOCK_MESSAGE });
+    res.status(400).json({ error: tReq(req, HISTORICAL_LOCK_KEY) });
     return;
   }
   const commitmentId = Number(req.params.commitmentId);
@@ -903,14 +904,14 @@ wamsRouter.patch('/:id/commitments/:commitmentId', (req, res) => {
     .prepare('SELECT * FROM wam_commitments WHERE id = ? AND wam_id = ?')
     .get(commitmentId, found.wam.id) as CommitmentRow | undefined;
   if (!commitment) {
-    res.status(404).json({ error: 'ההתחייבות לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.wams.commitmentNotFound') });
     return;
   }
 
   const { label, scope, done } = parsed.data;
   const changingContent = label !== undefined || scope !== undefined;
   if (changingContent && found.wam.status !== 'draft') {
-    res.status(400).json({ error: 'יש לפתוח מחדש את הפגישה כדי לערוך את תוכן ההתחייבות' });
+    res.status(400).json({ error: tReq(req, 'api.wams.mustBeOpenToEditCommitment') });
     return;
   }
 
@@ -931,15 +932,15 @@ wamsRouter.delete('/:id/commitments/:commitmentId', (req, res) => {
   const db = getDb();
   const found = loadWamForMember(db, Number(req.params.id), req.user!.id);
   if (!found) {
-    res.status(404).json({ error: 'הפגישה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.wams.notFound') });
     return;
   }
   if (isWamHistorical(db, found.wam)) {
-    res.status(400).json({ error: HISTORICAL_LOCK_MESSAGE });
+    res.status(400).json({ error: tReq(req, HISTORICAL_LOCK_KEY) });
     return;
   }
   if (found.wam.status !== 'draft') {
-    res.status(400).json({ error: 'יש לפתוח מחדש את הפגישה כדי למחוק התחייבות' });
+    res.status(400).json({ error: tReq(req, 'api.wams.mustBeOpenToDeleteCommitment') });
     return;
   }
   const commitmentId = Number(req.params.commitmentId);
@@ -947,7 +948,7 @@ wamsRouter.delete('/:id/commitments/:commitmentId', (req, res) => {
     .prepare('DELETE FROM wam_commitments WHERE id = ? AND wam_id = ?')
     .run(commitmentId, found.wam.id);
   if (result.changes === 0) {
-    res.status(404).json({ error: 'ההתחייבות לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.wams.commitmentNotFound') });
     return;
   }
   res.status(204).end();
@@ -968,28 +969,28 @@ wamsRouter.post('/:id/punishments', (req, res) => {
   const db = getDb();
   const found = loadWamForMember(db, Number(req.params.id), req.user!.id);
   if (!found) {
-    res.status(404).json({ error: 'הפגישה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.wams.notFound') });
     return;
   }
   const { wam, partnership } = found;
   if (isWamHistorical(db, wam)) {
-    res.status(400).json({ error: HISTORICAL_LOCK_MESSAGE });
+    res.status(400).json({ error: tReq(req, HISTORICAL_LOCK_KEY) });
     return;
   }
   if (wam.status !== 'draft') {
-    res.status(400).json({ error: 'יש לפתוח מחדש את הפגישה כדי להוסיף עונשים' });
+    res.status(400).json({ error: tReq(req, 'api.wams.mustBeOpenForPunishments') });
     return;
   }
   const { label, assignedUserId } = parsed.data;
   if (assignedUserId !== partnership.initiatorId && assignedUserId !== partnership.inviteeId) {
-    res.status(400).json({ error: 'ניתן להטיל עונש רק על עצמך או על השותף/ה בפגישה זו' });
+    res.status(400).json({ error: tReq(req, 'api.wams.invalidPunishmentAssignee') });
     return;
   }
 
   const candidate = findNextWamId(db, partnership.id, wam.id);
   if (isDueWamFrozen(db, candidate?.id ?? null)) {
     res.status(400).json({
-      error: 'הפגישה הבאה כבר הושלמה או נעולה כהיסטוריה, ולכן לא ניתן להוסיף עונש שלעולם לא יסומן',
+      error: tReq(req, 'api.wams.nextWamFrozen'),
     });
     return;
   }
@@ -1025,12 +1026,12 @@ wamsRouter.patch('/:id/punishments/:punishmentId', (req, res) => {
   const db = getDb();
   const found = loadWamForMember(db, Number(req.params.id), req.user!.id);
   if (!found) {
-    res.status(404).json({ error: 'הפגישה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.wams.notFound') });
     return;
   }
   const { wam, partnership } = found;
   if (isWamHistorical(db, wam)) {
-    res.status(400).json({ error: HISTORICAL_LOCK_MESSAGE });
+    res.status(400).json({ error: tReq(req, HISTORICAL_LOCK_KEY) });
     return;
   }
   const punishmentId = Number(req.params.punishmentId);
@@ -1038,26 +1039,26 @@ wamsRouter.patch('/:id/punishments/:punishmentId', (req, res) => {
     .prepare('SELECT * FROM wam_punishments WHERE id = ? AND source_wam_id = ?')
     .get(punishmentId, wam.id) as PunishmentRow | undefined;
   if (!punishment) {
-    res.status(404).json({ error: 'העונש לא נמצא' });
+    res.status(404).json({ error: tReq(req, 'api.wams.punishmentNotFound') });
     return;
   }
   if (punishment.author_user_id !== req.user!.id) {
-    res.status(403).json({ error: 'רק מי שכתב/ה את העונש יכול/ה לערוך אותו' });
+    res.status(403).json({ error: tReq(req, 'api.wams.punishmentAuthorOnly') });
     return;
   }
   if (wam.status !== 'draft') {
-    res.status(400).json({ error: 'יש לפתוח מחדש את הפגישה כדי לערוך עונש' });
+    res.status(400).json({ error: tReq(req, 'api.wams.mustBeOpenToEditPunishment') });
     return;
   }
   if (isDueWamFrozen(db, punishment.due_wam_id)) {
     res.status(400).json({
-      error: 'הפגישה שאליה שויך העונש כבר הושלמה או נעולה כהיסטוריה, ולכן לא ניתן עוד לערוך את העונש',
+      error: tReq(req, 'api.wams.dueWamFrozen'),
     });
     return;
   }
   const { label, assignedUserId } = parsed.data;
   if (assignedUserId !== undefined && assignedUserId !== partnership.initiatorId && assignedUserId !== partnership.inviteeId) {
-    res.status(400).json({ error: 'ניתן להטיל עונש רק על עצמך או על השותף/ה בפגישה זו' });
+    res.status(400).json({ error: tReq(req, 'api.wams.invalidPunishmentAssignee') });
     return;
   }
   const assigneeChanged = assignedUserId !== undefined && assignedUserId !== punishment.assigned_user_id;
@@ -1079,12 +1080,12 @@ wamsRouter.delete('/:id/punishments/:punishmentId', (req, res) => {
   const db = getDb();
   const found = loadWamForMember(db, Number(req.params.id), req.user!.id);
   if (!found) {
-    res.status(404).json({ error: 'הפגישה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.wams.notFound') });
     return;
   }
   const { wam, partnership } = found;
   if (isWamHistorical(db, wam)) {
-    res.status(400).json({ error: HISTORICAL_LOCK_MESSAGE });
+    res.status(400).json({ error: tReq(req, HISTORICAL_LOCK_KEY) });
     return;
   }
   const punishmentId = Number(req.params.punishmentId);
@@ -1092,20 +1093,20 @@ wamsRouter.delete('/:id/punishments/:punishmentId', (req, res) => {
     .prepare('SELECT * FROM wam_punishments WHERE id = ? AND source_wam_id = ?')
     .get(punishmentId, wam.id) as PunishmentRow | undefined;
   if (!punishment) {
-    res.status(404).json({ error: 'העונש לא נמצא' });
+    res.status(404).json({ error: tReq(req, 'api.wams.punishmentNotFound') });
     return;
   }
   if (punishment.author_user_id !== req.user!.id) {
-    res.status(403).json({ error: 'רק מי שכתב/ה את העונש יכול/ה למחוק אותו' });
+    res.status(403).json({ error: tReq(req, 'api.wams.punishmentAuthorOnly') });
     return;
   }
   if (wam.status !== 'draft') {
-    res.status(400).json({ error: 'יש לפתוח מחדש את הפגישה כדי למחוק עונש' });
+    res.status(400).json({ error: tReq(req, 'api.wams.mustBeOpenToDeletePunishment') });
     return;
   }
   if (isDueWamFrozen(db, punishment.due_wam_id)) {
     res.status(400).json({
-      error: 'הפגישה שאליה שויך העונש כבר הושלמה או נעולה כהיסטוריה, ולכן לא ניתן עוד למחוק את העונש',
+      error: tReq(req, 'api.wams.duePunishmentNotFound'),
     });
     return;
   }
@@ -1127,16 +1128,16 @@ wamsRouter.patch('/:id/due-punishments/:punishmentId', (req, res) => {
   const db = getDb();
   const found = loadWamForMember(db, Number(req.params.id), req.user!.id);
   if (!found) {
-    res.status(404).json({ error: 'הפגישה לא נמצאה' });
+    res.status(404).json({ error: tReq(req, 'api.wams.notFound') });
     return;
   }
   const { wam, partnership } = found;
   if (isWamHistorical(db, wam)) {
-    res.status(400).json({ error: HISTORICAL_LOCK_MESSAGE });
+    res.status(400).json({ error: tReq(req, HISTORICAL_LOCK_KEY) });
     return;
   }
   if (wam.status !== 'draft') {
-    res.status(400).json({ error: 'יש לפתוח מחדש את הפגישה כדי לעדכן עונשים לביצוע' });
+    res.status(400).json({ error: tReq(req, 'api.wams.mustBeOpenToToggle') });
     return;
   }
   const punishmentId = Number(req.params.punishmentId);
@@ -1144,11 +1145,11 @@ wamsRouter.patch('/:id/due-punishments/:punishmentId', (req, res) => {
     .prepare('SELECT * FROM wam_punishments WHERE id = ? AND due_wam_id = ?')
     .get(punishmentId, wam.id) as PunishmentRow | undefined;
   if (!punishment) {
-    res.status(404).json({ error: 'העונש לא נמצא בפגישה זו' });
+    res.status(404).json({ error: tReq(req, 'api.wams.punishmentNotFound') });
     return;
   }
   if (punishment.assigned_user_id !== req.user!.id) {
-    res.status(403).json({ error: 'רק מי שהעונש הוטל עליו/ה יכול/ה לסמן אותו כבוצע' });
+    res.status(403).json({ error: tReq(req, 'api.wams.assigneeOnlyCanToggle') });
     return;
   }
   const { done } = parsed.data;

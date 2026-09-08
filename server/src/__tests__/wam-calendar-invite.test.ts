@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterAll, afterEach, vi } from 'vites
 import request from 'supertest';
 import { freshApp, extractCookie } from './helpers.js';
 import { closeDb, getDb } from '../db.js';
+import { t, type Locale } from '../lib/i18n/index.js';
 
 // Mocks the actual ACS network call so these tests never contact Azure — only the
 // scheduling/idempotency/sequence/status business logic in routes/wams.ts and
@@ -161,10 +162,15 @@ describe('WAM calendar invitations', () => {
 
     for (const call of sendEmailMock.mock.calls) {
       const [params] = call;
+      // Each invite is written in its own recipient's language, so the assertions resolve
+      // against that recipient's stored locale rather than a pinned Hebrew string.
+      const locale = (
+        getDb().prepare('SELECT locale FROM users WHERE email = ?').get(params.to) as { locale: Locale }
+      ).locale;
       expect(params.attachments).toHaveLength(2);
       expect(params.html).toContain('cid:12wy-weekly-header');
-      expect(params.html).toContain('<html lang="he" dir="rtl">');
-      expect(params.plainText).toContain('שעון ישראל');
+      expect(params.html).toContain(`<html lang="${locale}" dir="${locale === 'he' ? 'rtl' : 'ltr'}">`);
+      expect(params.plainText).toContain(t(locale, 'emails.calendar.israelTime'));
       expect(params.plainText).toContain('https://dashboard.example.com');
       expect(params.attachments![1]).toMatchObject({
         contentType: 'image/jpeg',
@@ -177,7 +183,7 @@ describe('WAM calendar invitations', () => {
       const ics = Buffer.from(attachment.contentInBase64, 'base64').toString('utf8');
       expect(ics).toContain('METHOD:REQUEST');
       expect(ics).toContain('BEGIN:VEVENT');
-      expect(ics).toContain('SUMMARY:פגישת ה-WAM הבאה');
+      expect(ics).toContain(`SUMMARY:${t(locale, 'emails.calendar.wamTitle')}`);
       expect(ics).not.toContain('שבוע 4'); // week-agnostic — never names the just-completed WAM's week
       expect(ics).toContain('ORGANIZER:mailto:DoNotReply@example.azurecomm.net');
       expect(ics).toContain('SEQUENCE:0');
