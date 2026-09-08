@@ -12,7 +12,7 @@ import { weekEvidenceRouter } from '../routes/weekEvidence.js';
 import { tacticEvidenceRouter } from '../routes/tacticEvidence.js';
 import { exportRouter } from '../routes/export.js';
 import * as files from '../lib/tacticEvidence.js';
-import { buildAppDataSnapshot } from '../lib/wamCompletionBackup.js';
+import { BACKUP_SNAPSHOT_SCHEMA_VERSION, buildAppDataSnapshot } from '../lib/wamCompletionBackup.js';
 import { findWeekEvidence, listWeekEvidence, weekEvidenceAccess } from '../lib/weekEvidence.js';
 
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from('synthetic')]);
@@ -130,7 +130,7 @@ describe('whole-cycle-week album (in-process, no network)', () => {
     expect(JSON.stringify(exported.body)).not.toContain('file_stored_name');
     expect((await invoke(exportRouter, 'GET', '/', partner)).body.cycles.every((cycle: any) => cycle.id !== 10)).toBe(true);
     const snapshot = buildAppDataSnapshot(db);
-    expect(snapshot.schemaVersion).toBe(7);
+    expect(snapshot.schemaVersion).toBe(BACKUP_SNAPSHOT_SCHEMA_VERSION);
     expect(snapshot.tables.tactic_evidence).toHaveLength(2);
     expect(snapshot.tables.tactic_evidence[0]).toMatchObject({ cycleId: 10, tacticId: null, hasFile: 1 });
     expect((await request('DELETE', `/10/1/${first.body.id}/file`, owner)).status).toBe(200);

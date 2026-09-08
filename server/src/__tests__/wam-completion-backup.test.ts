@@ -745,7 +745,7 @@ describe('WAM completion backups: snapshot metadata (migrations list + shape ide
   });
 
   it('GOLDEN: pins the exact current snapshot table/key shape and schema version — changing the allowlist must update this test deliberately', () => {
-    expect(BACKUP_SNAPSHOT_SCHEMA_VERSION).toBe(7);
+    expect(BACKUP_SNAPSHOT_SCHEMA_VERSION).toBe(8);
     expect(describeSnapshotShape()).toEqual([
       { table: 'users', columns: ['id', 'email', 'displayName', 'bio', 'hasAvatar', 'avatarMime', 'avatarVersion', 'locale', 'createdAt'] },
       { table: 'user_settings', columns: ['userId', 'theme', 'updatedAt'] },
@@ -817,6 +817,11 @@ describe('WAM completion backups: snapshot metadata (migrations list + shape ide
           'id', 'sourceWamId', 'dueWamId', 'authorUserId', 'assignedUserId', 'label', 'done', 'completedAt',
           'createdAt', 'updatedAt',
         ],
+      },
+      { table: 'gym_state', columns: ['userId', 'data', 'updatedAt'] },
+      {
+        table: 'body_weights',
+        columns: ['id', 'userId', 'measuredOn', 'kg', 'condition', 'recordedAt'],
       },
     ]);
   });

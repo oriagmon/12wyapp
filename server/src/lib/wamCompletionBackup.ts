@@ -42,7 +42,13 @@ import type Database from 'better-sqlite3';
  * `wam_punishments` (016 — bumps BACKUP_SNAPSHOT_SCHEMA_VERSION again to 5; every column is
  * genuine user application data — the punishment's label, its author/assignee/due-binding,
  * and its done/completed_at history — and is included in full, exactly like
- * `wam_commitments`).
+ * `wam_commitments`), `gym_state` and `body_weights` (021 — bumps
+ * BACKUP_SNAPSHOT_SCHEMA_VERSION again to 8; both are included in full because getting them
+ * covered by this backup is precisely why the gym tracker stopped keeping its data in the
+ * browser's local storage, where a cleared cache silently destroyed months of training
+ * history. `gym_state.data` is an opaque JSON workout log the server never reads into;
+ * `body_weights` is personal but is exactly the user's own data this archive exists to
+ * protect, and the archive is already restricted to the account's own owner).
  *
  * Explicitly EXCLUDED, and why:
  *   - `sessions` — session tokens are bearer credentials; never persisted anywhere else either.
@@ -84,7 +90,7 @@ import type Database from 'better-sqlite3';
  * A snapshot is never produced in any of these situations — better an outright failure (and a
  * loud server log) than a silently incomplete or silently-leaking backup.
  */
-export const BACKUP_SNAPSHOT_SCHEMA_VERSION = 7;
+export const BACKUP_SNAPSHOT_SCHEMA_VERSION = 8;
 
 /** Tables that are real (non-`sqlite_*`-internal) but deliberately never part of a snapshot —
  *  see the module doc comment above for why each one is excluded. `auditSnapshotSchema()`
@@ -441,6 +447,32 @@ const SNAPSHOT_TABLES: SnapshotTableSpec[] = [
     // Nothing on this table is error-like/secret — the punishment's own free-text label and
     // its full author/assignee/due-binding/done history are all genuine user application
     // data and are included in full, exactly like wam_commitments.
+  },
+  {
+    table: 'gym_state',
+    orderBy: 'user_id',
+    columns: [
+      { as: 'userId', expr: 'user_id' },
+      { as: 'data', expr: 'data' },
+      { as: 'updatedAt', expr: 'updated_at' },
+    ],
+    // `data` is the workout log as an opaque JSON blob. It is the whole point of backing this
+    // table up: the log lived only in browser local storage before, so a cleared cache took
+    // months of training history with it. Nothing in it is secret or error-like.
+  },
+  {
+    table: 'body_weights',
+    orderBy: 'id',
+    columns: [
+      { as: 'id', expr: 'id' },
+      { as: 'userId', expr: 'user_id' },
+      { as: 'measuredOn', expr: 'measured_on' },
+      { as: 'kg', expr: 'kg' },
+      { as: 'condition', expr: 'condition' },
+      { as: 'recordedAt', expr: 'recorded_at' },
+    ],
+    // Body weight is personal but it is exactly the user's own application data this backup
+    // exists to protect, and the archive is already restricted to the account's own owner.
   },
   // password_reset_tokens (011) and sessions (001) are intentionally never listed here — see
   // INTENTIONALLY_EXCLUDED_TABLES and the module doc comment above.
