@@ -48,6 +48,19 @@ Things that grew out of actually using it:
 - **Email reminders** — a nudge before the weekly meeting, and monthly summaries at weeks 4, 8 and 12
 - **Nightly backups** — the whole thing is one SQLite file, so backing it up is genuinely trivial
 
+## The gym tracker
+
+There's a second, much smaller app in here (`gym/`). It logs an A/B/C strength routine — sets, reps,
+weight — plus body weight over time, and it's the thing I actually open mid-workout with sweaty
+hands, so it's one screen with big buttons and nothing else.
+
+It shares the login and the database with the main app but lives at its own address, which means a
+phone can install it to the home screen as a separate icon. Every change is written to the browser's
+own storage first and pushed up a moment later, so if the signal drops mid-workout you carry on
+logging sets and it syncs when it can reach the server again.
+
+It's Hebrew-only for now; unlike the main app it hasn't been through the translation pass.
+
 ## Running it
 
 ```bash

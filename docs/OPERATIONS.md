@@ -122,6 +122,47 @@ Sample files are in `deploy/`:
   live deployment additionally terminates TLS with a Let's Encrypt
   certificate and redirects HTTP to HTTPS.
 
+### Serving the gym tracker on its own hostname (optional)
+
+The gym tracker is mounted at `/gym` on the main server, but it can also answer
+on a dedicated hostname so it installs to a phone as its own app with its own
+icon. Both are the same process and the same database; only the URL differs.
+
+Point a subdomain of the dashboard's domain at the same machine
+(`gym.example.com` alongside `example.com`), then map that host's root onto the
+`/gym/` mount:
+
+```nginx
+location / { proxy_pass http://127.0.0.1:4000/gym/; }
+location ^~ /api/ { proxy_pass http://127.0.0.1:4000; }   # must stay untouched
+```
+
+Then set, on the server:
+
+```bash
+APP_EXTRA_ORIGINS=https://gym.example.com
+SESSION_COOKIE_DOMAIN=example.com
+```
+
+`APP_EXTRA_ORIGINS` is what stops the API rejecting requests from the new host,
+and `SESSION_COOKIE_DOMAIN` widens the session cookie to the shared parent so a
+single sign-in covers both. Three things are easy to get wrong:
+
+- **The subdomain must sit under `SESSION_COOKIE_DOMAIN`.** A browser discards a
+  cookie whose `Domain` does not cover the host that sent it, so a hostname
+  outside that parent (a legacy name on a different domain, say) keeps working
+  but needs its own login — by design, rather than breaking outright.
+- **Do not proxy `/api/` through the rewrite.** The gym bundle calls
+  `/api/gym/*` and those paths exist at the server root, not under `/gym/`.
+- **Redirect any legacy gym URL to the `/gym/` mount on the same origin**, never
+  cross-origin. The tracker keeps a local copy of the log in `localStorage`,
+  which is bound to the origin it was written on; that copy is uploaded and
+  merged on the next signed-in load, so sending the browser to a different
+  origin before it syncs would strand the history there permanently.
+
+The `manifest.webmanifest` uses relative URLs precisely so that one build
+installs correctly from either address — see `gym/index.html`.
+
 ### Weekly WAM email reminder (optional)
 
 A standalone CLI (`server/dist/sendWamReminders.js`, built from
