@@ -69,7 +69,7 @@ describe('PrimaryGoalHero', () => {
 
     expect(screen.getByRole('heading', { name: 'להתחזק באופן עקבי' })).toBeInTheDocument();
     expect(screen.getByText('כושר')).toBeInTheDocument();
-    expect(screen.getByText('1 טקטיקות למטרה')).toBeInTheDocument();
+    expect(screen.getByText('1 טקטיקה למטרה')).toBeInTheDocument();
     expect(screen.getByText('ביצוע השבוע: 75%')).toBeInTheDocument();
   });
 

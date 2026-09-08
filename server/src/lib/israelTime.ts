@@ -67,6 +67,14 @@ export function utcIsoToIsraelWallTime(iso: string): string {
   return formatIsraelWallTime(new Date(iso));
 }
 
+/** The Israel-local calendar date (`YYYY-MM-DD`) containing this instant — independent of the
+ *  server process's own timezone. `new Date().toISOString().slice(0, 10)` is *not* equivalent:
+ *  Israel runs ahead of UTC, so between local midnight and 02:00/03:00 the UTC date is still
+ *  the previous day, which would file an early-morning entry against yesterday. */
+export function israelDate(date: Date = new Date()): string {
+  return formatIsraelWallTime(date).slice(0, 10);
+}
+
 /** Day-of-week (0=Sunday..6=Saturday, matching this app's `weekdays`/`completions` schema
  *  convention everywhere else) for the Israel-local *calendar date* containing this instant —
  *  independent of the server's own timezone. Only the calendar date matters for a

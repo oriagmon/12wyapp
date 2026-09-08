@@ -102,6 +102,41 @@ export const settingsUpdateSchema = z.object({
   theme: z.enum(['dark', 'light']),
 });
 
+/**
+ * A local calendar day, 'YYYY-MM-DD'. The gym tracker records the morning you stood on the
+ * scale, not an instant, so this deliberately carries no time and no timezone.
+ */
+const calendarDaySchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'errors.validation.invalidDate')
+  .refine(
+    (value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)),
+    'errors.validation.invalidDate'
+  );
+
+export const bodyWeightSchema = z.object({
+  measuredOn: calendarDaySchema,
+  kg: z
+    .number()
+    .finite()
+    .min(20, 'errors.validation.weightRange')
+    .max(400, 'errors.validation.weightRange'),
+  /** Before or after the first trip to the bathroom — see the migration for why this is
+   *  tracked. Optional, because a reading with no note is still a useful reading. */
+  condition: z.enum(['before', 'after']).nullish(),
+});
+
+/**
+ * The workout log is opaque to the server on purpose: the tracker owns its exercise
+ * catalogue and set shape, and those change whenever the training programme does. We check
+ * only the envelope, and cap the array so a client bug cannot write an unbounded blob.
+ * `.passthrough()` keeps every field we do not model, so a round trip is lossless.
+ */
+export const gymStateSchema = z.object({
+  sessions: z.array(z.object({}).passthrough()).max(5000),
+  active: z.union([z.object({}).passthrough(), z.null()]),
+});
+
 export const wamCreateSchema = z.object({
   week: z.number().int().min(1).max(12),
 });

@@ -5,6 +5,7 @@ import { createSession, destroyAllSessions, destroySession } from '../lib/sessio
 import { forgotPasswordSchema, registerSchema, loginSchema, resetPasswordSchema } from '../lib/validation.js';
 import { requireAuth } from '../middleware/auth.js';
 import { config } from '../config.js';
+import { sessionCookieScope } from '../lib/sessionCookie.js';
 import { loadUserProfile } from '../lib/userProfile.js';
 import { getAccessPolicy, isUserAdmitted } from '../lib/accessPolicy.js';
 import {
@@ -26,20 +27,25 @@ authRouter.get('/policy', (_req, res) => {
   res.json({ registrationOpen: getAccessPolicy().registrationOpen });
 });
 
-function setSessionCookie(res: import('express').Response, token: string, expiresAt: Date): void {
+function setSessionCookie(
+  req: import('express').Request,
+  res: import('express').Response,
+  token: string,
+  expiresAt: Date,
+): void {
   res.cookie(config.sessionCookieName, token, {
     httpOnly: true,
     sameSite: 'lax',
     secure: config.nodeEnv === 'production',
     expires: expiresAt,
-    path: '/',
+    ...sessionCookieScope(req),
   });
 }
 
 authRouter.post('/register', async (req, res) => {
-  const registrationClosed = { error: 'ההרשמה הציבורית סגורה. לקבלת גישה יש לפנות למפעיל/ת המערכת' };
+  
   if (!getAccessPolicy().registrationOpen) {
-    res.status(403).json(registrationClosed);
+    res.status(403).json({ error: tReq(req, 'api.auth.registrationClosed') });
     return;
   }
   const parsed = registerSchema.safeParse(req.body);
@@ -52,7 +58,7 @@ authRouter.post('/register', async (req, res) => {
 
   const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
   if (existing) {
-    res.status(409).json({ error: 'כתובת האימייל כבר רשומה במערכת' });
+    res.status(409).json({ error: tReq(req, 'api.auth.emailAlreadyRegistered') });
     return;
   }
 
@@ -68,12 +74,12 @@ authRouter.post('/register', async (req, res) => {
   });
   const registered = insert.immediate();
   if (!registered) {
-    res.status(403).json(registrationClosed);
+    res.status(403).json({ error: tReq(req, 'api.auth.registrationClosed') });
     return;
   }
 
   const { userId, token, expiresAt } = registered;
-  setSessionCookie(res, token, expiresAt);
+  setSessionCookie(req, res, token, expiresAt);
   res.status(201).json(loadUserProfile(db, userId));
 });
 
@@ -92,7 +98,7 @@ authRouter.post('/login', async (req, res) => {
   const admitted = user !== undefined && isUserAdmitted(user.id);
   const ok = await verifyPassword(password, admitted ? user.password_hash : DUMMY_PASSWORD_HASH);
   if (!ok || !user || !admitted) {
-    res.status(401).json({ error: 'אימייל או סיסמה שגויים' });
+    res.status(401).json({ error: tReq(req, 'api.auth.invalidCredentials') });
     return;
   }
 
@@ -107,11 +113,11 @@ authRouter.post('/login', async (req, res) => {
     return createSession(db, user.id);
   }).immediate();
   if (!session) {
-    res.status(401).json({ error: 'אימייל או סיסמה שגויים' });
+    res.status(401).json({ error: tReq(req, 'api.auth.invalidCredentials') });
     return;
   }
   const { token, expiresAt } = session;
-  setSessionCookie(res, token, expiresAt);
+  setSessionCookie(req, res, token, expiresAt);
   res.status(200).json(loadUserProfile(db, user.id));
 });
 
@@ -120,7 +126,7 @@ authRouter.post('/logout', (req, res) => {
   if (typeof token === 'string' && token.length > 0 && token.length <= 256) {
     destroySession(getDb(), token);
   }
-  res.clearCookie(config.sessionCookieName, { path: '/' });
+  res.clearCookie(config.sessionCookieName, sessionCookieScope(req));
   res.status(204).end();
 });
 
@@ -128,9 +134,7 @@ authRouter.get('/me', requireAuth, (req, res) => {
   res.json(loadUserProfile(getDb(), req.user!.id));
 });
 
-const GENERIC_FORGOT_PASSWORD_RESPONSE = {
-  message: 'אם קיים חשבון המשויך לכתובת האימייל הזו, נשלח אליו קישור לאיפוס הסיסמה',
-};
+
 
 /**
  * POST /forgot-password — always returns the identical generic 200 response, regardless of
@@ -149,7 +153,7 @@ const GENERIC_FORGOT_PASSWORD_RESPONSE = {
 authRouter.post('/forgot-password', async (req, res) => {
   const parsed = forgotPasswordSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(200).json(GENERIC_FORGOT_PASSWORD_RESPONSE);
+    res.status(200).json({ message: tReq(req, 'api.auth.passwordResetEmailSent') });
     return;
   }
   const { email } = parsed.data;
@@ -183,7 +187,7 @@ authRouter.post('/forgot-password', async (req, res) => {
     }
   }
 
-  res.status(200).json(GENERIC_FORGOT_PASSWORD_RESPONSE);
+  res.status(200).json({ message: tReq(req, 'api.auth.passwordResetEmailSent') });
 
   if (deliver) {
     const send = deliver;
@@ -220,7 +224,7 @@ authRouter.post('/reset-password', async (req, res) => {
   const db = getDb();
   const nowIso = new Date().toISOString();
   const tokenHash = hashResetToken(parsed.data.token);
-  const invalidTokenError = { error: 'קישור האיפוס אינו תקין או שפג תוקפו. יש לבקש קישור חדש' };
+  const invalidTokenError = { error: tReq(req, 'api.auth.invalidResetToken') };
 
   const claimed = db.transaction(() => {
     const tokenRow = db.prepare('SELECT * FROM password_reset_tokens WHERE token_hash = ?').get(tokenHash) as
@@ -247,7 +251,7 @@ authRouter.post('/reset-password', async (req, res) => {
 
   const sameAsCurrent = await verifyPassword(parsed.data.newPassword, userRow.password_hash);
   if (sameAsCurrent) {
-    res.status(400).json({ error: 'הסיסמה החדשה חייבת להיות שונה מהסיסמה הנוכחית' });
+    res.status(400).json({ error: tReq(req, 'api.auth.passwordSameAsCurrent') });
     return;
   }
 

@@ -6,6 +6,7 @@ import { config } from '../config.js';
 import { requireAuth } from '../middleware/auth.js';
 import { resolveAccess } from '../lib/access.js';
 import { isUserAdmitted } from '../lib/accessPolicy.js';
+import { sessionCookieScope } from '../lib/sessionCookie.js';
 import { getValidSession } from '../lib/sessions.js';
 import {
   EVIDENCE_ACCEPTED_CONTENT_TYPES,
@@ -42,10 +43,10 @@ const evidencePaths = ['/weekly/:tacticId/:week', '/:tacticId/:week/:weekday'];
 const filePaths = evidencePaths.map((route) => `${route}/file`);
 
 const metadataSchema = z.object({
-  note: z.string().max(MAX_NOTE_LENGTH, `ההערה ארוכה מדי (עד ${MAX_NOTE_LENGTH} תווים)`).optional(),
+  note: z.string().max(MAX_NOTE_LENGTH, 'errors.validation.noteTooLong').optional(),
   link: z
     .string()
-    .max(MAX_LINK_LENGTH, `הקישור ארוך מדי (עד ${MAX_LINK_LENGTH} תווים)`)
+    .max(MAX_LINK_LENGTH, 'errors.validation.linkTooLong')
     .optional(),
 });
 
@@ -65,10 +66,10 @@ function validateLink(link: string | null): { ok: true; value: string | null } |
   try {
     parsed = new URL(link);
   } catch {
-    return { ok: false, error: 'הקישור אינו כתובת URL תקינה' };
+    return { ok: false, error: 'api.tacticEvidence.linkInvalid' };
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    return { ok: false, error: 'הקישור חייב להתחיל ב-http:// או https://' };
+    return { ok: false, error: 'api.tacticEvidence.linkProtocol' };
   }
   return { ok: true, value: link };
 }
@@ -88,9 +89,9 @@ function loadEvidenceContext(db: Database.Database, viewerId: number, tacticId: 
        WHERE t.id = ?`
     )
     .get(tacticId) as { cycle_id: number; cycle_user_id: number; cycle_is_active: number } | undefined;
-  if (!row) return { ok: false, status: 404, error: 'הטקטיקה לא נמצאה' };
+  if (!row) return { ok: false, status: 404, error: 'api.tacticEvidence.tacticNotFound' };
   const access = resolveAccess(db, viewerId, row.cycle_user_id);
-  if (access === 'none') return { ok: false, status: 403, error: 'אין הרשאה לצפות בעדות עבור הטקטיקה הזו' };
+  if (access === 'none') return { ok: false, status: 403, error: 'api.tacticEvidence.accessForbidden' };
   return { ok: true, access, targetUserId: row.cycle_user_id, cycleId: row.cycle_id, cycleIsActive: row.cycle_is_active === 1 };
 }
 
@@ -107,18 +108,22 @@ function fileAccessFailure(req: express.Request, tacticId: number, ownerOnly: bo
   const db = getDb();
   const session = getValidSession(db, req.cookies?.[config.sessionCookieName]);
   if (!session || session.user_id !== req.user?.id || !isUserAdmitted(session.user_id)) {
-    return { status: 401, error: 'ההתחברות פגה, יש להתחבר מחדש' };
+    return { status: 401, error: 'api.tacticEvidence.sessionExpired' };
   }
   const ctx = loadEvidenceContext(db, session.user_id, tacticId);
   if (!ctx.ok) return { status: ctx.status, error: ctx.error };
   if (ownerOnly && ctx.access !== 'owner') {
-    return { status: 403, error: 'רק הבעלים יכול/ה לערוך עדות' };
+    return { status: 403, error: 'api.tacticEvidence.onlyOwnerCanEdit' };
   }
   return null;
 }
 
-function sendFileAccessFailure(res: express.Response, failure: FileAccessFailure): void {
-  if (failure.status === 401) res.clearCookie(config.sessionCookieName, { path: '/' });
+function sendFileAccessFailure(
+  req: express.Request,
+  res: express.Response,
+  failure: FileAccessFailure,
+): void {
+  if (failure.status === 401) res.clearCookie(config.sessionCookieName, sessionCookieScope(req));
   res.status(failure.status).json({ error: failure.error });
 }
 
@@ -126,7 +131,7 @@ function sendFileAccessFailure(res: express.Response, failure: FileAccessFailure
 tacticEvidenceRouter.get('/weekly/:tacticId/:week', (req, res) => {
   const params = paramsSchema.safeParse(req.params);
   if (!params.success) {
-    res.status(400).json({ error: 'פרמטרים לא תקינים' });
+    res.status(400).json({ error: tReq(req, 'api.tacticEvidence.invalidParams') });
     return;
   }
   const db = getDb();
@@ -153,7 +158,7 @@ tacticEvidenceRouter.get('/weekly/:tacticId/:week', (req, res) => {
 tacticEvidenceRouter.get('/:tacticId/:week/:weekday', (req, res) => {
   const parsedParams = paramsSchema.safeParse(req.params);
   if (!parsedParams.success) {
-    res.status(400).json({ error: 'פרמטרים לא תקינים' });
+    res.status(400).json({ error: tReq(req, 'api.tacticEvidence.invalidParams') });
     return;
   }
   const db = getDb();
@@ -176,7 +181,7 @@ tacticEvidenceRouter.get('/:tacticId/:week/:weekday', (req, res) => {
 tacticEvidenceRouter.put(evidencePaths, (req, res) => {
   const parsedParams = paramsSchema.safeParse(req.params);
   if (!parsedParams.success) {
-    res.status(400).json({ error: 'פרמטרים לא תקינים' });
+    res.status(400).json({ error: tReq(req, 'api.tacticEvidence.invalidParams') });
     return;
   }
   const parsedBody = metadataSchema.safeParse(req.body);
@@ -192,7 +197,7 @@ tacticEvidenceRouter.put(evidencePaths, (req, res) => {
     return;
   }
   if (ctx.access !== 'owner') {
-    res.status(403).json({ error: 'רק הבעלים יכול/ה לערוך עדות' });
+    res.status(403).json({ error: tReq(req, 'api.tacticEvidence.onlyOwnerCanEdit') });
     return;
   }
 
@@ -207,13 +212,13 @@ tacticEvidenceRouter.put(evidencePaths, (req, res) => {
   const existing = findEvidence(db, tacticId, week, weekday);
   if (!existing && !hasCompletedEvidenceScope(db, tacticId, week, weekday)) {
     res.status(400).json({ error: weekday === WEEKLY_EVIDENCE_SLOT
-      ? 'ניתן להוסיף עדות שבועית לאחר השלמת ביצוע אחד לפחות בשבוע'
-      : 'ניתן להוסיף עדות רק לביצוע שהושלם' });
+      ? tReq(req, 'api.tacticEvidence.noWeeklyCompletionForEvidence')
+      : tReq(req, 'api.tacticEvidence.noCompletionForEvidence') });
     return;
   }
   const willHaveFile = existing?.file_stored_name != null;
   if (note === null && link === null && !willHaveFile) {
-    res.status(400).json({ error: 'יש להשאיר הערה, קישור או קובץ — הרשומה לא יכולה להיות ריקה לחלוטין' });
+    res.status(400).json({ error: tReq(req, 'api.tacticEvidence.evidenceCannotBeEmpty') });
     return;
   }
 
@@ -235,7 +240,7 @@ function rejectOversizedEvidenceFile(req: express.Request, res: express.Response
   const declaredLength = Number(req.headers['content-length'] || 0);
   if (declaredLength > MAX_EVIDENCE_FILE_BYTES) {
     req.resume();
-    res.status(413).json({ error: 'הקובץ גדול מדי — הגודל המרבי הוא 8MB' });
+    res.status(413).json({ error: tReq(req, 'api.tacticEvidence.fileTooLarge') });
     return;
   }
   next();
@@ -265,11 +270,11 @@ tacticEvidenceRouter.put(
   async (req, res) => {
     const parsedParams = paramsSchema.safeParse(req.params);
     if (!parsedParams.success) {
-      res.status(400).json({ error: 'פרמטרים לא תקינים' });
+      res.status(400).json({ error: tReq(req, 'api.tacticEvidence.invalidParams') });
       return;
     }
     if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
-      res.status(400).json({ error: 'סוג קובץ לא נתמך — יש להעלות PNG, JPEG, WebP, PDF, DOCX או TXT בלבד' });
+      res.status(400).json({ error: tReq(req, 'api.tacticEvidence.unsupportedFileType') });
       return;
     }
     const db = getDb();
@@ -289,7 +294,7 @@ tacticEvidenceRouter.put(
         return;
       }
       if (ctx.access !== 'owner') {
-        res.status(403).json({ error: 'רק הבעלים יכול/ה לערוך עדות' });
+        res.status(403).json({ error: tReq(req, 'api.tacticEvidence.onlyOwnerCanEdit') });
         return;
       }
       // Advisory only — a fast-path rejection for the common case, avoiding a wasted upload
@@ -298,14 +303,14 @@ tacticEvidenceRouter.put(
       const preCheckExisting = findEvidence(db, tacticId, week, weekday);
       if (!preCheckExisting && !hasCompletedEvidenceScope(db, tacticId, week, weekday)) {
         res.status(400).json({ error: weekday === WEEKLY_EVIDENCE_SLOT
-          ? 'ניתן להוסיף עדות שבועית לאחר השלמת ביצוע אחד לפחות בשבוע'
-          : 'ניתן להוסיף עדות רק לביצוע שהושלם' });
+          ? tReq(req, 'api.tacticEvidence.noWeeklyCompletionForEvidence')
+          : tReq(req, 'api.tacticEvidence.noCompletionForEvidence') });
         return;
       }
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(`[tacticEvidence] unexpected error preparing file upload for tactic ${tacticId}: ${err instanceof Error ? err.message : 'unknown error'}`);
-      res.status(500).json({ error: 'שגיאה בשמירת הקובץ. יש לנסות שוב' });
+      res.status(500).json({ error: tReq(req, 'api.tacticEvidence.fileSaveFailed') });
       return;
     }
 
@@ -322,12 +327,12 @@ tacticEvidenceRouter.put(
 
     const sniffed = sniffEvidenceFile(req.body, declaredFilename);
     if (!sniffed) {
-      res.status(400).json({ error: 'תוכן הקובץ אינו תואם אף אחד מהפורמטים הנתמכים' });
+      res.status(400).json({ error: tReq(req, 'api.tacticEvidence.fileContentMismatch') });
       return;
     }
     const declaredContentType = (req.headers['content-type'] || '').split(';')[0].trim() as EvidenceMime;
     if (declaredContentType !== sniffed.mime) {
-      res.status(400).json({ error: 'סוג הקובץ שהוצהר אינו תואם לתוכן בפועל של הקובץ' });
+      res.status(400).json({ error: tReq(req, 'api.tacticEvidence.declaredTypeMismatch') });
       return;
     }
 
@@ -337,7 +342,7 @@ tacticEvidenceRouter.put(
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(`[tacticEvidence] failed to write evidence file for tactic ${tacticId}: ${err instanceof Error ? err.message : 'unknown error'}`);
-      res.status(500).json({ error: 'שגיאה בשמירת הקובץ. יש לנסות שוב' });
+      res.status(500).json({ error: tReq(req, 'api.tacticEvidence.fileSaveFailed') });
       return;
     }
 
@@ -346,7 +351,7 @@ tacticEvidenceRouter.put(
       const accessFailure = fileAccessFailure(req, tacticId, true);
       if (accessFailure) {
         await deleteEvidenceFile(storedName).catch(() => undefined);
-        sendFileAccessFailure(res, accessFailure);
+        sendFileAccessFailure(req, res, accessFailure);
         return;
       }
       upsertResult = upsertEvidenceFileRecord(db, {
@@ -364,7 +369,7 @@ tacticEvidenceRouter.put(
       await deleteEvidenceFile(storedName).catch(() => undefined);
       // eslint-disable-next-line no-console
       console.error(`[tacticEvidence] failed to persist evidence file metadata for tactic ${tacticId}: ${err instanceof Error ? err.message : 'unknown error'}`);
-      res.status(500).json({ error: 'שגיאה בשמירת הקובץ. יש לנסות שוב' });
+      res.status(500).json({ error: tReq(req, 'api.tacticEvidence.fileSaveFailed') });
       return;
     }
 
@@ -373,7 +378,7 @@ tacticEvidenceRouter.put(
       // have been a brand-new record — never create it; the file we already wrote must not
       // become an orphan either.
       await deleteEvidenceFile(storedName).catch(() => undefined);
-      res.status(400).json({ error: upsertResult.reason });
+      res.status(400).json({ error: tReq(req, upsertResult.reason) });
       return;
     }
 
@@ -414,7 +419,7 @@ tacticEvidenceRouter.put(
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(`[tacticEvidence] failed to load just-saved evidence for tactic ${tacticId}: ${err instanceof Error ? err.message : 'unknown error'}`);
-      res.status(500).json({ error: 'הקובץ נשמר אך אירעה שגיאה בטעינתו. יש לרענן' });
+      res.status(500).json({ error: tReq(req, 'api.tacticEvidence.fileLoadedButStaleAfterSave') });
     }
   }
 );
@@ -425,7 +430,7 @@ tacticEvidenceRouter.put(
 tacticEvidenceRouter.delete(filePaths, async (req, res) => {
   const parsedParams = paramsSchema.safeParse(req.params);
   if (!parsedParams.success) {
-    res.status(400).json({ error: 'פרמטרים לא תקינים' });
+    res.status(400).json({ error: tReq(req, 'api.tacticEvidence.invalidParams') });
     return;
   }
   const db = getDb();
@@ -438,12 +443,12 @@ tacticEvidenceRouter.delete(filePaths, async (req, res) => {
       return;
     }
     if (ctx.access !== 'owner') {
-      res.status(403).json({ error: 'רק הבעלים יכול/ה לערוך עדות' });
+      res.status(403).json({ error: tReq(req, 'api.tacticEvidence.onlyOwnerCanEdit') });
       return;
     }
     const existing = findEvidence(db, tacticId, week, weekday);
     if (!existing || existing.file_stored_name === null) {
-      res.status(404).json({ error: 'לא נמצא קובץ למחיקה' });
+      res.status(404).json({ error: tReq(req, 'api.tacticEvidence.fileNotFound') });
       return;
     }
 
@@ -462,7 +467,7 @@ tacticEvidenceRouter.delete(filePaths, async (req, res) => {
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error(`[tacticEvidence] unexpected error deleting evidence file for tactic ${tacticId}: ${err instanceof Error ? err.message : 'unknown error'}`);
-    res.status(500).json({ error: 'שגיאה במחיקת הקובץ. יש לנסות שוב' });
+    res.status(500).json({ error: tReq(req, 'api.tacticEvidence.fileDeleteFailed') });
     return;
   }
   await deleteEvidenceFile(storedName).catch(() => undefined);
@@ -473,7 +478,7 @@ tacticEvidenceRouter.delete(filePaths, async (req, res) => {
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error(`[tacticEvidence] failed to load evidence after file deletion for tactic ${tacticId}: ${err instanceof Error ? err.message : 'unknown error'}`);
-    res.status(500).json({ error: 'הקובץ נמחק אך אירעה שגיאה בטעינת המצב העדכני' });
+    res.status(500).json({ error: tReq(req, 'api.tacticEvidence.fileDeletedButStaleState') });
   }
 });
 
@@ -482,7 +487,7 @@ tacticEvidenceRouter.delete(filePaths, async (req, res) => {
 tacticEvidenceRouter.delete(evidencePaths, async (req, res) => {
   const parsedParams = paramsSchema.safeParse(req.params);
   if (!parsedParams.success) {
-    res.status(400).json({ error: 'פרמטרים לא תקינים' });
+    res.status(400).json({ error: tReq(req, 'api.tacticEvidence.invalidParams') });
     return;
   }
   const db = getDb();
@@ -495,7 +500,7 @@ tacticEvidenceRouter.delete(evidencePaths, async (req, res) => {
       return;
     }
     if (ctx.access !== 'owner') {
-      res.status(403).json({ error: 'רק הבעלים יכול/ה לערוך עדות' });
+      res.status(403).json({ error: tReq(req, 'api.tacticEvidence.onlyOwnerCanEdit') });
       return;
     }
     const existing = findEvidence(db, tacticId, week, weekday);
@@ -508,7 +513,7 @@ tacticEvidenceRouter.delete(evidencePaths, async (req, res) => {
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error(`[tacticEvidence] unexpected error deleting evidence for tactic ${tacticId}: ${err instanceof Error ? err.message : 'unknown error'}`);
-    res.status(500).json({ error: 'שגיאה במחיקת העדות. יש לנסות שוב' });
+    res.status(500).json({ error: tReq(req, 'api.tacticEvidence.evidenceDeleteFailed') });
     return;
   }
   await deleteEvidenceFile(fileToDelete).catch(() => undefined);
@@ -533,7 +538,7 @@ tacticEvidenceRouter.delete(evidencePaths, async (req, res) => {
 tacticEvidenceRouter.get(filePaths, async (req, res) => {
   const parsedParams = paramsSchema.safeParse(req.params);
   if (!parsedParams.success) {
-    res.status(400).json({ error: 'פרמטרים לא תקינים' });
+    res.status(400).json({ error: tReq(req, 'api.tacticEvidence.invalidParams') });
     return;
   }
   const db = getDb();
@@ -547,13 +552,13 @@ tacticEvidenceRouter.get(filePaths, async (req, res) => {
     }
     row = findEvidence(db, tacticId, week, weekday);
     if (!row || row.file_stored_name === null || row.file_mime === null) {
-      res.status(404).json({ error: 'לא נמצא קובץ' });
+      res.status(404).json({ error: tReq(req, 'api.tacticEvidence.fileNotFound') });
       return;
     }
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error(`[tacticEvidence] unexpected error loading evidence metadata for tactic ${tacticId}: ${err instanceof Error ? err.message : 'unknown error'}`);
-    res.status(500).json({ error: 'שגיאה בטעינת הקובץ' });
+    res.status(500).json({ error: tReq(req, 'api.tacticEvidence.fileLoadFailed') });
     return;
   }
 
@@ -563,18 +568,18 @@ tacticEvidenceRouter.get(filePaths, async (req, res) => {
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error(`[tacticEvidence] failed to read evidence file for tactic ${tacticId}: ${err instanceof Error ? err.message : 'unknown error'}`);
-    res.status(500).json({ error: 'שגיאה בטעינת הקובץ' });
+    res.status(500).json({ error: tReq(req, 'api.tacticEvidence.fileLoadFailed') });
     return;
   }
 
   try {
     const accessFailure = fileAccessFailure(req, tacticId, false);
     if (accessFailure) {
-      sendFileAccessFailure(res, accessFailure);
+      sendFileAccessFailure(req, res, accessFailure);
       return;
     }
     if (currentEvidenceStoredName(db, tacticId, week, weekday) !== row.file_stored_name) {
-      res.status(409).json({ error: 'הקובץ השתנה או הוסר. יש לרענן ולנסות שוב' });
+      res.status(409).json({ error: tReq(req, 'api.tacticEvidence.fileChangedOrRemoved') });
       return;
     }
     const disposition = row.file_mime === 'application/pdf' || row.file_mime.startsWith('image/') ? 'inline' : 'attachment';
@@ -595,7 +600,7 @@ tacticEvidenceRouter.get(filePaths, async (req, res) => {
     // eslint-disable-next-line no-console
     console.error(`[tacticEvidence] unexpected error sending evidence file for tactic ${tacticId}: ${err instanceof Error ? err.message : 'unknown error'}`);
     if (!res.headersSent) {
-      res.status(500).json({ error: 'שגיאה בהורדת הקובץ' });
+      res.status(500).json({ error: tReq(req, 'api.tacticEvidence.fileDownloadFailed') });
     } else if (!res.writableEnded) {
       res.end();
     }
@@ -610,7 +615,7 @@ tacticEvidenceRouter.get(filePaths, async (req, res) => {
 tacticEvidenceRouter.get('/cycle/:cycleId', (req, res) => {
   const cycleId = Number(req.params.cycleId);
   if (!Number.isInteger(cycleId) || cycleId <= 0) {
-    res.status(400).json({ error: 'מזהה מחזור לא תקין' });
+    res.status(400).json({ error: tReq(req, 'api.tacticEvidence.invalidCycleId') });
     return;
   }
   const db = getDb();
@@ -618,12 +623,12 @@ tacticEvidenceRouter.get('/cycle/:cycleId', (req, res) => {
     | { id: number; user_id: number }
     | undefined;
   if (!cycle) {
-    res.status(404).json({ error: 'המחזור לא נמצא' });
+    res.status(404).json({ error: tReq(req, 'api.tacticEvidence.cycleNotFound') });
     return;
   }
   const access = resolveAccess(db, req.user!.id, cycle.user_id);
   if (access === 'none') {
-    res.status(403).json({ error: 'אין הרשאה לצפות במחזור זה' });
+    res.status(403).json({ error: tReq(req, 'api.tacticEvidence.cycleForbidden') });
     return;
   }
 

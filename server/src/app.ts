@@ -1,4 +1,5 @@
 import express from 'express';
+import { tReq } from './lib/i18n/index.js';
 import cookieParser from 'cookie-parser';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -24,6 +25,7 @@ import { weekEvidenceRouter } from './routes/weekEvidence.js';
 import { executionHeatmapRouter } from './routes/executionHeatmap.js';
 import { archiveSearchRouter } from './routes/archiveSearch.js';
 import { monitoringRouter } from './routes/monitoring.js';
+import { gymRouter } from './routes/gym.js';
 import { getAccessPolicy } from './lib/accessPolicy.js';
 import { createOriginGuard } from './middleware/origin.js';
 
@@ -62,6 +64,17 @@ export function createApp() {
   app.use('/api/execution-heatmap', executionHeatmapRouter);
   app.use('/api/archive-search', archiveSearchRouter);
   app.use('/api/monitoring', monitoringRouter);
+  app.use('/api/gym', gymRouter);
+
+  // The gym tracker: a second single-page bundle on the same origin. Registered before the
+  // main client's catch-all below, which would otherwise swallow /gym and hand back the
+  // dashboard's index.html.
+  if (fs.existsSync(config.gymDistPath)) {
+    app.use('/gym', express.static(config.gymDistPath));
+    app.get(/^\/gym(?:\/.*)?$/, (_req, res) => {
+      res.sendFile(path.join(config.gymDistPath, 'index.html'));
+    });
+  }
 
   // Serve the built frontend in production, if present.
   if (fs.existsSync(config.clientDistPath)) {
@@ -86,14 +99,14 @@ export function createApp() {
         (req.originalUrl.startsWith('/api/week-evidence/') && req.originalUrl.endsWith('/files'));
       res.status(413).json({
         error: isAvatarUpload
-          ? 'התמונה גדולה מדי — הגודל המרבי הוא 2MB'
+          ? tReq(req, 'api.payload.avatarTooLarge')
           : isEvidenceUpload
-            ? 'הקובץ גדול מדי — הגודל המרבי הוא 8MB'
-            : 'הבקשה גדולה מדי',
+            ? tReq(req, 'api.payload.fileTooLarge')
+            : tReq(req, 'api.payload.tooLarge'),
       });
       return;
     }
-    res.status(500).json({ error: 'שגיאת שרת פנימית' });
+    res.status(500).json({ error: tReq(req, 'api.server.internalError') });
   });
 
   return app;
