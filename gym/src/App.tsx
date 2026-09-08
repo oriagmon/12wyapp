@@ -590,7 +590,8 @@ function App() {
     if (!handedOver) return
 
     setData((local) => mergeLogs(local, handedOver))
-    setHandedOverCount(Array.isArray(handedOver.sessions) ? handedOver.sessions.length : 0)
+    const sessionCount = Array.isArray(handedOver.sessions) ? handedOver.sessions.length : 0
+    setHandedOverCount(sessionCount + (handedOver.active ? 1 : 0))
 
     // Keep a copy of the workouts out of the address bar, and out of browser history, now
     // that they are safely folded in.
@@ -1249,6 +1250,19 @@ function App() {
               ייצוא
             </button>
           </div>
+
+          {/*
+            Deliberately a relative link, so it resolves to this exact address — the only page
+            that can read what this browser saved here.
+
+            On a phone an app added to the home screen keeps its own storage container,
+            separate from the browser itself. A recovery link opened from a message therefore
+            checks the browser's container and can honestly report nothing, while the workouts
+            sit safely inside the icon. Reaching the check from in here is the only way in.
+          */}
+          <p className="recovery-hint">
+            חסרים אימונים ישנים? <a href="storage-probe.html">בדקו מה שמור בכתובת הזו</a>
+          </p>
 
           {data.sessions.length === 0 ? (
             <div className="empty-state">

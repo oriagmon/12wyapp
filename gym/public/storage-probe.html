@@ -70,6 +70,7 @@
         // Every copy this address holds, folded together and de-duplicated the same way the
         // app itself does it, so a session saved under both the old and new key counts once.
         var byId = Object.create(null);
+        var active = null;
         var unreadable = false;
 
         KEYS.forEach(function (key) {
@@ -88,6 +89,16 @@
             sessions.forEach(function (session) {
               if (session && typeof session.id === 'string') byId[session.id] = session;
             });
+
+            // A workout only joins the history when it is explicitly finished, so one that was
+            // started and walked away from lives here instead. It is still real logged work,
+            // and counting only finished sessions would quietly write it off.
+            var candidate = parsed.active;
+            if (candidate && Array.isArray(candidate.sets) && candidate.sets.length > 0) {
+              if (!active || String(candidate.startedAt) > String(active.startedAt)) {
+                active = candidate;
+              }
+            }
           } catch (err) {
             unreadable = true;
           }
@@ -107,7 +118,9 @@
           return a;
         }
 
-        if (sessions.length === 0) {
+        var total = sessions.length + (active ? 1 : 0);
+
+        if (total === 0) {
           count.textContent = '0';
           detail.textContent = unreadable
             ? 'לא נמצאו אימונים כאן, ומשהו ששמור כאן גם לא ניתן לקריאה.'
@@ -123,9 +136,10 @@
           }
         });
 
-        count.textContent = String(sessions.length);
+        count.textContent = String(total);
         detail.textContent =
           'אימונים שמורים בכתובת הזו' +
+          (active ? ' (כולל אימון שלא נסגר)' : '') +
           (latest ? ' · האחרון ב־' + latest.slice(0, 10).split('-').reverse().join('.') : '');
 
         var alreadyHome = location.origin + '/' === CANONICAL;
@@ -135,13 +149,13 @@
         }
 
         // base64url, so the payload survives being put in a URL.
-        var json = JSON.stringify({ sessions: sessions, active: null });
+        var json = JSON.stringify({ sessions: sessions, active: active });
         var bytes = new TextEncoder().encode(json);
         var binary = '';
         bytes.forEach(function (b) { binary += String.fromCharCode(b); });
         var payload = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-        link(CANONICAL + '#import=' + payload, 'העבירו ' + sessions.length + ' אימונים לאפליקציה');
+        link(CANONICAL + '#import=' + payload, 'העבירו ' + total + ' אימונים לאפליקציה');
         var note = document.createElement('p');
         note.className = 'muted';
         note.textContent =
