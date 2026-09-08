@@ -360,36 +360,61 @@ function createId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`
 }
 
-function readStoredData(): { data: AppData; error: string | null } {
-  const raw =
-    localStorage.getItem(STORAGE_KEY) ??
-    LEGACY_STORAGE_KEYS.reduce<string | null>(
-      (found, key) => found ?? localStorage.getItem(key),
-      null,
-    )
-  if (!raw) return { data: EMPTY_DATA, error: null }
+type ParsedStore =
+  | { ok: true; data: AppData }
+  | { ok: false; reason: 'unreadable' | 'malformed' }
 
+function parseStoredData(raw: string): ParsedStore {
+  let parsed: Partial<AppData>
   try {
-    const parsed = JSON.parse(raw) as Partial<AppData>
-    if (!Array.isArray(parsed.sessions) || !('active' in parsed)) {
-      return {
-        data: EMPTY_DATA,
-        error: 'המידע המקומי לא בפורמט תקין. אפשר לייצא אותו ידנית או להתחיל מחדש.',
-      }
-    }
-    return {
-      data: {
-        sessions: parsed.sessions as CompletedSession[],
-        active: (parsed.active as ActiveSession | null) ?? null,
-      },
-      error: null,
-    }
+    parsed = JSON.parse(raw) as Partial<AppData>
   } catch {
+    return { ok: false, reason: 'unreadable' }
+  }
+  if (!Array.isArray(parsed.sessions) || !('active' in parsed)) {
+    return { ok: false, reason: 'malformed' }
+  }
+  return {
+    ok: true,
+    data: {
+      sessions: parsed.sessions as CompletedSession[],
+      active: (parsed.active as ActiveSession | null) ?? null,
+    },
+  }
+}
+
+function readStoredData(): { data: AppData; error: string | null } {
+  const currentRaw = localStorage.getItem(STORAGE_KEY)
+  const current = currentRaw === null ? null : parseStoredData(currentRaw)
+
+  // Refuse to touch a current log we cannot read rather than quietly starting a new one
+  // on top of it: `persistenceEnabled` goes false off the back of this, so the bytes stay
+  // on disk and can still be exported by hand.
+  if (current && !current.ok) {
     return {
       data: EMPTY_DATA,
-      error: 'לא הצלחתי לקרוא את המידע המקומי. שום דבר לא נמחק אוטומטית.',
+      error:
+        current.reason === 'malformed'
+          ? 'המידע המקומי לא בפורמט תקין. אפשר לייצא אותו ידנית או להתחיל מחדש.'
+          : 'לא הצלחתי לקרוא את המידע המקומי. שום דבר לא נמחק אוטומטית.',
     }
   }
+
+  // The old key is MERGED in, not just used when the current one is missing. Simply
+  // opening this app writes a current key, so a plain fallback would be shadowed by that
+  // empty record and the older history would never be seen again — and on a phone that
+  // history is frequently the only copy there is. Merging makes adoption independent of
+  // the order the two keys happened to appear in. Nothing is deleted here; the old key is
+  // left in place as a backup until the user explicitly resets.
+  let data = current?.ok ? current.data : EMPTY_DATA
+  for (const key of LEGACY_STORAGE_KEYS) {
+    const raw = localStorage.getItem(key)
+    if (raw === null) continue
+    const legacy = parseStoredData(raw)
+    if (legacy.ok) data = mergeLogs(data, legacy.data)
+  }
+
+  return { data, error: null }
 }
 
 function formatDuration(startedAt: string, completedAt?: string) {
