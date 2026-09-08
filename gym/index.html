@@ -10,8 +10,21 @@
         document.documentElement.setAttribute("data-theme", theme);
       })();
     </script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f7f4ef" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Every URL here is relative on purpose. The same bundle is served both at /gym/ on the
+         main app's host and at / on gymtracker.<domain>, where nginx maps / to /gym/. Manifest
+         member URLs resolve against the manifest's own URL, so relative paths give the right
+         scope at either mount; an absolute /gym/... would 404 on the gym host. -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="gym-icon.svg" />
+    <link rel="apple-touch-icon" href="gym-icon-192.png" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f7f4ef" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#3d3b3a" media="(prefers-color-scheme: dark)" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="אימונים" />
     <meta
       name="description"
       content="תיעוד אימוני כוח מהיר ופשוט לתכנית A/B/C"

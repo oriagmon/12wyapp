@@ -1,0 +1,17 @@
+{
+  "name": "תיעוד אימונים",
+  "short_name": "אימונים",
+  "description": "תיעוד אימוני כוח מהיר ופשוט לתכנית A/B/C, כולל מעקב משקל גוף.",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f4ef",
+  "theme_color": "#f7f4ef",
+  "icons": [
+    { "src": "./gym-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "./gym-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./gym-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
