@@ -222,3 +222,79 @@ describe('assessExecutionRisk: exact cross-multiplication threshold math (never 
     expect(risk.triggered).toBe(false);
   });
 });
+
+describe("assessExecutionRisk: today is still in play, so it is not counted as missed", () => {
+  // Just after midnight Israel time on Wednesday. 2024-01-09T22:00Z is 00:00 Wednesday in
+  // Israel (UTC+2 in January, no DST), i.e. the very start of an eligible day.
+  const JUST_AFTER_MIDNIGHT_WEDNESDAY = new Date('2024-01-09T22:34:00Z');
+
+  it('someone who has done everything through Tuesday reads 100% at 00:34 on Wednesday', () => {
+    // Sun/Mon/Tue fully done, plus Wednesday work that has not been touched because the day
+    // is barely half an hour old. Counting Wednesday as due would report them as behind.
+    const tactics: TacticWithCompletions[] = [
+      {
+        id: 1,
+        weekdays: [0, 1, 2, 3],
+        startWeek: 1,
+        endWeek: 12,
+        completions: [
+          { week: 1, weekday: 0, done: true },
+          { week: 1, weekday: 1, done: true },
+          { week: 1, weekday: 2, done: true },
+        ],
+      },
+    ];
+
+    const risk = assessExecutionRisk(tactics, 1, JUST_AFTER_MIDNIGHT_WEDNESDAY);
+
+    expect(risk.israelWeekday).toBe(3);
+    expect(risk.dueScheduled).toBe(3); // Sun, Mon, Tue — not Wednesday
+    expect(risk.dueCompleted).toBe(3);
+    expect(risk.dueCompletionRate).toBe(100);
+    expect(risk.reasons).not.toContain('due_completion_below_threshold');
+    expect(risk.triggered).toBe(false);
+  });
+
+  it("today's untouched work does not drag down the best score still achievable", () => {
+    // Everything through Tuesday done; Wednesday's four occurrences are still ahead of them,
+    // so a perfect week remains possible and the card must not claim otherwise.
+    const tactics: TacticWithCompletions[] = [
+      {
+        id: 1,
+        weekdays: [0, 1, 2],
+        startWeek: 1,
+        endWeek: 12,
+        completions: [
+          { week: 1, weekday: 0, done: true },
+          { week: 1, weekday: 1, done: true },
+          { week: 1, weekday: 2, done: true },
+        ],
+      },
+      { id: 2, weekdays: [3], startWeek: 1, endWeek: 12, completions: [] },
+    ];
+
+    const risk = assessExecutionRisk(tactics, 1, JUST_AFTER_MIDNIGHT_WEDNESDAY);
+
+    expect(risk.totalScheduled).toBe(4);
+    expect(risk.remainingScheduled).toBe(1); // Wednesday's, still there for the taking
+    expect(risk.maximumAchievableScore).toBe(100);
+    expect(risk.reasons).not.toContain('maximum_achievable_below_target');
+    expect(risk.triggered).toBe(false);
+  });
+
+  it('once the day is over, skipping it does count against the week', () => {
+    // The same shape as above, assessed a day later: Wednesday has now ended untouched, so
+    // the warning it was suppressing legitimately fires.
+    const tactics: TacticWithCompletions[] = [
+      { id: 1, weekdays: [3], startWeek: 1, endWeek: 12, completions: [] },
+    ];
+
+    const risk = assessExecutionRisk(tactics, 1, THURSDAY);
+
+    expect(risk.dueScheduled).toBe(1);
+    expect(risk.dueCompleted).toBe(0);
+    expect(risk.dueCompletionRate).toBe(0);
+    expect(risk.reasons).toContain('due_completion_below_threshold');
+    expect(risk.triggered).toBe(true);
+  });
+});

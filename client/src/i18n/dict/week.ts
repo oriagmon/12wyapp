@@ -8,8 +8,9 @@ export const week: AreaDict = {
   en: {
     'week.recovery.strategyReduce': 'Scale back next week',
     'week.recovery.strategyManeuver': 'Rescue move for this week',
-    'week.recovery.noneDue': 'Nothing planned for this week is due yet.',
-    'week.recovery.dueProgress': 'Done out of what was due by today: {done} of {due} ({rate}%).',
+    'week.recovery.noneDue': 'No day this week has ended with something planned on it yet.',
+    'week.recovery.dueProgress':
+      'Done out of everything due on the days that have already ended: {done} of {due} ({rate}%).',
     'week.recovery.allPastDue': 'Everything planned for this week is already past its day — the best possible final score for the week is {max}%.',
     'week.recovery.remaining': 'Even if all {remaining} remaining things get done this week, the highest possible score is {max}% out of {total} planned in total.',
     'week.recovery.maneuverLabel': 'My concrete commitment to rescue the week',
@@ -195,8 +196,9 @@ export const week: AreaDict = {
   he: {
     'week.recovery.strategyReduce': 'צמצום השבוע הבא',
     'week.recovery.strategyManeuver': 'מהלך חילוץ לשבוע הנוכחי',
-    'week.recovery.noneDue': 'עדיין לא הגיע מועד לאף פעולה מתוכננת השבוע.',
-    'week.recovery.dueProgress': 'השלמת הפעולות שהיו אמורות להתבצע עד היום: {done} מתוך {due} ({rate}%).',
+    'week.recovery.noneDue': 'עדיין לא הסתיים יום עם פעולות מתוכננות השבוע.',
+    'week.recovery.dueProgress':
+      'השלמת הפעולות מהימים שכבר הסתיימו: {done} מתוך {due} ({rate}%).',
     'week.recovery.allPastDue': 'כל הפעולות המתוכננות השבוע כבר עברו את מועדן — הציון הסופי האפשרי לשבוע הוא {max}%.',
     'week.recovery.remaining': 'גם אם יושלמו כל {remaining} הפעולות שנותרו השבוע, הציון המרבי האפשרי הוא {max}% מתוך {total} פעולות מתוכננות בסך הכול.',
     'week.recovery.maneuverLabel': 'ההתחייבות הקונקרטית שלי להצלת השבוע',

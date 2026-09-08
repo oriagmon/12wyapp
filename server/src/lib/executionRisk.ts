@@ -36,7 +36,8 @@ export interface ExecutionRiskAssessment {
   israelWeekday: number;
   /** True only Wednesday-Saturday Israel time — see ELIGIBLE_WEEKDAYS above. */
   eligibleToTrigger: boolean;
-  /** Scheduled occurrences from Sunday through today (inclusive) this week. */
+  /** Scheduled occurrences on days that have already ended this week — Sunday through
+   *  yesterday. Today is deliberately excluded: see `assessExecutionRisk`. */
   dueScheduled: number;
   /** Of `dueScheduled`, how many already have a `done=1` completion. */
   dueCompleted: number;
@@ -48,7 +49,8 @@ export interface ExecutionRiskAssessment {
   dueCompletionRate: number | null;
   /** Every scheduled occurrence this week, due or not. */
   totalScheduled: number;
-  /** `totalScheduled - dueScheduled` — scheduled occurrences later this week, not yet due. */
+  /** `totalScheduled - dueScheduled` — occurrences scheduled for today or later this week,
+   *  which are still there for the taking rather than missed. */
   remainingScheduled: number;
   /** Best case final week score if every remaining (not-yet-due) occurrence were completed,
    *  while every already-due-but-undone occurrence stays a miss (it cannot retroactively
@@ -96,7 +98,12 @@ export function assessExecutionRisk(
     for (let weekday = 0; weekday <= 6; weekday++) {
       if (!isScheduled(tactic, week, weekday)) continue;
       totalScheduled += 1;
-      if (weekday <= todayIsraelWeekday) {
+      // Strictly before today: a day only counts against you once it is actually over.
+      // Including today would mark everything planned for it as already missed from the
+      // moment midnight passes — someone who has done every single thing so far would open
+      // the app just after midnight and be told they are behind, which is both wrong and
+      // exactly the kind of thing that makes people stop trusting the number.
+      if (weekday < todayIsraelWeekday) {
         dueScheduled += 1;
         if (doneWeekdays.has(weekday)) dueCompleted += 1;
       }

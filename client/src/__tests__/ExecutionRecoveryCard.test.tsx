@@ -3,6 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ExecutionRecoveryCard } from '../components/ExecutionRecoveryCard';
 import type { Goal } from '../lib/types';
 import type { ExecutionRecoveryPlan, ExecutionRiskAssessment } from '../hooks/useExecutionRecovery';
+// Derived from the dictionary rather than pinned as a literal, so rewording the copy does
+// not break a test that is really about which message is shown.
+import { week } from '../i18n/dict/week';
 
 afterEach(cleanup);
 
@@ -594,7 +597,7 @@ describe('ExecutionRecoveryCard: maneuver editor closes only on success, and 0-d
         onReopen={vi.fn(noop)}
       />
     );
-    expect(screen.getByText('עדיין לא הגיע מועד לאף פעולה מתוכננת השבוע.')).toBeInTheDocument();
+    expect(screen.getByText(week.he['week.recovery.noneDue'])).toBeInTheDocument();
   });
 
   it('shows clear standalone copy when nothing remains scheduled later this week (remainingScheduled = 0)', () => {
