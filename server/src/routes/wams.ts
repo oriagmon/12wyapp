@@ -741,19 +741,28 @@ async function completeWam(req: Request, res: Response, scheduleOnly: boolean) {
     return;
   }
 
-  const scoreA = computeCycleWeekScore(db, wam.initiator_cycle_id, wam.week).score;
-  const scoreB = computeCycleWeekScore(db, wam.invitee_cycle_id, wam.week).score;
+  const snapshotA = computeCycleWeekScore(db, wam.initiator_cycle_id, wam.week);
+  const snapshotB = computeCycleWeekScore(db, wam.invitee_cycle_id, wam.week);
+  const scoreA = snapshotA.score;
+  const scoreB = snapshotB.score;
+  // A meeting held while the week it reviews is still running (Friday/Saturday morning, in
+  // practice) freezes a half-finished week, so that reading stays *provisional* until the
+  // owner's cycle moves past the week — see lib/weekScoreFinalization.ts. When the cycle has
+  // already moved on, though, this reading is final the moment we take it, so stamp it now
+  // rather than leaving it to be pointlessly recomputed on the next week advance.
+  const finalizedAtA = (snapshotA.currentWeek ?? 0) > wam.week ? new Date().toISOString() : null;
+  const finalizedAtB = (snapshotB.currentWeek ?? 0) > wam.week ? new Date().toISOString() : null;
 
   try {
     db.transaction(() => {
       db.prepare(
-        `UPDATE wam_reviews SET score_snapshot = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        `UPDATE wam_reviews SET score_snapshot = ?, score_finalized_at = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
          WHERE wam_id = ? AND user_id = ?`
-      ).run(scoreA, wam.id, partnership.initiatorId);
+      ).run(scoreA, finalizedAtA, wam.id, partnership.initiatorId);
       db.prepare(
-        `UPDATE wam_reviews SET score_snapshot = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        `UPDATE wam_reviews SET score_snapshot = ?, score_finalized_at = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
          WHERE wam_id = ? AND user_id = ?`
-      ).run(scoreB, wam.id, partnership.inviteeId);
+      ).run(scoreB, finalizedAtB, wam.id, partnership.inviteeId);
       db.prepare(
         `UPDATE wams SET status = 'complete', completed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'),
          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?`

@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { cycleCreateSchema, cycleUpdateSchema } from '../lib/validation.js';
 import { getActiveCycle } from '../lib/repo.js';
 import { tReq } from '../lib/i18n/index.js';
+import { finalizeClosedWeekScoresQuietly } from '../lib/weekScoreFinalization.js';
 
 export const cycleRouter = Router();
 cycleRouter.use(requireAuth);
@@ -64,6 +65,11 @@ cycleRouter.patch('/', (req, res) => {
     cycle.id
   );
   const updated = db.prepare('SELECT * FROM cycles WHERE id = ?').get(cycle.id);
+  // Moving past a week is the only signal this schema has that the week is actually over
+  // (cycles carry no dates), so it is also the moment any meeting that reviewed an earlier
+  // week can stop carrying the mid-week score it froze at completion time. Deliberately
+  // after the UPDATE above, so the comparison sees the new current_week.
+  finalizeClosedWeekScoresQuietly(db, userId);
   res.json(updated);
 });
 

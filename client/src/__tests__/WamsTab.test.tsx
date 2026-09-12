@@ -337,3 +337,59 @@ describe('WamsTab: celebration overlay lifecycle', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
+
+function makeOwnDashOnWeek(currentWeek: number, isActive = true): ReturnType<typeof useDashboard> {
+  return {
+    loadStatus: 'ready',
+    bundle: { cycle: { isActive, currentWeek }, goals: [] },
+  } as unknown as ReturnType<typeof useDashboard>;
+}
+
+describe('WamsTab: entering the section lands on a ready meeting', () => {
+  it('opens this week\u2019s meeting on entry with no extra click', async () => {
+    setupListData();
+    startMeetingMock.mockResolvedValue({ ...makeWamDetail(), id: 7, week: 5 });
+    render(<WamsTab myUserId={10} ownDash={makeOwnDashOnWeek(5)} />);
+    await waitFor(() => expect(startMeetingMock).toHaveBeenCalledWith(5));
+    expect(await screen.findByLabelText('\u05e0\u05d9\u05e6\u05d7\u05d5\u05e0\u05d5\u05ea / \u05d4\u05d9\u05e9\u05d2\u05d9\u05dd')).toBeInTheDocument();
+  });
+
+  // The old launcher defaulted its picker to week 1, which is wrong for anyone past week 1.
+  // Guessing while the dashboard is still loading would reintroduce exactly that bug.
+  it('waits for the real current week instead of falling back to week 1', async () => {
+    setupListData();
+    const { rerender } = render(<WamsTab myUserId={10} ownDash={makeOwnDash()} />);
+    expect(startMeetingMock).not.toHaveBeenCalled();
+    startMeetingMock.mockResolvedValue({ ...makeWamDetail(), id: 7, week: 6 });
+    rerender(<WamsTab myUserId={10} ownDash={makeOwnDashOnWeek(6)} />);
+    await waitFor(() => expect(startMeetingMock).toHaveBeenCalledTimes(1));
+    expect(startMeetingMock).toHaveBeenCalledWith(6);
+  });
+
+  it('stays on the list after Back rather than re-opening the form', async () => {
+    setupListData();
+    startMeetingMock.mockResolvedValue({ ...makeWamDetail(), id: 7, week: 5 });
+    const ownDash = makeOwnDashOnWeek(5);
+    const { rerender } = render(<WamsTab myUserId={10} ownDash={ownDash} />);
+    expect(await screen.findByLabelText('\u05e0\u05d9\u05e6\u05d7\u05d5\u05e0\u05d5\u05ea / \u05d4\u05d9\u05e9\u05d2\u05d9\u05dd')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '\u2192 \u05d7\u05d6\u05e8\u05d4 \u05dc\u05e8\u05e9\u05d9\u05de\u05ea \u05d4\u05e4\u05d2\u05d9\u05e9\u05d5\u05ea' }));
+    rerender(<WamsTab myUserId={10} ownDash={ownDash} />);
+    await waitFor(() => expect(screen.getByText('\u05db\u05dc \u05d4\u05e4\u05d2\u05d9\u05e9\u05d5\u05ea (1)')).toBeInTheDocument());
+    expect(startMeetingMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('never overrides an archive-search selection with this week\u2019s meeting', async () => {
+    setupListData();
+    render(<WamsTab myUserId={10} ownDash={makeOwnDashOnWeek(5)}
+      selection={{ kind: 'wam', userId: 10, cycleId: null, wamId: 3, week: 2 }} />);
+    expect(screen.getByLabelText('\u05e0\u05d9\u05e6\u05d7\u05d5\u05e0\u05d5\u05ea / \u05d4\u05d9\u05e9\u05d2\u05d9\u05dd')).toBeInTheDocument();
+    await waitFor(() => expect(startMeetingMock).not.toHaveBeenCalled());
+  });
+
+  it('shows the list without starting anything when no cycle is active', async () => {
+    setupListData();
+    render(<WamsTab myUserId={10} ownDash={makeOwnDashOnWeek(5, false)} />);
+    await waitFor(() => expect(screen.getByText('\u05db\u05dc \u05d4\u05e4\u05d2\u05d9\u05e9\u05d5\u05ea (1)')).toBeInTheDocument());
+    expect(startMeetingMock).not.toHaveBeenCalled();
+  });
+});

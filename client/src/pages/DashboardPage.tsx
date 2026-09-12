@@ -230,7 +230,7 @@ export function DashboardPage() {
           <WamsTab myUserId={user!.id} ownDash={ownDash}
             selection={archiveTarget?.kind === 'wam' ? archiveTarget : undefined}
             onSelectionChange={navigationState.setArchiveTarget}
-            selectedWeek={navigationState.viewedWeek ?? 1}
+            selectedWeek={navigationState.viewedWeek ?? ownDash.bundle?.cycle?.currentWeek ?? 1}
             onWeekChange={navigationState.setViewedWeek}
             navigationKey={JSON.stringify(navigationState.route)} />
         ) : archiveTarget?.kind === 'wam' ? (

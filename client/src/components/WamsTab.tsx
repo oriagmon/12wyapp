@@ -73,12 +73,40 @@ export function WamsTab({ myUserId, ownDash, selection, onSelectionChange, selec
     selectWam(id, week);
   };
 
+  // Entering this section should land straight on a ready-to-fill meeting, not on a launcher
+  // that needs a week picked and a button pressed. `<main>` in DashboardPage is keyed by the
+  // active section, so this component remounts on every entry and `autoOpen` starts fresh —
+  // which is exactly the "when we click mutual meeting" moment we want to react to.
+  //
+  // It fires at most once per entry. Anything that means the user has made their own choice —
+  // arriving with an archive/search target, or walking back to the list on purpose — settles
+  // it to 'done' instead, so we never yank them back into a form they just left.
+  const autoOpenRef = useRef<'pending' | 'done'>('pending');
+  const ownCycle = ownDash.bundle?.cycle;
+  const autoOpenWeek = ownCycle?.isActive ? ownCycle.currentWeek : null;
+  useEffect(() => {
+    if (autoOpenRef.current !== 'pending') return;
+    if (selection || selectedWamId !== null) {
+      autoOpenRef.current = 'done';
+      return;
+    }
+    // Still waiting on the dashboard to tell us which week we're in; stay 'pending' so this
+    // re-runs once it arrives rather than falling back to a wrong week like 1.
+    if (autoOpenWeek === null) return;
+    autoOpenRef.current = 'done';
+    void startOrOpenCurrent(autoOpenWeek);
+  }, [autoOpenWeek, selectedWamId, Boolean(selection)]);
+
   // Reload the list on the way back to the summary view so its per-WAM commitment/punishment
   // counters (which the detail view's own mutations never update in place) are never stale.
   // A reload failure surfaces through the list hook's own existing error state, same as any
   // other list load failure — no separate handling needed here.
   const goBackToList = () => {
     navigationVersionRef.current += 1;
+    // Belt-and-braces: the auto-open below already settles to 'done' *before* it awaits, so
+    // this is normally redundant. It keeps the back button working even if that ordering is
+    // ever refactored, which is the one change that would silently trap the user in the form.
+    autoOpenRef.current = 'done';
     selectedWamIdRef.current = null;
     setCelebration(null);
     if (onSelectionChange) onSelectionChange(null);

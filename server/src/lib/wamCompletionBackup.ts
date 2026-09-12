@@ -53,6 +53,11 @@ import type Database from 'better-sqlite3';
  * half of their week first, and when, is real pair history, and restoring without it would
  * re-open weeks that were already decided).
  *
+ * `wam_reviews.score_finalized_at` (023 — bumps BACKUP_SNAPSHOT_SCHEMA_VERSION again to 10; it
+ * is the provenance of the frozen score sitting next to it, marking whether that number is the
+ * week's final result or a reading taken while the week was still running, so a restore that
+ * dropped it could not tell the two apart and would re-finalize an already-final score).
+ *
  * Explicitly EXCLUDED, and why:
  *   - `sessions` — session tokens are bearer credentials; never persisted anywhere else either.
  *   - `password_reset_tokens` (011) — even though only a SHA-256 hash is stored, it's still a
@@ -93,7 +98,7 @@ import type Database from 'better-sqlite3';
  * A snapshot is never produced in any of these situations — better an outright failure (and a
  * loud server log) than a silently incomplete or silently-leaking backup.
  */
-export const BACKUP_SNAPSHOT_SCHEMA_VERSION = 9;
+export const BACKUP_SNAPSHOT_SCHEMA_VERSION = 10;
 
 /** Tables that are real (non-`sqlite_*`-internal) but deliberately never part of a snapshot —
  *  see the module doc comment above for why each one is excluded. `auditSnapshotSchema()`
@@ -276,6 +281,7 @@ const SNAPSHOT_TABLES: SnapshotTableSpec[] = [
       { as: 'userId', expr: 'user_id' },
       { as: 'rating', expr: 'rating' },
       { as: 'scoreSnapshot', expr: 'score_snapshot' },
+      { as: 'scoreFinalizedAt', expr: 'score_finalized_at' },
       { as: 'updatedAt', expr: 'updated_at' },
     ],
   },
