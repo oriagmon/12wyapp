@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { cycleCreateSchema, cycleUpdateSchema } from '../lib/validation.js';
 import { getActiveCycle } from '../lib/repo.js';
 import { tReq } from '../lib/i18n/index.js';
+import { israelWeekStart } from '../lib/israelTime.js';
 import { finalizeClosedWeekScoresQuietly } from '../lib/weekScoreFinalization.js';
 
 export const cycleRouter = Router();
@@ -23,8 +24,8 @@ cycleRouter.post('/', (req, res) => {
     return;
   }
   const info = db
-    .prepare('INSERT INTO cycles (user_id, name, current_week, is_active) VALUES (?, ?, 1, 1)')
-    .run(userId, parsed.data.name);
+    .prepare('INSERT INTO cycles (user_id, name, current_week, is_active, started_on) VALUES (?, ?, 1, 1, ?)')
+    .run(userId, parsed.data.name, israelWeekStart());
   const cycle = db.prepare('SELECT * FROM cycles WHERE id = ?').get(info.lastInsertRowid);
   res.status(201).json(cycle);
 });
@@ -100,8 +101,8 @@ cycleRouter.post('/reset', (req, res) => {
       ).run(existing.id);
     }
     const info = db
-      .prepare('INSERT INTO cycles (user_id, name, current_week, is_active) VALUES (?, ?, 1, 1)')
-      .run(userId, parsed.data.name);
+      .prepare('INSERT INTO cycles (user_id, name, current_week, is_active, started_on) VALUES (?, ?, 1, 1, ?)')
+      .run(userId, parsed.data.name, israelWeekStart());
     return info.lastInsertRowid;
   });
   const newId = run();

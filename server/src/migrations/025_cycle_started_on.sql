@@ -1,0 +1,21 @@
+-- Gives a cycle a real calendar anchor so its week can advance on its own.
+--
+-- Until now `cycles.current_week` only ever moved when somebody clicked the arrow in the
+-- header. That made every week-derived feature (the duo streak, the scoreboard, the
+-- end-of-week recap, score finalization) silently inert for as long as nobody remembered
+-- to press it -- a cycle could sit on week 1 indefinitely while real weeks went by.
+--
+-- `started_on` is the Israel-local calendar date (YYYY-MM-DD) of the **Sunday that begins
+-- week 1**, matching the Sunday-anchored week used everywhere else in this app
+-- (`israelWeekStart`, the 0=Sun..6=Sat `completions` grid). Storing the *start* rather than
+-- a "last advanced" marker keeps the mapping from date to week total and self-correcting:
+-- a worker outage cannot make a cycle drift, because the week is recomputed from the
+-- anchor every time rather than incremented.
+--
+-- Deliberately nullable. NULL means "not anchored", and an unanchored cycle is never
+-- auto-advanced -- so this migration cannot by itself change anybody's current week. Rows
+-- are anchored explicitly by `anchorUnanchoredCycles()`, which derives the date from
+-- `created_at` in Israel time (SQLite cannot do that correctly here: `created_at` is UTC
+-- and Israel's +02:00/+03:00 offset is DST-dependent, so a late-evening UTC timestamp
+-- belongs to the *next* Israel day).
+ALTER TABLE cycles ADD COLUMN started_on TEXT;

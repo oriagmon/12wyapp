@@ -1,0 +1,20 @@
+[Unit]
+Description=12-Week Year Dashboard — advance cycle weeks from the calendar (one-shot)
+After=network.target
+
+[Service]
+Type=oneshot
+User=copilot-agent
+Group=copilot-agent
+WorkingDirectory=/opt/12-week-dashboard/server
+EnvironmentFile=/opt/12-week-dashboard/server/.env
+ExecStart=/snap/node/current/bin/node dist/advanceCycleWeeks.js
+TimeoutStartSec=300
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+# Must match the actual deployed DATA_DIR/DB_FILE from .env, and must be the *directory*
+# containing the SQLite file — not just the file itself — since WAL mode also writes
+# sidecar `-wal`/`-shm` files alongside it that this service must be able to create/modify.
+ReadWritePaths=/var/lib/12-week-dashboard
+ProtectHome=true

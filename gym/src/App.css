@@ -1148,3 +1148,94 @@
   color: inherit;
   text-underline-offset: 3px;
 }
+
+/* --- Training plan sheet (the cropped PDF section for one workout) --- */
+
+.plan-sheet {
+  margin-top: 12px;
+}
+
+.plan-sheet-toggle {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid var(--cp-border);
+  border-radius: 0.625rem;
+  background: var(--cp-surface-soft);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.plan-sheet-toggle:active {
+  transform: translateY(1px);
+}
+
+/* A button rather than a bare <img> so the zoom is reachable by keyboard and announced as
+   an action, while still looking like a plain framed picture. */
+.plan-sheet-frame {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 0;
+  border: 1px solid var(--cp-border);
+  border-radius: 0.625rem;
+  background: #fff;
+  overflow: hidden;
+  cursor: zoom-in;
+}
+
+.plan-sheet-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.plan-sheet-hint {
+  margin: 6px 2px 0;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.plan-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.88);
+  /* The table is far wider than a phone, so let the overlay scroll in both directions
+     instead of shrinking the text to unreadable. */
+  overflow: auto;
+}
+
+.plan-sheet-overlay img {
+  /* Deliberately not capped to the viewport width: at full width the Hebrew table is legible
+     and can be panned, whereas fitting it to a phone screen would make it useless. */
+  width: auto;
+  max-width: none;
+  height: auto;
+  min-width: 100%;
+  max-height: none;
+  border-radius: 0.5rem;
+  background: #fff;
+}
+
+.plan-sheet-close {
+  position: fixed;
+  top: 12px;
+  inset-inline-end: 12px;
+  z-index: 61;
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--cp-accent);
+  color: var(--cp-accent-fg);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}

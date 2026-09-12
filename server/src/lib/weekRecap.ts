@@ -28,6 +28,7 @@
  */
 import type Database from 'better-sqlite3';
 import { getEmailConfig } from '../config.js';
+import { advanceDueCycleWeeks } from './cycleWeekAdvance.js';
 import { sendEmail } from './emailSender.js';
 import { renderBrandedEmail, type BrandedEmail } from './emailBranding.js';
 import { t, fallbackLocale, type Locale } from './i18n/index.js';
@@ -401,6 +402,20 @@ export async function runDueWeekRecapEmails(
   const nowIso = now.toISOString();
   const staleBeforeIso = new Date(now.getTime() - STALE_LEASE_MINUTES * 60_000).toISOString();
   const result: RecapRunResult = { elected: 0, attempted: 0, sent: 0, failed: 0, skipped: 0, failures: [] };
+
+  // The clock has to be wound before it is read. Election reports the weeks *below*
+  // `current_week`, and the week that just closed only drops below it once the cycle
+  // advances — so if the recap ran first on Sunday morning it would silently omit the very
+  // week it is meant to be recapping. Advancing here (rather than relying on the separate
+  // auto-advance timer having already fired this minute) makes that ordering a property of
+  // the code instead of a race between two independent systemd units. It is idempotent, so
+  // the duplicated work when both do run is a no-op.
+  try {
+    advanceDueCycleWeeks(db, now);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(`[week-recap] cycle week advance failed: ${sanitizeError(err)}`);
+  }
 
   const userIds = (
     db.prepare('SELECT DISTINCT user_id FROM cycles WHERE is_active = 1 ORDER BY user_id').all() as {

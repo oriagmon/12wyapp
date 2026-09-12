@@ -25,6 +25,9 @@ type Workout = {
   id: WorkoutId
   label: string
   focus: string
+  /** Path (relative, so it resolves at both /gym/ and the gymtracker.<domain> root) of the
+   *  cropped section of the source training-plan PDF covering *only* this workout. */
+  planSheet: string
   exercises: Exercise[]
   trackingSteps: {
     exerciseId: string
@@ -80,6 +83,7 @@ const WORKOUTS: Record<WorkoutId, Workout> = {
     id: 'A',
     label: 'אימון A',
     focus: 'חזה אופקי + גב',
+    planSheet: 'plans/workout-a.png',
     trackingSteps: [
       { exerciseId: 'bench-press', restAfterSeconds: 0 },
       { exerciseId: 'bench-press', restAfterSeconds: 0 },
@@ -169,6 +173,7 @@ const WORKOUTS: Record<WorkoutId, Workout> = {
     id: 'B',
     label: 'אימון B',
     focus: 'תמיכה קצרה ליום טנ״ש',
+    planSheet: 'plans/workout-b.png',
     trackingSteps: [
       { exerciseId: 'leg-press', restAfterSeconds: 0 },
       { exerciseId: 'leg-press', restAfterSeconds: 0 },
@@ -230,6 +235,7 @@ const WORKOUTS: Record<WorkoutId, Workout> = {
     id: 'C',
     label: 'אימון C',
     focus: 'חזה בשיפוע + תמיכה',
+    planSheet: 'plans/workout-c.png',
     trackingSteps: [
       { exerciseId: 'incline-dumbbell-press', restAfterSeconds: 0 },
       { exerciseId: 'incline-dumbbell-press', restAfterSeconds: 0 },
@@ -536,6 +542,89 @@ function mergeLogs(local: AppData, remote: Partial<AppData> | null | undefined):
       : (local.active ?? remoteActive)
 
   return { sessions, active }
+}
+
+/**
+ * The one workout's page from the training plan, hidden until asked for.
+ *
+ * The tracker deliberately only logs three exercises per session, but the plan itself has
+ * the full order, the supersets, the rep ranges, the RIR targets and the rest gaps — and at
+ * the gym that detail is exactly what you need to look up mid-set. Rather than re-typing it
+ * into the UI (where it would drift from the source), this shows the matching crop of the
+ * original PDF.
+ *
+ * Collapsed by default, and each workout shows only its own section: opening A must never
+ * make you scroll past B and C to find your next exercise.
+ */
+function PlanSheet({ workout }: { workout: Workout }) {
+  const [open, setOpen] = useState(false)
+  const [zoomed, setZoomed] = useState(false)
+
+  // Reset when switching workouts, so tapping from A to B never leaves B's panel showing A's
+  // sheet for a frame, and never leaves a zoom overlay open over a workout you navigated away
+  // from.
+  useEffect(() => {
+    setOpen(false)
+    setZoomed(false)
+  }, [workout.id])
+
+  // Escape is the reflex for dismissing a full-screen overlay, and on a phone the hardware
+  // back gesture lands here too via the browser. Bound only while zoomed so it cannot swallow
+  // the key from anything else.
+  useEffect(() => {
+    if (!zoomed) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setZoomed(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [zoomed])
+
+  const sheetAlt = `תכנית ${workout.label} — ${workout.focus}`
+
+  return (
+    <div className="plan-sheet">
+      <button
+        className="plan-sheet-toggle"
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        {open ? 'הסתר את תכנית האימון' : 'הצג את תכנית האימון'}
+      </button>
+
+      {open && (
+        <>
+          <button
+            className="plan-sheet-frame"
+            type="button"
+            onClick={() => setZoomed(true)}
+            aria-label={`${sheetAlt} — הגדל`}
+          >
+            <img src={workout.planSheet} alt={sheetAlt} loading="lazy" />
+          </button>
+          <p className="plan-sheet-hint">לחיצה על הטבלה תפתח אותה במסך מלא</p>
+        </>
+      )}
+
+      {zoomed && (
+        <div
+          className="plan-sheet-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label={sheetAlt}
+          onClick={() => setZoomed(false)}
+        >
+          <button className="plan-sheet-close" type="button" onClick={() => setZoomed(false)}>
+            סגור ✕
+          </button>
+          {/* The image swallows its own click so panning a zoomed-in table does not dismiss
+              the overlay the moment your finger lands on it. */}
+          <img src={workout.planSheet} alt={sheetAlt} onClick={(event) => event.stopPropagation()} />
+        </div>
+      )}
+    </div>
+  )
 }
 
 function App() {
@@ -923,6 +1012,8 @@ function App() {
           />
         </div>
 
+        <PlanSheet workout={activeWorkout} />
+
         {restUntil && (
           <aside className="rest-timer" aria-live="polite">
             <span>מנוחה</span>
@@ -1200,6 +1291,8 @@ function App() {
               התחל {selectedPlan.label}
               <span>כל הנתונים הקודמים כבר בפנים</span>
             </button>
+
+            <PlanSheet workout={selectedPlan} />
           </section>
 
           <section className="exercise-preview">

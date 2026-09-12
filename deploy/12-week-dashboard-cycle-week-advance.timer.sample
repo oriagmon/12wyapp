@@ -1,0 +1,17 @@
+[Unit]
+Description=Advance each cycle onto its calendar week (every minute)
+
+[Timer]
+# Fires at the top of every minute. The frequency is not the schedule: the week is recomputed
+# from cycles.started_on in Israel local time (server/src/lib/cycleWeekAdvance.ts), so every
+# run after the first one in a given week finds nothing to do and exits immediately.
+#
+# Per-minute rather than a weekly OnCalendar so a VM that happens to be rebooting or suspended
+# at the Saturday..Sunday boundary still rolls over within a minute of coming back, instead of
+# leaving every week-derived feature (streak, scoreboard, recap) frozen for another seven days.
+OnCalendar=*-*-* *:*:00
+Persistent=true
+AccuracySec=1sec
+
+[Install]
+WantedBy=timers.target
