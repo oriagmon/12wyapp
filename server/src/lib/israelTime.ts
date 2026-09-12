@@ -90,6 +90,29 @@ export function israelWeekday(date: Date): number {
 }
 
 /**
+ * The Israel-local calendar date (`YYYY-MM-DD`) of the **Sunday that starts the week**
+ * containing this instant — a stable identifier for "which week is it right now" that both
+ * partners always agree on, whatever their own cycle weeks happen to be set to.
+ *
+ * Deliberately **not** `currentIsoWeek()`: ISO-8601 weeks start on Monday, while this app
+ * counts weekdays as 0=Sunday..6=Saturday everywhere (`tactics.weekdays`, `completions`,
+ * `executionRisk`). Keying a weekly race on an ISO week would therefore roll over a day late
+ * — Sunday, the first day of a fresh week of work, would still carry Saturday's key, and the
+ * key would then change again on Monday, mid-week. Anchoring to Sunday makes the identifier
+ * turn over at exactly the moment a new week of tactics begins.
+ *
+ * Pure calendar arithmetic on a UTC-anchored date (same technique as `israelWeekday`), so the
+ * server process's own timezone can never shift the result, and subtracting days can never be
+ * skewed by a DST transition in between.
+ */
+export function israelWeekStart(date: Date = new Date()): string {
+  const [y, m, d] = israelDate(date).split('-').map(Number);
+  const anchored = new Date(Date.UTC(y, m - 1, d));
+  anchored.setUTCDate(anchored.getUTCDate() - anchored.getUTCDay());
+  return anchored.toISOString().slice(0, 10);
+}
+
+/**
  * Converts an Israel wall-clock `YYYY-MM-DDTHH:mm` string (as produced by a `datetime-local`
  * input) to a UTC ISO timestamp, correctly handling Israel's DST transitions for the given
  * calendar date — independent of the server's own timezone. Returns `null` for a malformed

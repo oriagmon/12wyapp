@@ -12,6 +12,7 @@
     "send-wam-reminders": "tsx src/sendWamReminders.ts",
     "send-scheduled-reminders": "tsx src/sendScheduledReminders.ts",
     "send-broost-emails": "tsx src/sendBroostEmails.ts",
+    "send-week-milestone-emails": "tsx src/sendWeekMilestoneEmails.ts",
     "evidence-maintenance": "tsx src/evidenceMaintenance.ts",
     "test": "vitest run",
     "test:watch": "vitest",

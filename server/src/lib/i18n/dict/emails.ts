@@ -35,6 +35,29 @@ export const emails: AreaDict = {
     'emails.broost.intro': '{name} sent you a BROOST:',
     'emails.broost.footer': 'This is an automated message from 12WY.',
 
+    // "First to 50%" email. The ten `line` variants are the whole point of this email — one is
+    // picked at random per week and used as BOTH the subject and the headline, so the same
+    // sentence never lands in the inbox two weeks running. Keep them short enough to survive
+    // an inbox subject-line truncation, and keep the tone on the encouraging side of teasing:
+    // the person reading this is the one who is behind.
+    'emails.weekMilestone.line.0': '{name} is making some progress — already at {score}% this week!',
+    'emails.weekMilestone.line.1': '{name} got out of the gate first: {score}% of the week already done.',
+    'emails.weekMilestone.line.2': '{name} just passed the halfway mark, at {score}%.',
+    'emails.weekMilestone.line.3': '{name} is already halfway through this week\u2019s plan ({score}%).',
+    'emails.weekMilestone.line.4': '{name} beat you to the halfway point this week — {score}% and counting.',
+    'emails.weekMilestone.line.5': 'First on the board: {name} hit {score}% of this week\u2019s plan.',
+    'emails.weekMilestone.line.6': '{name} is on a roll — {score}% of the week is already behind them.',
+    'emails.weekMilestone.line.7': '{name} crossed the halfway line first, at {score}%.',
+    'emails.weekMilestone.line.8': '{name} did not waste any time this week — already at {score}%.',
+    'emails.weekMilestone.line.9': 'Halfway there: {name} reached {score}% of the week before you did.',
+    'emails.weekMilestone.eyebrow': 'First to half the week',
+    'emails.weekMilestone.preheader': '{name} is the first of you two to get halfway through this week\u2019s plan.',
+    'emails.weekMilestone.intro': '{name} is the first of you two to get past half of this week\u2019s plan — week {week} of 12, now at {score}%.',
+    'emails.weekMilestone.body': 'No scoreboard, no losing. Just a nudge: your own week is still wide open, and the target is {target}%.',
+    'emails.weekMilestone.calloutTitle': 'Your turn',
+    'emails.weekMilestone.calloutText': 'Tick off what you have already done — it takes about a minute.',
+    'emails.weekMilestone.footer': 'Sent once a week at most, the first time one of you passes half the week.',
+
     // WAM calendar invite email
     'emails.calendar.israelTime': 'Israel time',
     'emails.calendar.subjectPrefix': 'Invite',
@@ -94,6 +117,26 @@ export const emails: AreaDict = {
     'emails.broost.preheader': 'מילה טובה מהשותף או השותפה שלך מחכה לך ב-12WY.',
     'emails.broost.intro': '{name} שלח/ה לך BROOST:',
     'emails.broost.footer': 'זוהי הודעה אוטומטית שנשלחה על ידי 12WY.',
+
+    // ראו את ההערה בגרסה האנגלית: עשר הווריאציות הן כל העניין כאן, ונבחרת אחת אקראית בכל שבוע.
+    // הניסוח מכוון לשני המינים (הגיע/ה) כי אין לנו מידע על המגדר של אף אחד מהשותפים.
+    'emails.weekMilestone.line.0': '{name} מתקדם/ת יפה — כבר על {score}% מהשבוע!',
+    'emails.weekMilestone.line.1': '{name} יצא/ה ראשון/ה לדרך: {score}% מהשבוע כבר סגורים.',
+    'emails.weekMilestone.line.2': '{name} בדיוק עבר/ה את חצי הדרך, על {score}%.',
+    'emails.weekMilestone.line.3': '{name} כבר בחצי מהתוכנית של השבוע ({score}%).',
+    'emails.weekMilestone.line.4': '{name} הגיע/ה לחצי הדרך לפניך השבוע — {score}%, וממשיך/ה.',
+    'emails.weekMilestone.line.5': 'ראשון/ה על הלוח: {name} על {score}% מהתוכנית של השבוע.',
+    'emails.weekMilestone.line.6': '{name} בתנופה — {score}% מהשבוע כבר מאחור.',
+    'emails.weekMilestone.line.7': '{name} חצה/תה ראשון/ה את חצי הדרך, על {score}%.',
+    'emails.weekMilestone.line.8': '{name} לא בזבז/ה זמן השבוע — כבר על {score}%.',
+    'emails.weekMilestone.line.9': 'חצי מהדרך: {name} הגיע/ה ל-{score}% מהשבוע לפניך.',
+    'emails.weekMilestone.eyebrow': 'ראשון/ה לחצי השבוע',
+    'emails.weekMilestone.preheader': '{name} הראשון/ה מביניכם שעבר/ה את חצי התוכנית של השבוע.',
+    'emails.weekMilestone.intro': '{name} הראשון/ה מביניכם שעבר/ה את חצי התוכנית של השבוע — שבוע {week} מתוך 12, כרגע על {score}%.',
+    'emails.weekMilestone.body': 'אין פה טבלה ואין פה הפסד. רק תזכורת קטנה: השבוע שלך עדיין פתוח לגמרי, והיעד הוא {target}%.',
+    'emails.weekMilestone.calloutTitle': 'תורך',
+    'emails.weekMilestone.calloutText': 'סמן/י את מה שכבר עשית — זה לוקח בערך דקה.',
+    'emails.weekMilestone.footer': 'נשלח לכל היותר פעם בשבוע, בפעם הראשונה שאחד מכם עובר את חצי השבוע.',
 
     // WAM calendar invite email
     'emails.calendar.israelTime': 'שעון ישראל',

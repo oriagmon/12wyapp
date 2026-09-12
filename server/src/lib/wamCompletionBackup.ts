@@ -48,7 +48,10 @@ import type Database from 'better-sqlite3';
  * browser's local storage, where a cleared cache silently destroyed months of training
  * history. `gym_state.data` is an opaque JSON workout log the server never reads into;
  * `body_weights` is personal but is exactly the user's own data this archive exists to
- * protect, and the archive is already restricted to the account's own owner).
+ * protect, and the archive is already restricted to the account's own owner), and
+ * `week_milestone_emails` (022 — bumps BACKUP_SNAPSHOT_SCHEMA_VERSION again to 9; who reached
+ * half of their week first, and when, is real pair history, and restoring without it would
+ * re-open weeks that were already decided).
  *
  * Explicitly EXCLUDED, and why:
  *   - `sessions` — session tokens are bearer credentials; never persisted anywhere else either.
@@ -90,7 +93,7 @@ import type Database from 'better-sqlite3';
  * A snapshot is never produced in any of these situations — better an outright failure (and a
  * loud server log) than a silently incomplete or silently-leaking backup.
  */
-export const BACKUP_SNAPSHOT_SCHEMA_VERSION = 8;
+export const BACKUP_SNAPSHOT_SCHEMA_VERSION = 9;
 
 /** Tables that are real (non-`sqlite_*`-internal) but deliberately never part of a snapshot —
  *  see the module doc comment above for why each one is excluded. `auditSnapshotSchema()`
@@ -401,6 +404,33 @@ const SNAPSHOT_TABLES: SnapshotTableSpec[] = [
     // whole point of this feature), not a secret. Only email_last_error is redacted (may
     // contain raw provider/internal error text) to a boolean hasEmailError, exactly like every
     // other delivery-status table in this allowlist.
+    excludedColumns: ['email_last_error'],
+  },
+  {
+    table: 'week_milestone_emails',
+    orderBy: 'id',
+    columns: [
+      { as: 'id', expr: 'id' },
+      { as: 'partnershipId', expr: 'partnership_id' },
+      { as: 'achieverId', expr: 'achiever_id' },
+      { as: 'recipientId', expr: 'recipient_id' },
+      { as: 'weekKey', expr: 'week_key' },
+      { as: 'cycleWeek', expr: 'cycle_week' },
+      { as: 'score', expr: 'score' },
+      { as: 'phraseVariant', expr: 'phrase_variant' },
+      { as: 'createdAt', expr: 'created_at' },
+      { as: 'emailStatus', expr: 'email_status' },
+      { as: 'emailAttemptCount', expr: 'email_attempt_count' },
+      { as: 'hasEmailError', expr: 'email_last_error IS NOT NULL' },
+      { as: 'emailNextAttemptAt', expr: 'email_next_attempt_at' },
+      { as: 'emailClaimedAt', expr: 'email_claimed_at' },
+      { as: 'emailSentAt', expr: 'email_sent_at' },
+    ],
+    // Who got to half the week first, and when, is a real (if small) piece of the pair's
+    // history — restoring without it would silently re-open weeks that were already won and
+    // could resend an email about something that happened long ago. Only email_last_error is
+    // redacted (may contain raw provider/internal error text) to a boolean hasEmailError,
+    // exactly like every other delivery-status table in this allowlist.
     excludedColumns: ['email_last_error'],
   },
   {

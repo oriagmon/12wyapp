@@ -154,6 +154,7 @@ describe('WAM completion backups: API-level behavior', () => {
       'scheduled_email_reminders',
       'execution_recovery_plans',
       'partner_broosts',
+      'week_milestone_emails',
       'tactic_evidence',
       'wam_punishments',
     ]) {
@@ -745,7 +746,7 @@ describe('WAM completion backups: snapshot metadata (migrations list + shape ide
   });
 
   it('GOLDEN: pins the exact current snapshot table/key shape and schema version — changing the allowlist must update this test deliberately', () => {
-    expect(BACKUP_SNAPSHOT_SCHEMA_VERSION).toBe(8);
+    expect(BACKUP_SNAPSHOT_SCHEMA_VERSION).toBe(9);
     expect(describeSnapshotShape()).toEqual([
       { table: 'users', columns: ['id', 'email', 'displayName', 'bio', 'hasAvatar', 'avatarMime', 'avatarVersion', 'locale', 'createdAt'] },
       { table: 'user_settings', columns: ['userId', 'theme', 'updatedAt'] },
@@ -802,6 +803,14 @@ describe('WAM completion backups: snapshot metadata (migrations list + shape ide
         columns: [
           'id', 'senderId', 'recipientId', 'partnershipId', 'presetKey', 'message', 'createdAt', 'readAt',
           'emailStatus', 'emailAttemptCount', 'hasEmailError', 'emailNextAttemptAt', 'emailClaimedAt', 'emailSentAt',
+        ],
+      },
+      {
+        table: 'week_milestone_emails',
+        columns: [
+          'id', 'partnershipId', 'achieverId', 'recipientId', 'weekKey', 'cycleWeek', 'score', 'phraseVariant',
+          'createdAt', 'emailStatus', 'emailAttemptCount', 'hasEmailError', 'emailNextAttemptAt', 'emailClaimedAt',
+          'emailSentAt',
         ],
       },
       {

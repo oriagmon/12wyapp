@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { completionToggleSchema } from '../lib/validation.js';
 import { tacticBelongsToUser } from '../lib/repo.js';
 import { isScheduled } from '../lib/scoring.js';
+import { scheduleMilestoneCheck } from '../lib/weekMilestones.js';
 import { tReq } from '../lib/i18n/index.js';
 
 export const completionsRouter = Router();
@@ -49,6 +50,15 @@ completionsRouter.post('/toggle', (req, res) => {
      ON CONFLICT(tactic_id, week, weekday)
      DO UPDATE SET done = excluded.done, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')`
   ).run(tacticId, week, weekday, done ? 1 : 0);
+
+  // "First to 50%": ticking something off may have just carried this user past half of their
+  // week, in which case their partner gets a one-per-week heads-up. Only on a tick — unticking
+  // can only ever lower the score, and a week already won stays won regardless.
+  // This never throws and never blocks: the email is sent after the response (see
+  // scheduleMilestoneCheck), so a checkbox can never be slowed down or failed by it.
+  if (done) {
+    scheduleMilestoneCheck(db, req.user!.id);
+  }
 
   res.json({ tacticId, week, weekday, done });
 });

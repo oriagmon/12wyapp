@@ -1,0 +1,16 @@
+[Unit]
+Description=Claim and send due "first to 50% this week" emails (every minute)
+
+[Timer]
+# Fires at the top of every minute — these are already sent immediately after the completion
+# toggle that triggered them (see server/src/lib/weekMilestones.ts); this timer is the
+# safety-net catch-all for anything still due (a backoff retry, or a process that died
+# between electing the week's winner and sending their partner the email).
+OnCalendar=*-*-* *:*:00
+# If the machine was off/asleep at a scheduled minute, run once shortly after boot instead of
+# silently skipping an email that became due while it was down.
+Persistent=true
+AccuracySec=1sec
+
+[Install]
+WantedBy=timers.target
