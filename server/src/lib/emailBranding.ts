@@ -28,6 +28,11 @@ export interface BrandedEmailContent {
   paragraphs: string[];
   preheader?: string;
   callout?: { title: string; text: string };
+  /** An optional two-column scoreboard rendered between the paragraphs and the callout.
+   *  Plain data only — every cell is escaped at this boundary like everything else here, and
+   *  the layout is table-based with inline styles so it survives Outlook and Gmail alike.
+   *  `highlightRow` marks one row (by index) as the one the email is really about. */
+  table?: { caption?: string; rows: { label: string; value: string }[]; highlightRow?: number };
   cta: { label: string; url: string };
   footer: string;
 }
@@ -58,6 +63,21 @@ export function renderBrandedEmail(content: BrandedEmailContent, locale: Locale 
   const paragraphs = content.paragraphs.map((paragraph) =>
     `<p style="margin:0 0 16px;color:#514b60;font-size:16px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">${escapeHtml(paragraph)}</p>`
   ).join('\n');
+  const tableRows = (content.table?.rows ?? []).map((row, index) => {
+    const highlighted = index === content.table?.highlightRow;
+    const weight = highlighted ? '700' : '400';
+    const background = highlighted ? '#f5f0ff' : '#ffffff';
+    return `<tr style="background:${background};">
+          <td align="${align}" style="padding:9px 14px;border-top:1px solid #eee9f6;color:#514b60;font-size:15px;font-weight:${weight};overflow-wrap:anywhere;">${escapeHtml(row.label)}</td>
+          <td align="${align === 'right' ? 'left' : 'right'}" style="padding:9px 14px;border-top:1px solid #eee9f6;color:#24134f;font-size:15px;font-weight:${weight};white-space:nowrap;">${escapeHtml(row.value)}</td>
+        </tr>`;
+  }).join('\n');
+  const scoreTable = content.table && content.table.rows.length > 0
+    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" dir="${dir}" style="margin:4px 0 20px;border:1px solid #e2daf0;border-radius:10px;border-collapse:separate;overflow:hidden;">
+        ${content.table.caption ? `<tr><td colspan="2" align="${align}" style="padding:12px 14px;background:#faf7ff;color:#51406c;font-size:13px;font-weight:700;">${escapeHtml(content.table.caption)}</td></tr>` : ''}
+        ${tableRows}
+      </table>`
+    : '';
   const callout = content.callout
     ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:4px 0 20px;background:#faf7ff;border:1px solid #e2daf0;border-radius:10px;">
         <tr><td align="${align}" style="padding:16px 18px;color:#51406c;font-size:15px;line-height:1.8;overflow-wrap:anywhere;">
@@ -73,6 +93,13 @@ export function renderBrandedEmail(content: BrandedEmailContent, locale: Locale 
     content.title,
     '',
     ...content.paragraphs.flatMap((paragraph) => [paragraph, '']),
+    ...(content.table && content.table.rows.length > 0
+      ? [
+          ...(content.table.caption ? [content.table.caption] : []),
+          ...content.table.rows.map((row) => `${row.label}: ${row.value}`),
+          '',
+        ]
+      : []),
     ...(content.callout ? [content.callout.title, content.callout.text, ''] : []),
     `${content.cta.label}: ${content.cta.url}`,
     '',
@@ -99,6 +126,7 @@ export function renderBrandedEmail(content: BrandedEmailContent, locale: Locale 
           <span style="display:inline-block;padding:5px 10px;background:#ede9fe;color:#5b21b6;border-radius:6px;font-size:12px;font-weight:700;">${escapeHtml(content.eyebrow)}</span>
           <h1 class="email-title" style="margin:18px 0 16px;color:#24134f;font-size:28px;line-height:1.35;overflow-wrap:anywhere;word-break:break-word;">${escapeHtml(content.title)}</h1>
           ${paragraphs}
+          ${scoreTable}
           ${callout}
           <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:8px;">
             <tr><td align="center" bgcolor="#6d42d8" style="background:#6d42d8;border-radius:10px;mso-padding-alt:14px 24px;">

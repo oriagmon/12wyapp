@@ -449,6 +449,69 @@ sends the other — a pick-me-up, not a task. Reachable from the "BROOST" tab
   delivery error text is redacted to a boolean, exactly like every other
   delivery-status table in that allowlist).
 
+## End-of-week scoreboard (weekly recap email)
+
+Sent to each person once a week, after their week has ended, with a table of every finished
+week's score and the running average across them.
+
+**Why it exists.** The weekly meeting is held Friday or Saturday morning, before the week is
+actually over, so at that moment nobody has hit their target yet and there is no scoreboard
+worth showing. This delivers that moment at the only point where the numbers are settled.
+
+**Two different clocks, both required:**
+
+| Clock | Decides | Rule |
+| --- | --- | --- |
+| Calendar week (Israel, Sun–Sat) | *When* to send | Elects only on an Israel-local Sunday, i.e. within a minute of the Saturday→Sunday boundary |
+| Cycle week (`cycles.current_week`) | *What* to report | Only weeks strictly below `current_week`; the week in progress is never included |
+
+A calendar trigger alone would report a week nobody had finished. A cycle trigger alone would
+never reliably fire, because advancing the week is a manual act. Weeks with nothing scheduled
+have no score and are excluded from both the table and the average.
+
+**Send-once guard.** `UNIQUE (user_id, week_key)` on `week_recap_emails`, used as a write (an
+INSERT that may be rejected) rather than a read — so the per-minute worker cannot produce two
+recaps for the same person and week. `week_key` is the Israel-local Sunday of the week being
+recapped, i.e. the one that just ended.
+
+**Copy.** Ten rotating headlines (`emails.weekRecap.line.0`–`9`), chosen at random when the row
+is created and stored as an index, so the email is rendered in the recipient's own language at
+send time and a retry can never reword an email that may already have gone out. The scoreboard
+itself is frozen in `scores_json` for the same reason.
+
+**Delivery.** Identical machinery to BROOSTs and the first-to-50% email: atomic compare-and-swap
+claim, `MAX_ATTEMPTS = 5`, backoff `[5, 15, 45, 135, 405]` minutes, 10-minute stale lease,
+at-least-once semantics.
+
+Install:
+
+```bash
+sudo cp deploy/12-week-dashboard-week-recap.service.sample /etc/systemd/system/12-week-dashboard-week-recap.service
+sudo cp deploy/12-week-dashboard-week-recap.timer.sample /etc/systemd/system/12-week-dashboard-week-recap.timer
+sudo systemctl daemon-reload
+sudo systemctl enable --now 12-week-dashboard-week-recap.timer
+```
+
+Run it by hand with `npm run send-week-recap-emails` (from `server/`), or
+`node dist/sendWeekRecapEmails.js` on the VM.
+
+## Week scores are finalized when the week closes
+
+`wam_reviews.score_snapshot` is frozen when a meeting is completed. Because meetings happen
+before the week ends, that reading is treated as **provisional** until the owner's cycle moves
+past the reviewed week, at which point it is recomputed once and stamped in
+`score_finalized_at`. An already-stamped review is never recomputed, so freezing is still a
+one-way door — only *which* reading gets frozen changed.
+
+This matters because `DUO_STREAK_THRESHOLD` is 85: a Friday meeting could not clear that bar
+even when both partners finished the week at 100%, so the duo streak silently never counted and
+the celebration never appeared.
+
+Finalization is triggered by `PATCH /api/cycle` (any save; only weeks actually below the new
+`current_week` are affected) and at completion time when the week has already closed. To
+finalize everything currently outstanding in one pass, use
+`finalizeClosedWeekScores(db)` from `server/src/lib/weekScoreFinalization.ts`.
+
 ## First to 50% (weekly milestone email)
 
 Whoever is the first of the two partners to get halfway through their own

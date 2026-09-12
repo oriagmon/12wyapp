@@ -1,0 +1,21 @@
+[Unit]
+Description=Elect and send the end-of-week scoreboard recap (every minute)
+
+[Timer]
+# Fires at the top of every minute. Unlike the other email workers there is no in-request path
+# that normally sends these, so this timer both elects and delivers — but the frequency is not
+# the schedule. server/src/lib/weekRecap.ts only elects on an Israel-local Sunday, and
+# UNIQUE (user_id, week_key) means running every minute still produces exactly one recap per
+# person per week, sent within a minute of the Saturday..Sunday boundary.
+#
+# Running per-minute rather than on a weekly OnCalendar deliberately keeps the "when" decision
+# in code, where it is expressed in Israel local time and covered by tests, instead of
+# depending on the host's timezone being what anyone assumed it was.
+OnCalendar=*-*-* *:*:00
+# If the machine was off/asleep across the boundary, run once shortly after boot rather than
+# silently skipping that week's recap entirely.
+Persistent=true
+AccuracySec=1sec
+
+[Install]
+WantedBy=timers.target

@@ -43,6 +43,7 @@ Things that grew out of actually using it:
 - **Streaks** — consecutive days hitting your target, on the home screen, because it turns out that's addictive
 - **Broosts** — send your partner a short encouragement when their week looks rough
 - **First to 50%** — whoever gets halfway through their week first, the other one gets an email about it
+- **Weekly scoreboard** — once the week actually ends, an email with every finished week's score and your running average
 - **Evidence** — attach a photo to a tactic when you want the receipts
 - **Recovery plans** — a bad week offers you a smaller next week instead of pretending nothing happened
 - **Next-week tweaks** — adjust a tactic for the upcoming week only, without touching the rest of the cycle

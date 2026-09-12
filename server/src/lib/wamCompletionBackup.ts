@@ -53,6 +53,10 @@ import type Database from 'better-sqlite3';
  * half of their week first, and when, is real pair history, and restoring without it would
  * re-open weeks that were already decided).
  *
+ * `week_recap_emails` (024 — bumps BACKUP_SNAPSHOT_SCHEMA_VERSION again to 11; the frozen
+ * end-of-week scoreboard is the record of what each week finished at once it was genuinely
+ * over, and restoring without it would resend recaps for weeks long since closed).
+ *
  * `wam_reviews.score_finalized_at` (023 — bumps BACKUP_SNAPSHOT_SCHEMA_VERSION again to 10; it
  * is the provenance of the frozen score sitting next to it, marking whether that number is the
  * week's final result or a reading taken while the week was still running, so a restore that
@@ -98,7 +102,7 @@ import type Database from 'better-sqlite3';
  * A snapshot is never produced in any of these situations — better an outright failure (and a
  * loud server log) than a silently incomplete or silently-leaking backup.
  */
-export const BACKUP_SNAPSHOT_SCHEMA_VERSION = 10;
+export const BACKUP_SNAPSHOT_SCHEMA_VERSION = 11;
 
 /** Tables that are real (non-`sqlite_*`-internal) but deliberately never part of a snapshot —
  *  see the module doc comment above for why each one is excluded. `auditSnapshotSchema()`
@@ -437,6 +441,32 @@ const SNAPSHOT_TABLES: SnapshotTableSpec[] = [
     // could resend an email about something that happened long ago. Only email_last_error is
     // redacted (may contain raw provider/internal error text) to a boolean hasEmailError,
     // exactly like every other delivery-status table in this allowlist.
+    excludedColumns: ['email_last_error'],
+  },
+  {
+    table: 'week_recap_emails',
+    orderBy: 'id',
+    columns: [
+      { as: 'id', expr: 'id' },
+      { as: 'userId', expr: 'user_id' },
+      { as: 'weekKey', expr: 'week_key' },
+      { as: 'cycleId', expr: 'cycle_id' },
+      { as: 'scoresJson', expr: 'scores_json' },
+      { as: 'averageScore', expr: 'average_score' },
+      { as: 'latestWeek', expr: 'latest_week' },
+      { as: 'phraseVariant', expr: 'phrase_variant' },
+      { as: 'createdAt', expr: 'created_at' },
+      { as: 'emailStatus', expr: 'email_status' },
+      { as: 'emailAttemptCount', expr: 'email_attempt_count' },
+      { as: 'hasEmailError', expr: 'email_last_error IS NOT NULL' },
+      { as: 'emailNextAttemptAt', expr: 'email_next_attempt_at' },
+      { as: 'emailClaimedAt', expr: 'email_claimed_at' },
+      { as: 'emailSentAt', expr: 'email_sent_at' },
+    ],
+    // The frozen scoreboard is the record of what each week actually finished at, reported
+    // after the week closed — real history, and restoring without it would resend recaps for
+    // weeks long gone. Only email_last_error is redacted (may carry raw provider/internal
+    // error text) to a boolean, exactly like every other delivery-status table here.
     excludedColumns: ['email_last_error'],
   },
   {

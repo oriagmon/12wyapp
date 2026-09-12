@@ -83,7 +83,13 @@ export function WamsTab({ myUserId, ownDash, selection, onSelectionChange, selec
   // it to 'done' instead, so we never yank them back into a form they just left.
   const autoOpenRef = useRef<'pending' | 'done'>('pending');
   const ownCycle = ownDash.bundle?.cycle;
-  const autoOpenWeek = ownCycle?.isActive ? ownCycle.currentWeek : null;
+  // Only ever this week's meeting. If the URL points at some other week — a bookmark, or a
+  // step back through history — that is an explicit choice to go looking at a different week,
+  // and silently creating a meeting there would both ignore the user and write data as a side
+  // effect of merely navigating. In that case we leave them on the list.
+  const currentWeek = ownCycle?.isActive ? ownCycle.currentWeek : null;
+  const autoOpenWeek =
+    currentWeek !== null && (selectedWeek === undefined || selectedWeek === currentWeek) ? currentWeek : null;
   useEffect(() => {
     if (autoOpenRef.current !== 'pending') return;
     if (selection || selectedWamId !== null) {
@@ -92,10 +98,11 @@ export function WamsTab({ myUserId, ownDash, selection, onSelectionChange, selec
     }
     // Still waiting on the dashboard to tell us which week we're in; stay 'pending' so this
     // re-runs once it arrives rather than falling back to a wrong week like 1.
-    if (autoOpenWeek === null) return;
+    if (currentWeek === null) return;
     autoOpenRef.current = 'done';
+    if (autoOpenWeek === null) return;
     void startOrOpenCurrent(autoOpenWeek);
-  }, [autoOpenWeek, selectedWamId, Boolean(selection)]);
+  }, [autoOpenWeek, currentWeek, selectedWamId, Boolean(selection)]);
 
   // Reload the list on the way back to the summary view so its per-WAM commitment/punishment
   // counters (which the detail view's own mutations never update in place) are never stale.

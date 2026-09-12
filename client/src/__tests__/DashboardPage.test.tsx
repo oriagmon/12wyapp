@@ -357,7 +357,9 @@ describe('DashboardPage: personal planning and WAM share one destination', () =>
     fireEvent.click(homeCta);
     const page = screen.getByRole('region', { name: 'פגישה משותפת' });
     expect(within(page).getByRole('heading', { name: 'תכנון אישי — לקראת שבוע 4' })).toBeInTheDocument();
-    expect(await within(page).findByRole('heading', { name: 'פגישה משותפת · WAM' })).toBeInTheDocument();
+    // Arriving here opens this week's meeting directly; the launcher it used to show needed a
+    // week picked and a button pressed before the form appeared.
+    expect(await within(page).findByLabelText('ניצחונות / הישגים')).toBeInTheDocument();
     expect(screen.getAllByRole('region', { name: 'פגישה משותפת' })).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: 'מעבר למטרות וטקטיקות לעדכון' }));
     expect(screen.getByRole('region', { name: 'מטרות וטקטיקות' })).toBeInTheDocument();
@@ -413,7 +415,12 @@ describe('DashboardPage: personal planning and WAM share one destination', () =>
     renderDashboard();
     await screen.findByText(week === null ? 'עדיין אין מחזור פעיל' : 'ביצוע השבוע — שבוע 12');
     openCombinedPage();
-    expect(await screen.findByRole('heading', { name: 'פגישה משותפת · WAM' })).toBeInTheDocument();
+    if (week === null) {
+      // No active cycle means no week to open, so the meeting list stays.
+      expect(await screen.findByRole('heading', { name: 'פגישה משותפת · WAM' })).toBeInTheDocument();
+    } else {
+      expect(await screen.findByLabelText('ניצחונות / הישגים')).toBeInTheDocument();
+    }
     expect(screen.getByRole('heading', { name: 'תכנון אישי לשבוע הבא' })).toBeInTheDocument();
     expect(screen.getByText(week === null ? /לתכנון אישי נדרש מחזור פעיל/ : /המחזור הגיע לשבוע 12/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'שמירת טיוטה' })).not.toBeInTheDocument();
@@ -430,7 +437,6 @@ describe('DashboardPage: personal planning and WAM share one destination', () =>
     expect(screen.getByLabelText('מה עבד השבוע?')).toHaveAttribute('readonly');
     expect(screen.queryByRole('button', { name: 'שמירת טיוטה' })).not.toBeInTheDocument();
     expect(api.get).toHaveBeenCalledWith('/weekly-planning/20/9');
-    fireEvent.click((await screen.findAllByRole('button', { name: 'פתיחה' }))[0]);
     expect(await screen.findByLabelText('ניצחונות / הישגים')).toBeEnabled();
     expect(api.get).toHaveBeenCalledWith('/wams/77');
     expect(api.put).not.toHaveBeenCalled();
