@@ -449,6 +449,67 @@ sends the other — a pick-me-up, not a task. Reachable from the "BROOST" tab
   delivery error text is redacted to a boolean, exactly like every other
   delivery-status table in that allowlist).
 
+## First to 50% (weekly milestone email)
+
+Whoever is the first of the two partners to get halfway through their own
+week's plan triggers a single email to the *other* one saying so. It is a
+nudge, not a scoreboard — the person who got there first is never told
+anything, and nothing about it appears in the UI.
+
+- **Trigger**: `POST /api/completions/toggle`, and only when `done` is true.
+  Unticking can only ever lower a score, and a week already won stays won, so
+  an untick is never even considered. A user with no partner is skipped
+  entirely rather than having an undeliverable row written for them.
+- **Threshold**: `MILESTONE_THRESHOLD = 50` — the achiever's *current cycle
+  week* score as `computeWeekScores` calculates it, so the number in the email
+  is exactly the number they saw on screen, week overrides included. The email
+  reports the real score at the moment of crossing (often more than 50), not a
+  flat "50%".
+- **One winner per week, decided by the database**: `UNIQUE (partnership_id,
+  week_key)` in migration 022 *is* the race. Electing a winner is a single
+  INSERT — if it succeeds you were first, if it is rejected someone else
+  already was. Nothing queries "has anyone won yet?" before writing, because a
+  check-then-write can crown both partners when they tick their last box in
+  the same moment.
+- **`week_key`** is the Israel-local `YYYY-MM-DD` of the **Sunday** starting
+  the week (`israelWeekStart`), deliberately *not* an ISO-8601 week: ISO weeks
+  start on Monday, while this app counts weekdays 0=Sunday..6=Saturday, so a
+  Monday-anchored key would leave Sunday — the first day of a fresh week of
+  work — still governed by last week's winner. Being calendar-anchored also
+  means the race resets by itself, with no dependence on anyone remembering to
+  advance `cycles.current_week`.
+- **Ten phrasings**, `emails.weekMilestone.line.0..9` in both languages, one
+  picked at random per week and used as both the subject and the headline so
+  the same sentence never lands in the inbox two weeks running. The chosen
+  index is frozen on the row (`phrase_variant`) so a retry can never silently
+  reword an email that may already have been delivered — stored as an index
+  rather than rendered text so the copy is still written in the *recipient's*
+  language, and so fixing a typo never requires rewriting stored rows.
+- **Delivery** copies the BROOST path exactly: a best-effort immediate send
+  scheduled with `setImmediate` *after* the toggle response has already gone
+  out, plus the periodic worker as the durable safety net. Ticking a checkbox
+  can never be slowed down, or failed, by an email — the whole check is
+  wrapped so no failure of it can turn a successful tick into an error
+  response. Same atomic per-row claim, bounded backoff, `MAX_ATTEMPTS`, and
+  10-minute stale-lease recovery as every other email in this app, with the
+  same honest at-least-once semantics.
+- **Not re-authorized at send time** (unlike scheduled reminders): this
+  describes something that already happened and is sent within seconds of
+  happening, so an unpairing in between does not cancel it.
+- Deploy the worker as a **systemd timer firing every minute**, same pattern
+  as BROOSTs: `deploy/12-week-dashboard-week-milestones.service.sample`
+  (`oneshot`, `TimeoutStartSec=300`) and
+  `deploy/12-week-dashboard-week-milestones.timer.sample`
+  (`OnCalendar=*-*-* *:*:00`) — copy both (dropping `.sample`) to
+  `/etc/systemd/system/`, then `systemctl daemon-reload && systemctl
+  enable --now 12-week-dashboard-week-milestones.timer`. Manual run:
+  `npm run send-week-milestone-emails --workspace server`. No new env vars.
+- Included in the WAM completion backup snapshots (migration 022;
+  `week_milestone_emails` in the snapshot allowlist, bumping
+  `BACKUP_SNAPSHOT_SCHEMA_VERSION` to 9 — who reached half the week first is
+  real pair history, and restoring without it would re-open weeks that were
+  already decided; only the raw delivery error text is redacted to a boolean).
+
 ## Backups
 
 The SQLite database lives at `server/data/app.sqlite` (path configurable via
