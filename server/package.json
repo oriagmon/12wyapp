@@ -14,6 +14,7 @@
     "send-broost-emails": "tsx src/sendBroostEmails.ts",
     "send-week-milestone-emails": "tsx src/sendWeekMilestoneEmails.ts",
     "send-week-recap-emails": "tsx src/sendWeekRecapEmails.ts",
+    "advance-cycle-weeks": "tsx src/advanceCycleWeeks.ts",
     "evidence-maintenance": "tsx src/evidenceMaintenance.ts",
     "test": "vitest run",
     "test:watch": "vitest",

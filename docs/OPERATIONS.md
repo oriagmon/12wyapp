@@ -495,6 +495,47 @@ sudo systemctl enable --now 12-week-dashboard-week-recap.timer
 Run it by hand with `npm run send-week-recap-emails` (from `server/`), or
 `node dist/sendWeekRecapEmails.js` on the VM.
 
+## The cycle week advances on its own (migration 025)
+
+`cycles.started_on` holds the Sunday week 1 began. It is the cycle's calendar: `current_week`
+is derived from it, never the other way round.
+
+`advanceDueCycleWeeks()` (`server/src/lib/cycleWeekAdvance.ts`) recomputes the week from that
+anchor and writes it if it moved forward. It **recomputes rather than increments**, so a missed
+run self-heals and running it ten times is identical to running it once — which is why a
+per-minute timer is safe. Rollover is Israel-local Saturday midnight, matching the Sun..Sat
+`completions` grid. Weeks are capped at 12; the anchor keeps running past that, so a finished
+cycle simply stays on week 12.
+
+Before this existed, `current_week` only moved when somebody clicked the arrow on the
+dashboard. Every week-derived feature (the recap email, the scoreboard, the duo streak) waits
+for a week to be *over*, so with a stuck week number none of them could ever fire.
+
+Install the standalone timer with:
+
+```bash
+sudo cp deploy/12-week-dashboard-cycle-week-advance.service.sample /etc/systemd/system/12-week-dashboard-cycle-week-advance.service
+sudo cp deploy/12-week-dashboard-cycle-week-advance.timer.sample /etc/systemd/system/12-week-dashboard-cycle-week-advance.timer
+sudo systemctl daemon-reload
+sudo systemctl enable --now 12-week-dashboard-cycle-week-advance.timer
+```
+
+Run it by hand with `npm run advance-cycle-weeks` (from `server/`). The timer is only a
+backstop: `runDueWeekRecapEmails` calls `advanceDueCycleWeeks` itself first, because a week has
+to close before it can be elected for a recap, and that ordering should be a property of the
+code rather than a race between two timers.
+
+**Adopting the calendar never moves a week.** `anchorUnanchoredCycles()` anchors a cycle
+*backwards* from the week it is already on (`thisWeekSunday - (current_week - 1) weeks`).
+Anchoring from `created_at` instead would jump a long-stuck cycle forward and retroactively
+declare the skipped weeks finished — but those weeks hold no completions, because the work was
+all filed under the frozen week number. That would email phantom 0% weeks and freeze them into
+the streak.
+
+If you ever deploy a change that anchors cycles, **stop the recap timer first**, set the
+intended `started_on` explicitly, run the advance once, then re-enable — otherwise the next
+minute tick anchors them for you.
+
 ## Week scores are finalized when the week closes
 
 `wam_reviews.score_snapshot` is frozen when a meeting is completed. Because meetings happen
@@ -508,8 +549,8 @@ even when both partners finished the week at 100%, so the duo streak silently ne
 the celebration never appeared.
 
 Finalization is triggered by `PATCH /api/cycle` (any save; only weeks actually below the new
-`current_week` are affected) and at completion time when the week has already closed. To
-finalize everything currently outstanding in one pass, use
+`current_week` are affected), by each automatic week advance, and at completion time when the
+week has already closed. To finalize everything currently outstanding in one pass, use
 `finalizeClosedWeekScores(db)` from `server/src/lib/weekScoreFinalization.ts`.
 
 ## First to 50% (weekly milestone email)
@@ -1206,11 +1247,25 @@ never earn streak credit. The summary also shows the best run and strongest
 finalized weekday. Archived cycles finalize their recorded current week;
 later weeks are marked outside that cycle.
 
-**Date limitation:** cycles store a manually advanced week, not a calendar
-start date. Dates are therefore explicitly labeled approximate, anchored
-to the current Israel week or the archive's final update week. They are
-planning-day labels, not timestamps of when a checkbox was clicked. No new
-table or migration is needed.
+The daily streak counts consecutive days across the **whole cycle**, not
+within a week: it deliberately survives the Saturday-to-Sunday boundary, so a
+new week can legitimately open with a streak already running from the days
+before it. It resets only on a missed scheduled day, and it is scoped to the
+displayed cycle.
+
+**Dates come from the cycle's start date.** When `cycles.started_on` is set (see *The cycle week
+advances on its own*), the grid is laid out from that anchor and dates are exact — the same
+anchor `current_week` itself is derived from, so the grid's dates and its week numbering cannot
+disagree. `dateBasis` is then `cycle-start-anchor` and the UI drops the "approximate date"
+caveat.
+
+Cycles created before migration 025 and never anchored fall back to the old reconstruction —
+place `current_week` in the current Israel week (or the archive's final update week) and count
+backwards — reported as `current-week-anchor` / `archive-week-anchor` and still labelled
+approximate. That fallback solves `start = today - current_week`, so it drifts a week forward
+for every week `current_week` stops tracking the calendar; since `current_week` stops at 12 and
+time does not, an anchored cycle must never use it. Either way these are planning-day labels,
+not timestamps of when a checkbox was clicked.
 
 ## Global archive search
 
