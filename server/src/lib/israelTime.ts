@@ -112,6 +112,40 @@ export function israelWeekStart(date: Date = new Date()): string {
   return anchored.toISOString().slice(0, 10);
 }
 
+/** Parses a `YYYY-MM-DD` calendar date as a UTC instant. Anchoring to UTC (rather than
+ *  `new Date('YYYY-MM-DD')` semantics or a local-time constructor) keeps day subtraction
+ *  free of any offset from the server process's own timezone.
+ *
+ *  Returns `null` for anything that is not a real calendar date. The shape check alone is not
+ *  enough: `Date.UTC` silently rolls overflowing components over, so `2026-13-01` would become
+ *  January 2027 and `2026-02-30` would become March. Callers treat `null` as "no usable date"
+ *  and fall back or skip, which is always safer than acting on a date nobody entered. */
+export function parseIsoDateUtc(date: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const [y, m, d] = date.split('-').map(Number);
+  const ms = Date.UTC(y, m - 1, d);
+  if (Number.isNaN(ms)) return null;
+  const roundTrip = new Date(ms);
+  if (roundTrip.getUTCFullYear() !== y || roundTrip.getUTCMonth() !== m - 1 || roundTrip.getUTCDate() !== d) {
+    return null;
+  }
+  return ms;
+}
+
+/** Collapses an already-resolved calendar date to the Sunday that starts its week.
+ *
+ *  Cycle anchors are *written* as Sundays (`israelWeekStart`), but this normalises on read so
+ *  the Sunday-boundary rule holds even for a row hand-edited to a mid-week date. Without it a
+ *  Wednesday anchor would make weeks turn over on Wednesdays for that one cycle, silently
+ *  desynchronising it from the Sun..Sat `completions` grid the scores are computed from.
+ *
+ *  Shared by the cycle-week clock and the execution heatmap so both derive the same calendar
+ *  from the same anchor; if they disagreed, the grid would label days with dates the week
+ *  numbering does not agree with. */
+export function sundayOfUtcMs(ms: number): number {
+  return ms - new Date(ms).getUTCDay() * 86_400_000;
+}
+
 /**
  * Converts an Israel wall-clock `YYYY-MM-DDTHH:mm` string (as produced by a `datetime-local`
  * input) to a UTC ISO timestamp, correctly handling Israel's DST transitions for the given

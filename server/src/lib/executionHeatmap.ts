@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import { formatIsraelWallTime } from './israelTime.js';
+import { formatIsraelWallTime, parseIsoDateUtc, sundayOfUtcMs } from './israelTime.js';
 import {
   getGoalsForCycle,
   getTacticsForGoals,
@@ -11,6 +11,14 @@ import { isScheduled, TARGET_SCORE, TOTAL_WEEKS, type TacticWithCompletions } fr
 
 export type HeatmapDayState = 'unscheduled' | 'future' | 'pending' | 'failed' | 'partial' | 'success' | 'not-reached';
 export type HeatmapDayPhase = 'past' | 'today' | 'future' | 'outside-cycle';
+/**
+ * How the calendar dates on the grid were derived.
+ *
+ * `cycle-start-anchor` means they are exact, read from the cycle's stored `started_on`.
+ * The other two are *estimates* reconstructed from `current_week`, and are only used for
+ * cycles that predate the stored start date.
+ */
+export type HeatmapDateBasis = 'cycle-start-anchor' | 'current-week-anchor' | 'archive-week-anchor';
 
 export interface HeatmapDay {
   week: number;
@@ -39,13 +47,14 @@ export interface ExecutionHeatmapData {
   today: string;
   startDate: string;
   endDate: string;
-  dateBasis: 'current-week-anchor' | 'archive-week-anchor';
+  dateBasis: HeatmapDateBasis;
   targetScore: number;
   days: HeatmapDay[];
   summary: HeatmapSummary;
 }
 
-type HeatmapCycle = Pick<CycleRow, 'id' | 'name' | 'current_week' | 'is_active' | 'updated_at'>;
+type HeatmapCycle = Pick<CycleRow, 'id' | 'name' | 'current_week' | 'is_active' | 'updated_at'>
+  & { started_on?: string | null };
 const DAY_MS = 86_400_000;
 
 export function emptyHeatmapSummary(): HeatmapSummary {
@@ -60,11 +69,24 @@ export function emptyHeatmapSummary(): HeatmapSummary {
 }
 
 /**
- * Cycles have a manually selected current_week, NOT a stored calendar start date.
- * Match recovery's Israel-weekday/currentWeek semantics: put currentWeek in the current
- * Israel calendar week (or the archive's final updated_at week), and label these dates as
- * estimates in the UI. Never mistake creation/completion timestamps for occurrence dates.
- * UTC arithmetic below is on calendar labels only, so DST cannot skip or repeat a cell.
+ * Lays the cycle out on the calendar, one cell per day, for all 12 weeks.
+ *
+ * The dates come from the cycle's stored `started_on` whenever it has one: that anchor is what
+ * `current_week` itself is derived from, so reusing it here keeps the grid's dates and its week
+ * numbering in agreement by construction.
+ *
+ * Cycles created before the calendar clock existed can still have no anchor, so the old
+ * reconstruction is kept as a fallback: place `current_week` in the current Israel calendar week
+ * (or the archive's final `updated_at` week) and count backwards. That is only ever an estimate,
+ * which is why it reports a different `dateBasis` for the UI to label.
+ *
+ * The fallback must not be used for an anchored cycle. It solves `start = today - current_week`,
+ * which silently drifts a week forward for every week that `current_week` stops tracking the
+ * calendar — and `current_week` deliberately stops at 12 while time keeps going, so every cycle
+ * reaching the end would slowly relabel its own history.
+ *
+ * Never mistake creation/completion timestamps for occurrence dates. UTC arithmetic below is on
+ * calendar labels only, so DST cannot skip or repeat a cell.
  */
 export function computeExecutionHeatmap(
   cycle: HeatmapCycle,
@@ -73,10 +95,18 @@ export function computeExecutionHeatmap(
 ): ExecutionHeatmapData {
   const active = cycle.is_active === 1;
   const today = formatIsraelWallTime(now).slice(0, 10);
-  const anchor = active ? today : formatIsraelWallTime(new Date(cycle.updated_at)).slice(0, 10);
-  const anchorDate = new Date(`${anchor}T00:00:00Z`);
-  const anchorWeekday = anchorDate.getUTCDay();
-  const startMs = anchorDate.getTime() - (anchorWeekday + (cycle.current_week - 1) * 7) * DAY_MS;
+  const anchoredStartMs = cycle.started_on ? parseIsoDateUtc(cycle.started_on) : null;
+  let dateBasis: HeatmapDateBasis;
+  let startMs: number;
+  if (anchoredStartMs !== null) {
+    dateBasis = 'cycle-start-anchor';
+    startMs = sundayOfUtcMs(anchoredStartMs);
+  } else {
+    dateBasis = active ? 'current-week-anchor' : 'archive-week-anchor';
+    const anchor = active ? today : formatIsraelWallTime(new Date(cycle.updated_at)).slice(0, 10);
+    const anchorDate = new Date(`${anchor}T00:00:00Z`);
+    startMs = anchorDate.getTime() - (anchorDate.getUTCDay() + (cycle.current_week - 1) * 7) * DAY_MS;
+  }
   const completions = new Map(tactics.map((tactic) => [
     tactic.id,
     new Set(tactic.completions.filter((c) => c.done).map((c) => `${c.week}:${c.weekday}`)),
@@ -150,7 +180,7 @@ export function computeExecutionHeatmap(
     today,
     startDate: days[0].date,
     endDate: days[days.length - 1].date,
-    dateBasis: active ? 'current-week-anchor' : 'archive-week-anchor',
+    dateBasis,
     targetScore: TARGET_SCORE,
     days,
     summary,

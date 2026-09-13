@@ -17,9 +17,9 @@ const STATE_LABELS: Record<HeatmapDayState, string> = {
 const dateFormatter = new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 function formatDate(date: string) { return dateFormatter.format(new Date(`${date}T12:00:00Z`)); }
 
-export function heatmapCellLabel(day: HeatmapDay): string {
+export function heatmapCellLabel(day: HeatmapDay, exactDates = false): string {
   const when = day.phase === 'today' ? ', היום' : day.phase === 'future' ? ', יום עתידי' : '';
-  return `שבוע ${day.week}, ${WEEKDAYS[day.weekday]}, ${formatDate(day.date)} (תאריך משוער)${when}: ${STATE_LABELS[day.state]}. `
+  return `שבוע ${day.week}, ${WEEKDAYS[day.weekday]}, ${formatDate(day.date)}${exactDates ? '' : ' (תאריך משוער)'}${when}: ${STATE_LABELS[day.state]}. `
     + (day.scheduled === 0 ? 'לא תוכננו פעולות' : `${day.completed} מתוך ${day.scheduled} פעולות בוצעו, ${day.score}%`)
     + (day.phase === 'today' && day.state !== 'success' && day.scheduled > 0 ? '. היום טרם הסתיים ואינו קוטע רצף' : '');
 }
@@ -71,6 +71,10 @@ export function ExecutionHeatmapGrid({ data }: { data: ExecutionHeatmapResponse 
   const selected = data.days[selectedIndex] ?? data.days[0];
   const { summary, cycle } = data;
   const strongest = summary.strongestWeekday;
+  // Dates are real calendar dates only when the server derived them from the cycle's stored
+  // start date; otherwise they are reconstructed from the week number and must stay labelled
+  // as estimates.
+  const exactDates = data.dateBasis === 'cycle-start-anchor';
 
   function move(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     const weekday = index % 7;
@@ -120,7 +124,7 @@ export function ExecutionHeatmapGrid({ data }: { data: ExecutionHeatmapResponse 
                       data-state={day.state}
                       data-intensity={day.intensity}
                       data-today={day.phase === 'today' || undefined}
-                      aria-label={heatmapCellLabel(day)}
+                      aria-label={heatmapCellLabel(day, exactDates)}
                       aria-controls={detailId}
                       aria-current={day.phase === 'today' ? 'date' : undefined}
                       tabIndex={selectedIndex === index ? 0 : -1}
@@ -143,7 +147,7 @@ export function ExecutionHeatmapGrid({ data }: { data: ExecutionHeatmapResponse 
           <strong>{WEEKDAYS[selected.weekday]} · שבוע {selected.week}{selected.phase === 'today' && ' · היום'}</strong>
           <span>{STATE_LABELS[selected.state]}</span>
         </div>
-        <span className={styles.detailDate}>{formatDate(selected.date)} · תאריך משוער</span>
+        <span className={styles.detailDate}>{formatDate(selected.date)}{!exactDates && ' · תאריך משוער'}</span>
         <p>{selected.scheduled === 0
           ? 'יום ללא פעולות מתוכננות — מנוחה אינה קוטעת רצף.'
           : `${selected.completed} מתוך ${selected.scheduled} פעולות בוצעו · ${selected.score}%`}
@@ -175,7 +179,11 @@ export function ExecutionHeatmapGrid({ data }: { data: ExecutionHeatmapResponse 
           : 'עדיין אין פעולות מתוכננות במחזור הזה. אחרי תכנון טקטיקות, הימים יקבלו משמעות.'}</p>
       )}
       <p className={styles.footnote}>הרצפים סופרים ימי תכנון שבהם בוצעו לפחות 85% מהפעולות, ללא עיגול כלפי מעלה. ימי מנוחה ניטרליים; יום נוכחי שטרם הגיע ליעד אינו קוטע את הרצף. הרצפים מתייחסים למחזור המוצג בלבד.</p>
-      <p className={styles.footnote}>התאריכים משוערים: אין תאריך התחלה שמור למחזור. שבוע {cycle.currentWeek} מעוגן {cycle.isActive ? 'לשבוע הנוכחי בישראל' : 'לשבוע סיום המחזור בישראל'}, לפי מספר השבוע שנבחר. אלה ימי התכנון, לא חותמות הזמן של סימון הביצוע.</p>
+      {exactDates ? (
+        <p className={styles.footnote}>התאריכים מדויקים: הם נגזרים מתאריך תחילת המחזור השמור ({formatDate(data.startDate ?? selected.date)}), ולפי אותו תאריך נקבע גם מספר השבוע. אלה ימי התכנון, לא חותמות הזמן של סימון הביצוע.</p>
+      ) : (
+        <p className={styles.footnote}>התאריכים משוערים: אין תאריך התחלה שמור למחזור. שבוע {cycle.currentWeek} מעוגן {cycle.isActive ? 'לשבוע הנוכחי בישראל' : 'לשבוע סיום המחזור בישראל'}, לפי מספר השבוע שנבחר. אלה ימי התכנון, לא חותמות הזמן של סימון הביצוע.</p>
+      )}
     </>
   );
 }

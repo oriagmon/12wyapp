@@ -7,6 +7,12 @@ export interface CycleRow {
   name: string;
   current_week: number;
   is_active: number;
+  /**
+   * Sunday the cycle's week 1 began, `YYYY-MM-DD`, or NULL for a cycle created before the
+   * calendar clock existed and never anchored. When set it is the authoritative calendar for
+   * the cycle: `current_week` is derived from it, never the other way around.
+   */
+  started_on: string | null;
   vision: string;
   success_definition: string;
   why_it_matters: string;

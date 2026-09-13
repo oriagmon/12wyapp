@@ -1,5 +1,8 @@
 export type HeatmapDayState = 'unscheduled' | 'future' | 'pending' | 'failed' | 'partial' | 'success' | 'not-reached';
 export type HeatmapDayPhase = 'past' | 'today' | 'future' | 'outside-cycle';
+/** `cycle-start-anchor` dates are exact (read from the cycle's stored start date); the other
+ *  two are estimates reconstructed from the week number, for cycles with no stored start. */
+export type HeatmapDateBasis = 'cycle-start-anchor' | 'current-week-anchor' | 'archive-week-anchor';
 
 export interface HeatmapDay {
   week: number;
@@ -19,7 +22,7 @@ export interface ExecutionHeatmapResponse {
   today: string;
   startDate: string | null;
   endDate: string | null;
-  dateBasis: 'current-week-anchor' | 'archive-week-anchor' | null;
+  dateBasis: HeatmapDateBasis | null;
   targetScore: number;
   days: HeatmapDay[];
   summary: {

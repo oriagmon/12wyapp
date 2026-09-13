@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { computeExecutionHeatmap } from '../lib/executionHeatmap.js';
+import { computeCycleWeek, CYCLE_WEEKS } from '../lib/cycleWeekAdvance.js';
 import { computeWeekScores, type TacticWithCompletions } from '../lib/scoring.js';
 
 const CYCLE = { id: 1, name: 'מחזור בדיקה', current_week: 1, is_active: 1, updated_at: '2026-09-02T12:00:00Z' };
@@ -194,5 +195,84 @@ describe('Israel calendar, manual week and archived boundaries', () => {
     })], NOW);
     expect(result.summary).toMatchObject({ currentStreak: 0, bestStreak: 1 });
     expect(result.days[3].state).toBe('failed');
+  });
+});
+
+describe('dates anchored to the cycle’s stored start date', () => {
+  const ANCHORED = { ...CYCLE, started_on: '2026-09-06', current_week: 2 };
+
+  it('lays week 1 on the stored start date and reports exact dates', () => {
+    const result = computeExecutionHeatmap(ANCHORED, [], new Date('2026-09-13T09:00:00Z'));
+    expect(result.startDate).toBe('2026-09-06');
+    expect(result.endDate).toBe('2026-11-28');
+    expect(result.dateBasis).toBe('cycle-start-anchor');
+    expect(result.days.find((day) => day.phase === 'today')).toMatchObject({ week: 2, weekday: 0, date: '2026-09-13' });
+  });
+
+  it('keeps the calendar fixed once current_week stops at the 12-week cap', () => {
+    // current_week is clamped to 12 while time keeps running, so reconstructing the start from
+    // it drifts a week further every week. The stored anchor must stay put instead.
+    const capped = { ...ANCHORED, current_week: 12 };
+    for (const instant of ['2026-11-22', '2026-11-29', '2026-12-13', '2027-01-10', '2027-06-06']) {
+      const result = computeExecutionHeatmap(capped, [], new Date(`${instant}T09:00:00Z`));
+      expect(result.startDate).toBe('2026-09-06');
+      expect(result.endDate).toBe('2026-11-28');
+    }
+  });
+
+  it('still starts the grid on a Sunday when the stored anchor is a mid-week date', () => {
+    const result = computeExecutionHeatmap(
+      { ...ANCHORED, started_on: '2026-09-09' },
+      [],
+      new Date('2026-09-13T09:00:00Z')
+    );
+    expect(result.startDate).toBe('2026-09-06');
+    expect(new Date(result.startDate).getUTCDay()).toBe(0);
+  });
+
+  it('agrees with the cycle-week clock for every week of the cycle', () => {
+    // The grid's week numbering and current_week are both derived from started_on; if they
+    // disagreed, a day would be filed under a week the dashboard is not showing.
+    for (let week = 1; week <= CYCLE_WEEKS; week++) {
+      const now = new Date(Date.UTC(2026, 8, 6 + (week - 1) * 7, 9));
+      const currentWeek = computeCycleWeek('2026-09-06', now);
+      expect(currentWeek).toBe(week);
+      const result = computeExecutionHeatmap({ ...ANCHORED, current_week: currentWeek! }, [], now);
+      expect(result.days.find((day) => day.phase === 'today')?.week).toBe(week);
+    }
+  });
+
+  it('carries a daily streak across the Saturday-to-Sunday week boundary', () => {
+    // Reproduces a real dashboard: week 1 Wed missed, Thu/Fri/Sat hit, and the new week's
+    // first day still open. The streak belongs to the days, not to the week number.
+    const tactics = [tactic({
+      completions: [4, 5, 6].map((weekday) => ({ week: 1, weekday, done: true })),
+    })];
+    const result = computeExecutionHeatmap(ANCHORED, tactics, new Date('2026-09-13T09:00:00Z'));
+    expect(result.days[3]).toMatchObject({ week: 1, date: '2026-09-09', state: 'failed' });
+    expect(result.days[6]).toMatchObject({ week: 1, date: '2026-09-12', state: 'success' });
+    expect(result.days[7]).toMatchObject({ week: 2, date: '2026-09-13', phase: 'today', state: 'pending' });
+    expect(result.summary).toMatchObject({ currentStreak: 3, bestStreak: 3, successfulDays: 3 });
+  });
+
+  it('uses the stored anchor for an archived cycle instead of its last update', () => {
+    const archived = { ...ANCHORED, is_active: 0, current_week: 2, updated_at: '2027-04-02T12:00:00Z' };
+    const result = computeExecutionHeatmap(archived, [], new Date('2030-01-01T12:00:00Z'));
+    expect(result.startDate).toBe('2026-09-06');
+    expect(result.dateBasis).toBe('cycle-start-anchor');
+    expect(result.days[13]).toMatchObject({ week: 2, phase: 'past' });
+    expect(result.days[14]).toMatchObject({ week: 3, phase: 'outside-cycle', state: 'not-reached' });
+  });
+
+  it('falls back to the week-number estimate only when no start date is stored', () => {
+    for (const started of [null, undefined, '', 'not-a-date', '2026-13-01', '2026-02-30']) {
+      const result = computeExecutionHeatmap(
+        { ...CYCLE, current_week: 2, started_on: started as string | null },
+        [],
+        new Date('2026-09-13T09:00:00Z')
+      );
+      expect(result.dateBasis).toBe('current-week-anchor');
+      expect(result.startDate).toBe('2026-09-06');
+    }
   });
 });

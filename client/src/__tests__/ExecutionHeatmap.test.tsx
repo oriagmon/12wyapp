@@ -36,6 +36,17 @@ describe('ExecutionHeatmap Hebrew accessible interaction', () => {
     expect(screen.getByText(/התאריכים משוערים: אין תאריך התחלה שמור/)).toBeVisible();
   });
 
+  it('drops the "estimated date" caveat once the dates come from the stored cycle start', () => {
+    const data = { ...heatmapFixture(), dateBasis: 'cycle-start-anchor' as const };
+    const { container } = render(<ExecutionHeatmapGrid data={data} />);
+    const buttons = within(screen.getByRole('grid', { name: 'מפת ביצוע: 12 שבועות, 7 ימים בשבוע' })).getAllByRole('button');
+    expect(buttons.some((button) => button.getAttribute('aria-label')?.includes('תאריך משוער'))).toBe(false);
+    expect(buttons[0].getAttribute('aria-label')).toContain('30 באוגוסט 2026');
+    expect(screen.queryByText(/התאריכים משוערים/)).not.toBeInTheDocument();
+    expect(screen.getByText(/התאריכים מדויקים/)).toBeVisible();
+    expect(container.textContent).toContain('30 באוגוסט 2026');
+  });
+
   it('supports touch/click inspection in a persistent live summary, not just a hover tooltip', () => {
     const data = heatmapFixture();
     render(<ExecutionHeatmapGrid data={data} />);

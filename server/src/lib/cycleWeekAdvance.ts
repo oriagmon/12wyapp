@@ -41,7 +41,7 @@
  * to wrap it up, rather than being auto-retired by a background job.
  */
 import type Database from 'better-sqlite3';
-import { israelWeekStart } from './israelTime.js';
+import { israelWeekStart, parseIsoDateUtc, sundayOfUtcMs } from './israelTime.js';
 import { finalizeClosedWeekScores, type FinalizedReview } from './weekScoreFinalization.js';
 
 /** Weeks in a 12 Week Year cycle, matching the `current_week BETWEEN 1 AND 12` CHECK. */
@@ -63,26 +63,6 @@ export type CycleWeekAdvance = {
   newWeek: number;
   finalizedScores: FinalizedReview[];
 };
-
-/** Parses a `YYYY-MM-DD` calendar date as a UTC instant. Anchoring to UTC (rather than
- *  `new Date('YYYY-MM-DD')` semantics or a local-time constructor) keeps day subtraction
- *  free of any offset from the server process's own timezone. */
-function parseIsoDateUtc(date: string): number | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
-  const [y, m, d] = date.split('-').map(Number);
-  const ms = Date.UTC(y, m - 1, d);
-  return Number.isNaN(ms) ? null : ms;
-}
-
-/** Collapses an already-resolved calendar date to the Sunday that starts its week.
- *
- *  Anchors are *written* as Sundays (`israelWeekStart`), but this normalises on read so the
- *  Sunday-boundary rule holds even for a row hand-edited to a mid-week date. Without it a
- *  Wednesday anchor would make weeks turn over on Wednesdays for that one cycle, silently
- *  desynchronising it from the Sun..Sat `completions` grid the scores are computed from. */
-function sundayOfUtcMs(ms: number): number {
-  return ms - new Date(ms).getUTCDay() * MS_PER_DAY;
-}
 
 /**
  * The cycle week that `now` falls in for a cycle anchored at `startedOn`, clamped to 1..12.
