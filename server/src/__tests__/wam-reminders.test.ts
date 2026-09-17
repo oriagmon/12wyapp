@@ -233,4 +233,143 @@ describe('weekly WAM email reminders', () => {
       }
     });
   });
+
+  // FIXED_TUESDAY falls in ISO week 2026-W07 (Mon 9 Feb – Sun 15 Feb 2026).
+  describe('a meeting already on the calendar suppresses the reminder', () => {
+    function partnershipId(): number {
+      return (getDb().prepare('SELECT id FROM partnerships').get() as { id: number }).id;
+    }
+
+    /** Mirrors what completing a WAM writes: the *next* meeting's time on the current WAM. */
+    function scheduleMeeting(nextWamAt: string, week = 1) {
+      getDb()
+        .prepare('INSERT INTO wams (partnership_id, week, next_wam_at, next_wam_duration_minutes) VALUES (?, ?, ?, 30)')
+        .run(partnershipId(), week, nextWamAt);
+    }
+
+    async function pairedCouple() {
+      const a = await registerAndLogin(app, 'a@a.com');
+      const b = await registerAndLogin(app, 'b@a.com');
+      await pairUsers(app, a, b);
+      return { a, b };
+    }
+
+    it('sends nothing to either partner when this week’s WAM is already booked', async () => {
+      await pairedCouple();
+      scheduleMeeting('2026-02-12T18:00:00.000Z'); // Thursday of the same ISO week
+
+      const result = await sendWeeklyWamReminders(getDb(), FIXED_TUESDAY);
+
+      expect(result.attempted).toBe(0);
+      expect(result.sent).toBe(0);
+      expect(result.skipped).toBe(2);
+      expect(result.skippedScheduled).toBe(2);
+      expect(sendEmailMock).not.toHaveBeenCalled();
+    });
+
+    it('leaves no reminder row behind, so the next week reminds normally', async () => {
+      await pairedCouple();
+      scheduleMeeting('2026-02-12T18:00:00.000Z');
+
+      await sendWeeklyWamReminders(getDb(), FIXED_TUESDAY);
+      const rows = getDb().prepare('SELECT COUNT(*) AS n FROM wam_email_reminders').get() as { n: number };
+      expect(rows.n).toBe(0);
+
+      // Next week, with no meeting booked, both partners are reminded again.
+      const next = await sendWeeklyWamReminders(getDb(), new Date('2026-02-17T08:00:00.000Z'));
+      expect(next.sent).toBe(2);
+      expect(next.skippedScheduled).toBe(0);
+    });
+
+    it('still reminds when the only booked meeting is in a different week', async () => {
+      await pairedCouple();
+      scheduleMeeting('2026-02-17T18:00:00.000Z'); // next ISO week
+      scheduleMeeting('2026-02-03T18:00:00.000Z', 2); // previous ISO week
+
+      const result = await sendWeeklyWamReminders(getDb(), FIXED_TUESDAY);
+
+      expect(result.sent).toBe(2);
+      expect(result.skippedScheduled).toBe(0);
+    });
+
+    it('counts a meeting that already happened earlier this week', async () => {
+      await pairedCouple();
+      scheduleMeeting('2026-02-09T08:00:00.000Z'); // Monday, before Tuesday's run
+
+      const result = await sendWeeklyWamReminders(getDb(), FIXED_TUESDAY);
+
+      expect(result.skippedScheduled).toBe(2);
+      expect(sendEmailMock).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      // Sun 22:30 UTC is already Monday in Israel, so it belongs to the *next* ISO week.
+      ['2026-02-15T22:30:00.000Z', 2, 0],
+      // Sun 22:30 UTC the week before is likewise Monday 9 Feb in Israel — this week.
+      ['2026-02-08T22:30:00.000Z', 0, 2],
+    ])('buckets %s by the Israel calendar, not UTC', async (nextWamAt, expectedSent, expectedSuppressed) => {
+      await pairedCouple();
+      scheduleMeeting(nextWamAt as string);
+
+      const result = await sendWeeklyWamReminders(getDb(), FIXED_TUESDAY);
+
+      expect(result.sent).toBe(expectedSent);
+      expect(result.skippedScheduled).toBe(expectedSuppressed);
+    });
+
+    it('ignores an unreadable stored time instead of treating it as this week', async () => {
+      await pairedCouple();
+      scheduleMeeting('not-a-timestamp');
+
+      const result = await sendWeeklyWamReminders(getDb(), FIXED_TUESDAY);
+
+      expect(result.sent).toBe(2);
+      expect(result.skippedScheduled).toBe(0);
+    });
+
+    it('only suppresses the partnership that booked, leaving others reminded', async () => {
+      const { a, b } = await pairedCouple();
+      const c = await registerAndLogin(app, 'c@a.com');
+      const d = await registerAndLogin(app, 'd@a.com');
+      await pairUsers(app, c, d);
+      const booked = (getDb()
+        .prepare('SELECT id FROM partnerships WHERE initiator_id = ?')
+        .get(a.userId) as { id: number }).id;
+      getDb()
+        .prepare('INSERT INTO wams (partnership_id, week, next_wam_at, next_wam_duration_minutes) VALUES (?, 1, ?, 30)')
+        .run(booked, '2026-02-12T18:00:00.000Z');
+
+      const result = await sendWeeklyWamReminders(getDb(), FIXED_TUESDAY);
+
+      expect(result.skippedScheduled).toBe(2);
+      expect(result.sent).toBe(2);
+      expect(sendEmailMock.mock.calls.map((call) => call[0].to).sort()).toEqual(['c@a.com', 'd@a.com']);
+      expect(b.email).toBe('b@a.com'); // the booked pair is untouched
+    });
+
+    it('still sends the monthly review heads-up, without asking about this week again', async () => {
+      const { a } = await pairedCouple();
+      await setCurrentWeek(app, a, 3); // one week before the month-1 review
+      scheduleMeeting('2026-02-12T18:00:00.000Z');
+
+      const result = await sendWeeklyWamReminders(getDb(), FIXED_TUESDAY);
+
+      // Only the recipient with a pending monthly review is written to; their partner, who
+      // has nothing left to schedule, is suppressed.
+      expect(result.sent).toBe(1);
+      expect(result.skippedScheduled).toBe(1);
+      expect(sendEmailMock).toHaveBeenCalledTimes(1);
+
+      const locale = fallbackLocale();
+      const [call] = sendEmailMock.mock.calls;
+      expect(call[0].to).toBe('a@a.com');
+      expect(call[0].subject).toBe(t(locale, 'emails.wamReminder.subjectMonthlyOnly', { week: 4 }));
+      expect(call[0].subject).not.toBe(t(locale, 'emails.wamReminder.subjectMonthly', { week: 4 }));
+      expect(call[0].html).toContain(t(locale, 'emails.wamReminder.bodyAlreadyScheduled'));
+      expect(call[0].html).toContain(t(locale, 'emails.wamReminder.monthlyCalloutText', { week: 4, month: 1 }));
+      // The "have you set a time yet" nudge is exactly what must not appear.
+      expect(call[0].html).not.toContain(t(locale, 'emails.wamReminder.body2'));
+      expect(call[0].html).not.toContain(t(locale, 'emails.wamReminder.title'));
+    });
+  });
 });

@@ -10,7 +10,9 @@ import { sendWeeklyWamReminders } from './lib/wamReminders.js';
  *
  *   node dist/sendWamReminders.js
  *
- * Idempotent per ISO week + recipient (see migration 007 and lib/wamReminders.ts), so a
+ * Partnerships that already have a meeting on this week's calendar are skipped — there is
+ * nothing to remind them to do (see lib/wamReminders.ts).
+ * * Idempotent per ISO week + recipient (see migration 007 and lib/wamReminders.ts), so a
  * retried/duplicate run never re-sends an email that already succeeded this week. Every
  * recipient is attempted independently; if any send fails, the process still attempts all
  * remaining recipients before exiting non-zero so the timer's next run retries only the
@@ -21,7 +23,7 @@ async function main(): Promise<void> {
   const result = await sendWeeklyWamReminders(db);
   console.log(
     `[wam-reminders] week=${result.isoWeek} attempted=${result.attempted} sent=${result.sent} ` +
-      `skipped=${result.skipped} failed=${result.failed}`
+      `skipped=${result.skipped} (alreadyScheduled=${result.skippedScheduled}) failed=${result.failed}`
   );
   closeDb();
   if (result.failed > 0) {

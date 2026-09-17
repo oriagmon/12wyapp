@@ -99,8 +99,11 @@ export const emails: AreaDict = {
     // WAM weekly reminder email
     'emails.wamReminder.subject': 'Reminder: Have you scheduled your WAM this week?',
     'emails.wamReminder.subjectMonthly': 'Reminder: WAM this week? Monthly review next week (Week {week})',
+    'emails.wamReminder.subjectMonthlyOnly': 'Monthly review next week (Week {week}) — worth booking now',
     'emails.wamReminder.eyebrow': 'Your weekly meeting',
     'emails.wamReminder.title': 'Have you scheduled your WAM this week?',
+    'emails.wamReminder.titleMonthlyOnly': 'Your monthly review is next week',
+    'emails.wamReminder.bodyAlreadyScheduled': 'This week’s WAM is already on your calendar — nothing to do there.',
     'emails.wamReminder.body1': 'Your WAM (Weekly Accountability Meeting) is where you stop, check your progress, celebrate wins, and plan your next moves.',
     'emails.wamReminder.body2': "If you haven\'t set a time yet — now is the moment to coordinate with your partner.",
     'emails.wamReminder.monthlyCalloutTitle': 'Monthly review coming up',
@@ -202,8 +205,11 @@ export const emails: AreaDict = {
     // WAM weekly reminder email
     'emails.wamReminder.subject': 'תזכורת: קבעתם שעה לפגישת ה-WAM השבוע?',
     'emails.wamReminder.subjectMonthly': 'תזכורת: קבעתם שעה ל-WAM השבוע? הסקירה החודשית בשבוע הבא (שבוע {week})',
+    'emails.wamReminder.subjectMonthlyOnly': 'הסקירה החודשית בשבוע הבא (שבוע {week}) — שווה לקבוע כבר עכשיו',
     'emails.wamReminder.eyebrow': 'הפגישה השבועית שלכם',
     'emails.wamReminder.title': 'קבעתם זמן ל-WAM השבוע?',
+    'emails.wamReminder.titleMonthlyOnly': 'הסקירה החודשית שלכם בשבוע הבא',
+    'emails.wamReminder.bodyAlreadyScheduled': 'פגישת ה-WAM של השבוע כבר קבועה ביומן — שם הכול מסודר.',
     'emails.wamReminder.body1': 'פגישת ה-WAM (סקירת ההתקדמות השבועית) היא המקום לעצור, לבדוק ביצוע, לחגוג התקדמות ולתכנן את המהלך הבא.',
     'emails.wamReminder.body2': 'אם עדיין לא קבעתם מועד — זה הזמן לתאם עם השותף או השותפה.',
     'emails.wamReminder.monthlyCalloutTitle': 'הסקירה החודשית מתקרבת',

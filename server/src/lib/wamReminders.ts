@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 import { getEmailConfig } from '../config.js';
-import { currentIsoWeek } from './isoWeek.js';
+import { currentIsoWeek, isoWeekOf } from './isoWeek.js';
 import { sendEmail } from './emailSender.js';
 import { renderBrandedEmail, type BrandedEmail } from './emailBranding.js';
 import { fallbackLocale, t } from './i18n/index.js';
@@ -57,6 +57,38 @@ export function getReminderRecipients(db: Database.Database): ReminderRecipient[
 
 interface ReminderStatusRow {
   status: 'sent' | 'failed';
+}
+
+/**
+ * The partnerships that already have a WAM on the calendar during `isoWeek`.
+ *
+ * Scheduling a meeting writes `next_wam_at` on the WAM being completed — it is the time of the
+ * *next* meeting — and mails both partners a calendar invitation. Once that exists there is
+ * nothing left to ask: the reminder's entire question is "have you scheduled your WAM this
+ * week?", so sending it anyway is pure noise.
+ *
+ * The bucketing is done here rather than in SQL because `next_wam_at` is stored as UTC while
+ * the reminder's week is an Israel-local ISO week; comparing them as strings would put a
+ * Saturday-evening meeting in the wrong week. `isoWeekOf` applies the same Jerusalem calendar
+ * to both sides.
+ *
+ * A scheduled time counts whether or not it has already passed: a meeting held on Monday still
+ * means this week's WAM was scheduled by the time Tuesday's reminder runs.
+ *
+ * Delivery of the invitation is deliberately not required. The question is whether a time was
+ * agreed, and making suppression depend on the mail provider would turn a transient email
+ * failure into a second, contradictory nag.
+ */
+export function partnershipsWithWamScheduledIn(db: Database.Database, isoWeek: string): Set<number> {
+  const rows = db
+    .prepare('SELECT partnership_id, next_wam_at FROM wams WHERE next_wam_at IS NOT NULL')
+    .all() as { partnership_id: number; next_wam_at: string }[];
+
+  const scheduled = new Set<number>();
+  for (const row of rows) {
+    if (isoWeekOf(new Date(row.next_wam_at)) === isoWeek) scheduled.add(row.partnership_id);
+  }
+  return scheduled;
 }
 
 function getExistingStatus(
@@ -117,20 +149,26 @@ export function monthlyReviewPromptForWeek(currentWeek: number | null): MonthlyR
 export function buildReminderEmail(
   appUrl: string,
   monthlyReview: MonthlyReviewPrompt | null,
-  locale: Locale = fallbackLocale()
+  locale: Locale = fallbackLocale(),
+  alreadyScheduled = false
 ): BrandedEmail {
   const tl = (key: string, params?: Record<string, string | number>) => t(locale, key, params);
-  const subject = monthlyReview
-    ? tl('emails.wamReminder.subjectMonthly', { week: monthlyReview.targetWeek })
-    : tl('emails.wamReminder.subject');
+  // With this week's meeting already booked, the only thing still worth saying is the
+  // monthly-review heads-up, which is about scheduling *next* week. Leading with "have you
+  // scheduled your WAM this week?" would be asking about something already done.
+  const monthlyOnly = alreadyScheduled && monthlyReview !== null;
+  const subject = monthlyOnly
+    ? tl('emails.wamReminder.subjectMonthlyOnly', { week: monthlyReview!.targetWeek })
+    : monthlyReview
+      ? tl('emails.wamReminder.subjectMonthly', { week: monthlyReview.targetWeek })
+      : tl('emails.wamReminder.subject');
   return renderBrandedEmail({
     subject,
     eyebrow: tl('emails.wamReminder.eyebrow'),
-    title: tl('emails.wamReminder.title'),
-    paragraphs: [
-      tl('emails.wamReminder.body1'),
-      tl('emails.wamReminder.body2'),
-    ],
+    title: monthlyOnly ? tl('emails.wamReminder.titleMonthlyOnly') : tl('emails.wamReminder.title'),
+    paragraphs: monthlyOnly
+      ? [tl('emails.wamReminder.bodyAlreadyScheduled'), tl('emails.wamReminder.body1')]
+      : [tl('emails.wamReminder.body1'), tl('emails.wamReminder.body2')],
     callout: monthlyReview ? {
       title: tl('emails.wamReminder.monthlyCalloutTitle'),
       text: tl('emails.wamReminder.monthlyCalloutText', { week: monthlyReview.targetWeek, month: monthlyReview.monthNumber }),
@@ -145,6 +183,9 @@ export interface ReminderRunResult {
   attempted: number;
   sent: number;
   skipped: number;
+  /** Subset of `skipped` suppressed because the WAM was already on the calendar (as opposed
+   *  to already having been emailed this week) — separated out so the timer's log shows why. */
+  skippedScheduled: number;
   failed: number;
   failures: { userId: number; error: string }[];
 }
@@ -157,6 +198,10 @@ export interface ReminderRunResult {
  * attempted independently — one failure never stops the run — and each outcome is recorded
  * before moving on, so a crashed/killed process still leaves accurate state for the next
  * invocation to resume from.
+ *
+ * Partnerships that already have a meeting on the calendar this week are skipped without
+ * recording anything: there is no outcome to be idempotent about, and leaving the table empty
+ * keeps next week's run free to remind them normally.
  */
 export async function sendWeeklyWamReminders(
   db: Database.Database,
@@ -165,7 +210,10 @@ export async function sendWeeklyWamReminders(
   const { appUrl } = getEmailConfig();
   const isoWeek = currentIsoWeek(now);
 
-  const result: ReminderRunResult = { isoWeek, attempted: 0, sent: 0, skipped: 0, failed: 0, failures: [] };
+  const result: ReminderRunResult = {
+    isoWeek, attempted: 0, sent: 0, skipped: 0, skippedScheduled: 0, failed: 0, failures: [],
+  };
+  const scheduledPartnerships = partnershipsWithWamScheduledIn(db, isoWeek);
 
   for (const recipient of getReminderRecipients(db)) {
     if (getExistingStatus(db, isoWeek, recipient.userId) === 'sent') {
@@ -177,8 +225,14 @@ export async function sendWeeklyWamReminders(
     // depends on each recipient's own current cycle week — one combined email either way,
     // never a separate second email.
     const monthlyReview = monthlyReviewPromptForWeek(recipient.currentWeek);
+    const alreadyScheduled = scheduledPartnerships.has(recipient.partnershipId);
+    if (alreadyScheduled && monthlyReview === null) {
+      result.skipped += 1;
+      result.skippedScheduled += 1;
+      continue;
+    }
     const recipientLocale: Locale = recipient.locale === 'he' ? 'he' : 'en';
-    const { subject, html, plainText, attachments } = buildReminderEmail(appUrl, monthlyReview, recipientLocale);
+    const { subject, html, plainText, attachments } = buildReminderEmail(appUrl, monthlyReview, recipientLocale, alreadyScheduled);
 
     result.attempted += 1;
     try {

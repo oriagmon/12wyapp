@@ -182,6 +182,33 @@ prominent Hebrew callout naming the upcoming review's week/month number (e.g.
 appended into the same weekly reminder. A recipient with no active cycle, or
 whose partner is on a different week, only gets the normal weekly reminder.
 
+**Already-scheduled meetings are not reminded about.** Completing a WAM can
+set `wams.next_wam_at` — the agreed time of the *next* meeting — and mails
+both partners a calendar invitation. If any WAM in the partnership has a
+`next_wam_at` landing in the reminder's own ISO week, the reminder is skipped
+for both partners: its only question is "have you scheduled your WAM this
+week?", and asking after the invitations have gone out is pure noise.
+
+A few details of that rule:
+
+- Weeks are compared on the **Israel** calendar, not UTC. `next_wam_at` is
+  stored as UTC, so a Saturday-night or Sunday-night meeting would otherwise
+  be filed under the wrong week.
+- A time that has **already passed** this week still counts — a Monday
+  meeting means Tuesday's reminder has nothing to ask.
+- Delivery of the invitation is deliberately **not** required, only that a
+  time was agreed. Otherwise a transient email failure would turn into a
+  second, contradictory nag.
+- Nothing is written to `wam_email_reminders` when a reminder is suppressed
+  this way. There is no delivery outcome to be idempotent about, and leaving
+  the row absent keeps the following week free to remind normally.
+- If a **monthly review** prompt is also due that week, the email is still
+  sent — that prompt is about scheduling *next* week — but it switches to a
+  monthly-review-only wording that does not re-ask about this week.
+
+The timer log reports this separately, e.g.
+`skipped=2 (alreadyScheduled=2)`.
+
 Configure it via three env vars in `server/.env` (see `.env.example`) — only
 required to run this CLI, not the main web server:
 
