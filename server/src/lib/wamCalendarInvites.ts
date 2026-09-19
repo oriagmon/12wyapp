@@ -71,7 +71,8 @@ export function buildInviteEmail(
   dtStart: Date,
   durationMinutes: number,
   appUrl: string,
-  locale: Locale = 'en'
+  locale: Locale = 'en',
+  meetingUrl: string | null = null
 ): BrandedEmail {
   const tl = (key: string, params?: Record<string, string | number>) => t(locale, key, params);
   const when = `${formatIsraelTime(dtStart, locale)} (${tl('emails.calendar.israelTime')})`;
@@ -85,13 +86,16 @@ export function buildInviteEmail(
     preheader: tl('emails.calendar.preheader', { when }),
     paragraphs: [
       tl('emails.calendar.body1'),
-      tl('emails.calendar.body2'),
+      meetingUrl ? tl('emails.calendar.body2WithMeeting') : tl('emails.calendar.body2'),
     ],
     callout: {
       title: tl('emails.calendar.calloutTitle'),
-      text: `${when} · ${tl('emails.calendar.duration', { minutes: durationMinutes })}`,
+      text: `${when} · ${tl('emails.calendar.duration', { minutes: durationMinutes })}${
+        meetingUrl ? `\n${tl('emails.calendar.meetingLabel')}: ${meetingUrl}` : ''
+      }`,
     },
     cta: { label: tl('emails.cta.openApp'), url: appUrl },
+    ...(meetingUrl ? { secondaryCta: { label: tl('emails.calendar.joinCta'), url: meetingUrl } } : {}),
     footer: tl('emails.calendar.footer'),
   }, locale);
 }
@@ -121,7 +125,7 @@ export async function sendWamCalendarInvitations(
   wam: CalendarInviteWam,
   recipients: CalendarInviteRecipient[]
 ): Promise<CalendarInviteRunResult> {
-  const { senderAddress, appUrl } = getEmailConfig();
+  const { senderAddress, appUrl, meetingUrl } = getEmailConfig();
   const dtStart = new Date(wam.nextWamAt);
   const dtEnd = new Date(dtStart.getTime() + wam.nextWamDurationMinutes * 60_000);
   const dtStamp = new Date();
@@ -145,6 +149,7 @@ export async function sendWamCalendarInvitations(
     summary,
     description,
     url: appUrl,
+    conferenceUrl: meetingUrl,
     locale: icsLocale,
   });
   const attachment = {
@@ -173,7 +178,7 @@ export async function sendWamCalendarInvitations(
     result.attempted += 1;
     try {
       const recipientLocale: Locale = recipient.locale ?? fallbackLocale();
-      const { subject, html, plainText, attachments: emailAttachments } = buildInviteEmail(dtStart, wam.nextWamDurationMinutes, appUrl, recipientLocale);
+      const { subject, html, plainText, attachments: emailAttachments } = buildInviteEmail(dtStart, wam.nextWamDurationMinutes, appUrl, recipientLocale, meetingUrl);
       await sendEmail({ to: recipient.email, subject, html, plainText, attachments: [attachment, ...emailAttachments] });
       recordDelivery(db, wam.id, recipient.userId, wam.calendarEventSequence, 'sent', null);
       result.sent += 1;

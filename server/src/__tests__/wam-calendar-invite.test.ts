@@ -46,6 +46,7 @@ describe('WAM calendar invitations', () => {
     delete process.env.ACS_EMAIL_CONNECTION_STRING;
     delete process.env.EMAIL_SENDER_ADDRESS;
     delete process.env.APP_PUBLIC_URL;
+    delete process.env.WAM_MEETING_URL;
   });
 
   afterAll(() => closeDb());
@@ -411,4 +412,63 @@ describe('WAM calendar invitations', () => {
     expect(changed.status).toBe(200);
     expect(changed.body.wam.nextWam.at).toBe(secondWhen);
   });
+
+  describe('video-call room (WAM_MEETING_URL)', () => {
+    const meet = 'https://meet.google.com/abc-defg-hij';
+
+    async function scheduleAndCapture() {
+      const a = await registerAndLogin(app, 'a@a.com');
+      const b = await registerAndLogin(app, 'b@a.com');
+      await pairUsers(app, a, b);
+      const created = await request(app).post('/api/wams').set('Cookie', a.cookie).send({ week: 4 });
+      await request(app)
+        .post(`/api/wams/${created.body.id}/complete`)
+        .set('Cookie', a.cookie)
+        .send({ nextWamAt: futureIso(48), nextWamDurationMinutes: 45 });
+      expect(sendEmailMock).toHaveBeenCalledTimes(2);
+      return sendEmailMock.mock.calls.map(([params]) => ({
+        params,
+        ics: Buffer.from(params.attachments![0].contentInBase64, 'base64').toString('utf8').replace(/\r\n /g, ''),
+      }));
+    }
+
+    it('puts the room in the ICS and a join button in the email for both partners', async () => {
+      process.env.WAM_MEETING_URL = meet;
+      for (const { params, ics } of await scheduleAndCapture()) {
+        const locale = (
+          getDb().prepare('SELECT locale FROM users WHERE email = ?').get(params.to) as { locale: Locale }
+        ).locale;
+        expect(ics).toContain(`X-GOOGLE-CONFERENCE:${meet}`);
+        expect(ics).toContain(`LOCATION:${meet}`);
+        expect(ics).toContain(`CONFERENCE;VALUE=URI;FEATURE=VIDEO,AUDIO;LABEL=Google Meet:${meet}`);
+        // Clickable in the mail itself, in the recipient's own language.
+        expect(params.html).toContain(`href="${meet}"`);
+        expect(params.html).toContain(t(locale, 'emails.calendar.joinCta'));
+        expect(params.plainText).toContain(meet);
+      }
+    });
+
+    it('changes nothing about the invite when the room is not configured', async () => {
+      delete process.env.WAM_MEETING_URL;
+      for (const { params, ics } of await scheduleAndCapture()) {
+        expect(ics).not.toContain('CONFERENCE');
+        expect(ics).not.toContain('LOCATION');
+        expect(params.html).not.toContain('meet.google.com');
+        // The ICS itself must still be a complete, valid request.
+        expect(ics).toContain('METHOD:REQUEST');
+        expect(ics).toContain('END:VCALENDAR');
+      }
+    });
+
+    it('ignores a malformed room rather than emitting a broken link or failing the send', async () => {
+      // A typo must never cost the invite: the meeting still goes out, just without a link.
+      process.env.WAM_MEETING_URL = 'meet.google.com/no-scheme';
+      for (const { params, ics } of await scheduleAndCapture()) {
+        expect(ics).not.toContain('X-GOOGLE-CONFERENCE');
+        expect(ics).toContain('METHOD:REQUEST');
+        expect(params.html).not.toContain('no-scheme');
+      }
+    });
+  });
+
 });

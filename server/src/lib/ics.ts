@@ -6,6 +6,10 @@
 
 const ICS_LINE_MAX_OCTETS = 75;
 
+/** Shown by calendar clients beside the join link. Kept to plain ASCII without `;`, `:`, `,`
+ *  or a double quote so it is a valid unquoted RFC 5545 param value in every locale. */
+const ICS_CONFERENCE_LABEL = 'Google Meet';
+
 /** `YYYYMMDDTHHMMSSZ` — always UTC, per RFC 5545 form #2, regardless of the input Date's
  *  origin timezone (the UI labels the picked time as Israel time, but everything sent over
  *  the wire — DTSTAMP/DTSTART/DTEND — must be UTC so every calendar client renders it the
@@ -73,6 +77,12 @@ export interface IcsEventInput {
   summary: string;
   description: string;
   url: string;
+  /**
+   * Optional video-call room (e.g. Google Meet). When present the event carries it as
+   * LOCATION, as the RFC 7986 CONFERENCE property and as X-GOOGLE-CONFERENCE, and it is
+   * appended to the description so clients that read none of those still show a join link.
+   */
+  conferenceUrl?: string | null;
   /** Language of `summary`/`description`, reported in PRODID. */
   locale?: string;
 }
@@ -84,6 +94,12 @@ export interface IcsEventInput {
  * list). Uses CRLF line endings throughout, as required by RFC 5545 §3.1.
  */
 export function buildWamIcs(input: IcsEventInput): string {
+  const conferenceUrl = input.conferenceUrl?.trim() || null;
+  // URI-valued properties (URL, CONFERENCE, X-GOOGLE-CONFERENCE) are *not* TEXT, so they must
+  // not be backslash-escaped the way SUMMARY/DESCRIPTION are — escaping a comma in a query
+  // string would corrupt the link. Only the copy appended to DESCRIPTION gets escaped, since
+  // there it really is TEXT.
+  const description = conferenceUrl ? `${input.description}\n${conferenceUrl}` : input.description;
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -97,8 +113,15 @@ export function buildWamIcs(input: IcsEventInput): string {
     `DTEND:${formatIcsDateUTC(input.dtEnd)}`,
     `SEQUENCE:${input.sequence}`,
     `SUMMARY:${escapeIcsText(input.summary)}`,
-    `DESCRIPTION:${escapeIcsText(input.description)}`,
+    `DESCRIPTION:${escapeIcsText(description)}`,
     `URL:${input.url}`,
+    ...(conferenceUrl
+      ? [
+          `LOCATION:${escapeIcsText(conferenceUrl)}`,
+          `CONFERENCE;VALUE=URI;FEATURE=VIDEO,AUDIO;LABEL=${ICS_CONFERENCE_LABEL}:${conferenceUrl}`,
+          `X-GOOGLE-CONFERENCE:${conferenceUrl}`,
+        ]
+      : []),
     `ORGANIZER:mailto:${input.organizerEmail}`,
     ...input.attendeeEmails.map(
       (email) => `ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${email}`

@@ -1702,4 +1702,35 @@ the existing browser runner reports it missing.
   separate operational script (not part of the app itself) still sends a
   weekly "did you schedule your WAM?" reminder email — see "Weekly WAM email
   reminder" above.
+
+### Video-call link on the invitation (`WAM_MEETING_URL`)
+
+Set `WAM_MEETING_URL` to a permanent room (e.g. a Google Meet link) and every
+WAM calendar invitation carries it:
+
+- `LOCATION` — what most clients surface as the meeting place.
+- `CONFERENCE;VALUE=URI;FEATURE=VIDEO,AUDIO;LABEL=Google Meet` — the RFC 7986
+  property, used by Outlook and Apple Calendar.
+- `X-GOOGLE-CONFERENCE` — the Google-specific hint.
+- Appended to `DESCRIPTION`, and rendered as a "join" button in the invite
+  email itself, so the link is one tap away even in a client that reads none
+  of the properties above.
+
+**The app cannot generate this link, by design of Google's platform.** Google
+only mints a Meet link for an event created in Google Calendar itself or via
+the Calendar API's `conferenceData.createRequest`. An ICS attachment can never
+cause one to be created, whatever properties it carries — importing an ICS just
+reads the fields. Going through the Calendar API would additionally mean OAuth
+and a Google identity for the organizer, but the organizer here is the ACS
+`EMAIL_SENDER_ADDRESS`, which is not a Google account. So the room is supplied,
+not generated: create one once at <https://meet.google.com> → "Create a meeting
+for later", and paste it in. The WAM is the same two people every week, so one
+permanent room is the natural fit anyway.
+
+Unset is fully supported and is the default — invites then go out exactly as
+they did before. A malformed value (missing scheme, not a URL) is logged and
+ignored rather than emitted, so a typo costs the link but never the invitation.
+
+After changing it, restart the app: `sudo systemctl restart 12-week-dashboard`.
+
 - No account deletion, CSV export/import, or admin panel in V1.

@@ -125,3 +125,66 @@ describe('buildWamIcs', () => {
     expect(ics).toContain('DESCRIPTION:שורה1\\nשורה2\r\n');
   });
 });
+
+describe('buildWamIcs conferencing', () => {
+  const meet = 'https://meet.google.com/abc-defg-hij';
+
+  const baseInput = {
+    uid: 'wam-7@example.com',
+    sequence: 0,
+    dtStamp: new Date('2026-01-01T08:00:00.000Z'),
+    dtStart: new Date('2026-01-10T10:00:00.000Z'),
+    dtEnd: new Date('2026-01-10T11:00:00.000Z'),
+    organizerEmail: 'DoNotReply@example.com',
+    attendeeEmails: ['a@a.com', 'b@a.com'],
+    summary: 'פגישת WAM — שבוע 5',
+    description: 'תיאור בעברית',
+    url: 'https://dashboard.example.com',
+  };
+
+  function unfold(ics: string): string {
+    return ics.replace(/\r\n /g, '');
+  }
+
+  it('omits every conferencing property when no room is configured', () => {
+    for (const input of [baseInput, { ...baseInput, conferenceUrl: null }, { ...baseInput, conferenceUrl: '   ' }]) {
+      const ics = unfold(buildWamIcs(input));
+      expect(ics).not.toContain('CONFERENCE');
+      expect(ics).not.toContain('X-GOOGLE-CONFERENCE');
+      expect(ics).not.toContain('LOCATION');
+    }
+  });
+
+  it('advertises the room through LOCATION, RFC 7986 CONFERENCE and X-GOOGLE-CONFERENCE', () => {
+    const ics = unfold(buildWamIcs({ ...baseInput, conferenceUrl: meet }));
+    expect(ics).toContain(`LOCATION:${meet}`);
+    expect(ics).toContain(`CONFERENCE;VALUE=URI;FEATURE=VIDEO,AUDIO;LABEL=Google Meet:${meet}`);
+    expect(ics).toContain(`X-GOOGLE-CONFERENCE:${meet}`);
+  });
+
+  it('also appends the room to DESCRIPTION so clients reading none of those still link it', () => {
+    const ics = unfold(buildWamIcs({ ...baseInput, conferenceUrl: meet, description: 'Weekly sync' }));
+    expect(ics).toContain(`DESCRIPTION:Weekly sync\\n${meet}`);
+  });
+
+  it('never TEXT-escapes the URI properties, which would corrupt a query string', () => {
+    // A comma or semicolon is escaped in TEXT but is a literal character in a URI; escaping
+    // it here would hand the calendar client a link that 404s.
+    const tricky = 'https://meet.example.com/room?a=1,2;b=3';
+    const ics = unfold(buildWamIcs({ ...baseInput, conferenceUrl: tricky }));
+    expect(ics).toContain(`X-GOOGLE-CONFERENCE:${tricky}`);
+    expect(ics).toContain(`;LABEL=Google Meet:${tricky}`);
+    expect(ics).not.toContain('X-GOOGLE-CONFERENCE:https://meet.example.com/room?a=1\\,2');
+  });
+
+  it('keeps the document well-formed: CRLF only, and the room folded inside the VEVENT', () => {
+    const raw = buildWamIcs({ ...baseInput, conferenceUrl: meet });
+    expect(raw.replace(/\r\n/g, '')).not.toContain('\n');
+    const body = raw.slice(raw.indexOf('BEGIN:VEVENT'), raw.indexOf('END:VEVENT'));
+    expect(body).toContain('X-GOOGLE-CONFERENCE:');
+    // Folding must keep every physical line within the RFC 5545 octet budget.
+    for (const line of raw.split('\r\n')) {
+      expect(Buffer.from(line, 'utf8').byteLength).toBeLessThanOrEqual(75);
+    }
+  });
+});

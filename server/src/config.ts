@@ -99,6 +99,19 @@ export interface EmailConfig {
   senderAddress: string;
   /** Public URL of the deployed app, linked from the reminder email body. */
   appUrl: string;
+  /**
+   * Optional video-call room for the recurring WAM (e.g. a permanent Google Meet link).
+   * Null when unset, which keeps invites exactly as they were before this was introduced.
+   *
+   * It has to be a link we are *given* rather than one we generate: Google only mints a Meet
+   * link when an event is created through Google Calendar itself or through the Calendar API's
+   * conferenceData.createRequest. An ICS attachment — whatever properties it carries — can
+   * never make Google create one. Since the organizer here is an ACS sender address rather
+   * than a Google account, a stored permanent room is the one approach that actually puts a
+   * working join button in the invite. The WAM is the same two people every week, so a single
+   * permanent room is also the natural fit.
+   */
+  meetingUrl: string | null;
 }
 
 /**
@@ -122,5 +135,20 @@ export function getEmailConfig(): EmailConfig {
   if (missing.length > 0) {
     throw new Error(`missing required env var(s) for sending email: ${missing.join(', ')}`);
   }
-  return { connectionString, senderAddress, appUrl };
+  // Silently dropping a malformed value would be worse than ignoring it quietly: the invite
+  // would keep going out with no join link and nothing would say why. A bad URL is therefore
+  // treated as "not configured" but logged once per call site.
+  const rawMeetingUrl = process.env.WAM_MEETING_URL?.trim() || '';
+  let meetingUrl: string | null = null;
+  if (rawMeetingUrl) {
+    let protocol = '';
+    try { protocol = new URL(rawMeetingUrl).protocol; } catch { protocol = ''; }
+    if (protocol === 'https:' || protocol === 'http:') {
+      meetingUrl = rawMeetingUrl;
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn('[config] ignoring WAM_MEETING_URL: must be an absolute http(s) URL');
+    }
+  }
+  return { connectionString, senderAddress, appUrl, meetingUrl };
 }

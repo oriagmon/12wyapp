@@ -34,6 +34,9 @@ export interface BrandedEmailContent {
    *  `highlightRow` marks one row (by index) as the one the email is really about. */
   table?: { caption?: string; rows: { label: string; value: string }[]; highlightRow?: number };
   cta: { label: string; url: string };
+  /** Optional second action rendered as an outlined button beside the primary CTA — used for
+   *  the video-call join link, which must be one tap away without demoting "open the app". */
+  secondaryCta?: { label: string; url: string };
   footer: string;
 }
 
@@ -52,6 +55,13 @@ export function renderBrandedEmail(content: BrandedEmailContent, locale: Locale 
   try { protocol = new URL(content.cta.url).protocol; } catch { protocol = ''; }
   if (protocol !== 'https:' && protocol !== 'http:') {
     throw new Error('Email action URL must use absolute HTTP or HTTPS');
+  }
+  if (content.secondaryCta) {
+    let secondaryProtocol: string;
+    try { secondaryProtocol = new URL(content.secondaryCta.url).protocol; } catch { secondaryProtocol = ''; }
+    if (secondaryProtocol !== 'https:' && secondaryProtocol !== 'http:') {
+      throw new Error('Email action URL must use absolute HTTP or HTTPS');
+    }
   }
   const { contentId, attachment } = brandedEmailHeader();
   // The shell has to follow the recipient's language: an English email laid out right-to-left
@@ -86,6 +96,13 @@ export function renderBrandedEmail(content: BrandedEmailContent, locale: Locale 
         </td></tr>
       </table>`
     : '';
+  const secondaryCta = content.secondaryCta
+    ? `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:10px;">
+            <tr><td align="center" bgcolor="#ffffff" style="background:#ffffff;border:2px solid #6d42d8;border-radius:10px;mso-padding-alt:12px 22px;">
+              <a href="${escapeHtml(content.secondaryCta.url)}" style="display:inline-block;padding:12px 22px;min-height:20px;line-height:20px;color:#6d42d8;text-decoration:none;border-radius:10px;font-size:16px;font-weight:700;">${escapeHtml(content.secondaryCta.label)}</a>
+            </td></tr>
+          </table>`
+    : '';
   const plainText = [
     '12WY',
     content.eyebrow,
@@ -102,6 +119,7 @@ export function renderBrandedEmail(content: BrandedEmailContent, locale: Locale 
       : []),
     ...(content.callout ? [content.callout.title, content.callout.text, ''] : []),
     `${content.cta.label}: ${content.cta.url}`,
+    ...(content.secondaryCta ? [`${content.secondaryCta.label}: ${content.secondaryCta.url}`] : []),
     '',
     content.footer,
   ].join('\n');
@@ -133,6 +151,7 @@ export function renderBrandedEmail(content: BrandedEmailContent, locale: Locale 
               <a href="${escapeHtml(content.cta.url)}" style="display:inline-block;padding:14px 24px;min-height:20px;line-height:20px;color:#ffffff;text-decoration:none;border-radius:10px;font-size:16px;font-weight:700;">${escapeHtml(content.cta.label)} ${ctaArrow}</a>
             </td></tr>
           </table>
+          ${secondaryCta}
           <p style="margin:16px 0 0;color:#676071;font-size:12px;line-height:1.7;">${escapeHtml(t(locale, 'emails.branding.copyLinkText'))}<br>
             <span dir="ltr" style="display:inline-block;max-width:100%;direction:ltr;unicode-bidi:embed;overflow-wrap:anywhere;word-break:break-all;">${escapeHtml(content.cta.url)}</span>
           </p>
