@@ -62,7 +62,7 @@ describe('weekly planning ritual', () => {
     expect(read.body.ritual.tacticsReviewed).toBe(true);
   });
 
-  it('rejects completion until tactics-reviewed, weekly focus, and commitment are all present', async () => {
+  it('rejects completion until tactics-reviewed and weekly focus are both present', async () => {
     const noDraft = await request(app).post(`/api/weekly-planning/${cycleId}/2/complete`).set('Cookie', owner.cookie);
     expect(noDraft.status).toBe(400);
 
@@ -73,16 +73,18 @@ describe('weekly planning ritual', () => {
     await request(app)
       .put(`/api/weekly-planning/${cycleId}/2`)
       .set('Cookie', owner.cookie)
-      .send({ tacticsReviewed: true, weeklyFocus: 'להתמקד בבריאות' });
-    const missingCommitment = await request(app)
+      .send({ tacticsReviewed: true });
+    const missingFocus = await request(app)
       .post(`/api/weekly-planning/${cycleId}/2/complete`)
       .set('Cookie', owner.cookie);
-    expect(missingCommitment.status).toBe(400);
+    expect(missingFocus.status).toBe(400);
 
     await request(app)
       .put(`/api/weekly-planning/${cycleId}/2`)
       .set('Cookie', owner.cookie)
-      .send({ commitment: 'לרוץ שלוש פעמים' });
+      .send({ weeklyFocus: 'להתמקד בבריאות' });
+    // Commitment is deliberately *not* required: the panel no longer asks for it, because the
+    // shared WAM rendered right below it already owns next week's commitments.
     const ok = await request(app).post(`/api/weekly-planning/${cycleId}/2/complete`).set('Cookie', owner.cookie);
     expect(ok.status).toBe(200);
     expect(ok.body.ritual.status).toBe('complete');

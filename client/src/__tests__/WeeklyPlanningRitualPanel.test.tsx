@@ -118,7 +118,7 @@ describe('WeeklyPlanningRitualPanel (owner, draft)', () => {
     expect(screen.getByText('כושר')).toBeInTheDocument();
   });
 
-  it('disables completion until tactics-reviewed + focus + commitment are all filled, then calls saveDraft then complete', async () => {
+  it('disables completion until tactics-reviewed + focus are both filled, then calls saveDraft then complete', async () => {
     const onSaveDraft = vi.fn().mockResolvedValue(makeRitual());
     const onComplete = vi.fn().mockResolvedValue(makeRitual({ status: 'complete' }));
     const onNavigateToTactics = vi.fn();
@@ -149,26 +149,53 @@ describe('WeeklyPlanningRitualPanel (owner, draft)', () => {
     expect(completeButton).toBeDisabled();
 
     fireEvent.change(screen.getByLabelText('המיקוד המרכזי'), { target: { value: 'להתמקד בבריאות' } });
-    expect(completeButton).toBeDisabled();
-
-    fireEvent.change(screen.getByLabelText('ההתחייבות שלי לשבוע הבא'), { target: { value: 'לרוץ שלוש פעמים' } });
     expect(completeButton).not.toBeDisabled();
 
     fireEvent.click(completeButton);
 
     await screen.findByText('נשמר ✓');
+    // Only the two fields this panel still owns are sent; anything omitted keeps whatever the
+    // server already stored, so older rituals never get blanked by a fresh save.
     expect(onSaveDraft).toHaveBeenCalledWith({
-      workedWell: '',
-      improveNext: '',
       tacticsReviewed: true,
       weeklyFocus: 'להתמקד בבריאות',
-      commitment: 'לרוץ שלוש פעמים',
     });
     expect(onComplete).toHaveBeenCalled();
   });
 
+  it('does not duplicate the shared meeting: no retro or commitment boxes, just pointers to it', () => {
+    render(
+      <WeeklyPlanningRitualPanel
+        cycle={makeCycle({ currentWeek: 2 })}
+        goals={makeGoals()}
+        weekScores={makeWeekScores()}
+        isOwner
+        ritual={null}
+        loadStatus="ready"
+        loadError={null}
+        onSaveDraft={vi.fn()}
+        onComplete={vi.fn()}
+        onReopen={vi.fn()}
+        onNavigateToTactics={noop}
+      />
+    );
+
+    // These four asked exactly what the WAM below them already asks.
+    expect(screen.queryByLabelText('מה עבד השבוע?')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('מה נשפר בשבוע הבא?')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('ההתחייבות שלי לשבוע הבא')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('מה אני מתחייב/ת לעשות?')).not.toBeInTheDocument();
+
+    // The focus is the one question nothing else in the app asks, so it stays.
+    expect(screen.getByLabelText('המיקוד המרכזי')).toBeInTheDocument();
+    expect(screen.getAllByRole('textbox')).toHaveLength(1);
+
+    expect(screen.getByText(/ממלאים יחד בפגישה המשותפת/)).toBeInTheDocument();
+    expect(screen.getByText(/מוסיפים בפגישה המשותפת/)).toBeInTheDocument();
+  });
+
   it('saves a draft explicitly via the save-draft button', async () => {
-    const onSaveDraft = vi.fn().mockResolvedValue(makeRitual({ workedWell: 'התמדתי' }));
+    const onSaveDraft = vi.fn().mockResolvedValue(makeRitual({ weeklyFocus: 'להתמיד' }));
     render(
       <WeeklyPlanningRitualPanel
         cycle={makeCycle({ currentWeek: 2 })}
@@ -185,16 +212,13 @@ describe('WeeklyPlanningRitualPanel (owner, draft)', () => {
       />
     );
 
-    fireEvent.change(screen.getByLabelText('מה עבד השבוע?'), { target: { value: 'התמדתי' } });
+    fireEvent.change(screen.getByLabelText('המיקוד המרכזי'), { target: { value: 'להתמיד' } });
     fireEvent.click(screen.getByRole('button', { name: 'שמירת טיוטה' }));
 
     await screen.findByText('נשמר ✓');
     expect(onSaveDraft).toHaveBeenCalledWith({
-      workedWell: 'התמדתי',
-      improveNext: '',
       tacticsReviewed: false,
-      weeklyFocus: '',
-      commitment: '',
+      weeklyFocus: 'להתמיד',
     });
   });
 });

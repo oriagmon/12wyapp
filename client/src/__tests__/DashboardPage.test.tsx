@@ -373,9 +373,9 @@ describe('DashboardPage: personal planning and WAM share one destination', () =>
     fireEvent.change(screen.getByLabelText('בחירת שבוע לצפייה (ניווט היסטורי, לא משנה נתונים)'), { target: { value: '8' } });
     openCombinedPage();
     expect(await screen.findByRole('heading', { name: 'תכנון אישי — לקראת שבוע 4' })).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('מה עבד השבוע?'), { target: { value: 'personal only' } });
+    fireEvent.change(screen.getByLabelText('המיקוד המרכזי'), { target: { value: 'personal only' } });
     fireEvent.click(screen.getByRole('button', { name: 'שמירת טיוטה' }));
-    await waitFor(() => expect(api.put).toHaveBeenCalledWith('/weekly-planning/10/4', expect.objectContaining({ workedWell: 'personal only' })));
+    await waitFor(() => expect(api.put).toHaveBeenCalledWith('/weekly-planning/10/4', expect.objectContaining({ weeklyFocus: 'personal only' })));
     fireEvent.change(await screen.findByLabelText('שבוע לפגישה'), { target: { value: '2' } });
     fireEvent.click(screen.getByRole('button', { name: 'פתיחת הפגישה' }));
     const wins = await screen.findByLabelText('ניצחונות / הישגים');
@@ -390,7 +390,7 @@ describe('DashboardPage: personal planning and WAM share one destination', () =>
     expect(api.get).not.toHaveBeenCalledWith('/weekly-planning/10/9');
     fireEvent.click(screen.getByRole('button', { name: '→ חזרה לרשימת הפגישות' }));
     expect(await screen.findByText('כל הפגישות (1)')).toBeInTheDocument();
-    expect(screen.getByLabelText('מה עבד השבוע?')).toHaveValue('personal only');
+    expect(screen.getByLabelText('המיקוד המרכזי')).toHaveValue('personal only');
     expect(new URLSearchParams(window.location.search).has('wam')).toBe(false);
     await travelHistory(-1);
     expect(await screen.findByLabelText('ניצחונות / הישגים')).toBeInTheDocument();
@@ -434,7 +434,7 @@ describe('DashboardPage: personal planning and WAM share one destination', () =>
     await screen.findByText('ביצוע השבוע — שבוע 8');
     openCombinedPage();
     expect(await screen.findByRole('heading', { name: 'תכנון אישי — לקראת שבוע 9' })).toBeInTheDocument();
-    expect(screen.getByLabelText('מה עבד השבוע?')).toHaveAttribute('readonly');
+    expect(screen.getByLabelText('המיקוד המרכזי')).toHaveAttribute('readonly');
     expect(screen.queryByRole('button', { name: 'שמירת טיוטה' })).not.toBeInTheDocument();
     expect(api.get).toHaveBeenCalledWith('/weekly-planning/20/9');
     expect(await screen.findByLabelText('ניצחונות / הישגים')).toBeEnabled();

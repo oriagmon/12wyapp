@@ -291,14 +291,13 @@ it('never places a late partner draft into the editable owner form or its save p
   }
   const { rerender } = render(<Panel cycleId={2} targetWeek={3} owner={false} />);
   rerender(<Panel cycleId={1} targetWeek={4} owner />);
-  expect(await screen.findByLabelText('מה עבד השבוע?')).toHaveValue('OWNER-CONTENT');
+  expect(await screen.findByLabelText('המיקוד המרכזי')).toHaveValue('OWNER-CONTENT');
   await act(async () => partnerGet.resolve(response(2, 3, 'PARTNER-ONLY-CONTENT', 'partner')));
-  expect(screen.getByLabelText('מה עבד השבוע?')).toHaveValue('OWNER-CONTENT');
+  expect(screen.getByLabelText('המיקוד המרכזי')).toHaveValue('OWNER-CONTENT');
   expect(screen.queryByDisplayValue('PARTNER-ONLY-CONTENT')).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'שמירת טיוטה' }));
   await waitFor(() => expect(api.put).toHaveBeenCalledWith('/weekly-planning/1/4', {
-    workedWell: 'OWNER-CONTENT', improveNext: 'OWNER-CONTENT', weeklyFocus: 'OWNER-CONTENT',
-    commitment: 'OWNER-CONTENT', tacticsReviewed: true,
+    weeklyFocus: 'OWNER-CONTENT', tacticsReviewed: true,
   }));
   expect(api.put).toHaveBeenCalledTimes(1);
 });

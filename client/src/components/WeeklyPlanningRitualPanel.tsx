@@ -24,10 +24,20 @@ interface WeeklyPlanningRitualPanelProps {
 }
 
 /**
- * Guided weekly planning ritual: reviews the current week, reviews (read-only) the effective
- * tactics scheduled for the next cycle week, and commits to a focus + concrete commitment for
- * that next week. Tactic *editing* itself always happens in the Goals/Tactics section — this
- * panel only links there, never duplicating that logic.
+ * Guided weekly planning ritual: reviews the current week's score, reviews (read-only) the
+ * effective tactics scheduled for the next cycle week, and picks the single focus for that
+ * next week. Tactic *editing* itself always happens in the Goals/Tactics section — this panel
+ * only links there, never duplicating that logic.
+ *
+ * Deliberately narrow: this panel renders directly above the shared WAM on the joint-meeting
+ * page, so any question the WAM already asks would appear twice on one screen. The retro
+ * ("what worked" / "what to improve") is the WAM's wins/misses/lessons, and next week's
+ * promises are the WAM's commitments list — which unlike a free-text box carries a per-person
+ * scope, a done checkbox and a forfeit. Real data confirmed the overlap: the ritual's retro
+ * boxes sat empty while the WAM's were filled, and its focus and commitment held byte-identical
+ * text because both asked "what is the one thing for next week". Only the focus survives here.
+ * The columns and the API still accept all the original fields so historical rituals keep
+ * rendering and nothing already written is lost.
  */
 export function WeeklyPlanningRitualPanel({
   cycle,
@@ -49,18 +59,12 @@ export function WeeklyPlanningRitualPanel({
   const cycleFinished = currentWeek >= 12;
   const currentWeekScore = weekScores.find((w) => w.week === currentWeek)?.score ?? null;
 
-  const [workedWell, setWorkedWell] = useState('');
-  const [improveNext, setImproveNext] = useState('');
   const [tacticsReviewed, setTacticsReviewed] = useState(false);
   const [weeklyFocus, setWeeklyFocus] = useState('');
-  const [commitment, setCommitment] = useState('');
 
   useEffect(() => {
-    setWorkedWell(ritual?.workedWell ?? '');
-    setImproveNext(ritual?.improveNext ?? '');
     setTacticsReviewed(ritual?.tacticsReviewed ?? false);
     setWeeklyFocus(ritual?.weeklyFocus ?? '');
-    setCommitment(ritual?.commitment ?? '');
   }, [ritual?.id, ritual?.updatedAt]);
 
   const saveStatus = useAsyncStatus();
@@ -109,11 +113,10 @@ export function WeeklyPlanningRitualPanel({
   const missingSteps = [
     !tacticsReviewed && t('week.ritual.missingTactics'),
     weeklyFocus.trim().length === 0 && t('week.ritual.missingFocus'),
-    commitment.trim().length === 0 && t('week.ritual.missingCommitment'),
   ].filter((step): step is string => typeof step === 'string');
   const canComplete = missingSteps.length === 0;
 
-  const currentDraft: WeeklyPlanningDraftPatch = { workedWell, improveNext, tacticsReviewed, weeklyFocus, commitment };
+  const currentDraft: WeeklyPlanningDraftPatch = { tacticsReviewed, weeklyFocus };
 
   return (
     <section className={`card ${styles.panel}`}>
@@ -133,40 +136,7 @@ export function WeeklyPlanningRitualPanel({
         <p className={styles.stepScore}>
           {t('week.ritual.weekScore', { week: currentWeek, score: formatScore(currentWeekScore) })}
         </p>
-        <label className={styles.field}>
-          <span className={styles.label}>{t('week.ritual.workedWell')}</span>
-          <textarea
-            ref={(el) => {
-              if (el) autoResizeTextarea(el);
-            }}
-            rows={1}
-            className={styles.textarea}
-            value={workedWell}
-            readOnly={!editable}
-            placeholder={t('week.ritual.workedWellPlaceholder')}
-            onChange={(e) => {
-              autoResizeTextarea(e.currentTarget);
-              setWorkedWell(e.target.value);
-            }}
-          />
-        </label>
-        <label className={styles.field}>
-          <span className={styles.label}>{t('week.ritual.improveNext')}</span>
-          <textarea
-            ref={(el) => {
-              if (el) autoResizeTextarea(el);
-            }}
-            rows={1}
-            className={styles.textarea}
-            value={improveNext}
-            readOnly={!editable}
-            placeholder={t('week.ritual.improveNextPlaceholder')}
-            onChange={(e) => {
-              autoResizeTextarea(e.currentTarget);
-              setImproveNext(e.target.value);
-            }}
-          />
-        </label>
+        <p className={styles.stepHint}>{t('week.ritual.step1Review')}</p>
       </section>
 
       <section className={styles.step} aria-label={t('week.ritual.step2Label')}>
@@ -217,23 +187,7 @@ export function WeeklyPlanningRitualPanel({
             }}
           />
         </label>
-        <label className={styles.field}>
-          <span className={styles.label}>{t('week.ritual.commitmentLabel')}</span>
-          <textarea
-            ref={(el) => {
-              if (el) autoResizeTextarea(el);
-            }}
-            rows={1}
-            className={styles.textarea}
-            value={commitment}
-            readOnly={!editable}
-            placeholder={t('week.ritual.commitmentPlaceholder')}
-            onChange={(e) => {
-              autoResizeTextarea(e.currentTarget);
-              setCommitment(e.target.value);
-            }}
-          />
-        </label>
+        <p className={styles.stepHint}>{t('week.ritual.step3Commitments')}</p>
       </section>
 
       {editable && (

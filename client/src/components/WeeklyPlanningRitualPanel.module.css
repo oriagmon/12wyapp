@@ -62,6 +62,15 @@
   font-size: var(--text-sm);
 }
 
+/* Points at the shared meeting further down the same page, which owns the retro and the
+   concrete commitments. Muted so it reads as guidance, not as another thing to fill in. */
+.stepHint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
 .field {
   display: flex;
   flex-direction: column;

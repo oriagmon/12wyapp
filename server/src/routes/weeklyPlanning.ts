@@ -191,8 +191,13 @@ weeklyPlanningRouter.put('/:cycleId/:targetWeek', (req, res) => {
 });
 
 /** POST /:cycleId/:targetWeek/complete — owner-only. Requires a draft to already exist and
- *  requires tactics-reviewed + a non-empty weekly focus + a non-empty commitment, matching the
- *  product rule that completion (not just saving a draft) enforces the full ritual. */
+ *  requires tactics-reviewed + a non-empty weekly focus, matching the product rule that
+ *  completion (not just saving a draft) enforces the full ritual.
+ *
+ *  Deliberately does *not* require `commitment`: that box was removed from the panel because
+ *  it duplicated the shared WAM's commitments list rendered directly below it on the same
+ *  page. The column and the PUT field stay so older rituals keep their text, but gating
+ *  completion on a field the form no longer collects would make the ritual uncompletable. */
 weeklyPlanningRouter.post('/:cycleId/:targetWeek/complete', (req, res) => {
   const db = getDb();
   const ctx = loadContext(req, res, db, { requireOwner: true, requireActive: true, requireNextWeek: true });
@@ -213,10 +218,6 @@ weeklyPlanningRouter.post('/:cycleId/:targetWeek/complete', (req, res) => {
   }
   if (existing.weekly_focus.trim().length === 0) {
     res.status(400).json({ error: tReq(req, 'api.weeklyPlanning.weeklyFocusRequired') });
-    return;
-  }
-  if (existing.commitment.trim().length === 0) {
-    res.status(400).json({ error: tReq(req, 'api.weeklyPlanning.commitmentRequired') });
     return;
   }
 
