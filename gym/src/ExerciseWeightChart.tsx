@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { estimatedOneRepMax, strongestPerformanceSet } from './progress'
 
 type Range = 30 | 90 | 0
+type Metric = 'estimatedMax' | 'weight' | 'reps'
 
 type Exercise = {
   id: string
@@ -30,6 +31,17 @@ const RANGES: { value: Range; label: string }[] = [
   { value: 30, label: '30 יום' },
   { value: 90, label: '90 יום' },
   { value: 0, label: 'הכל' },
+]
+
+const METRICS: { value: Metric; label: string; summary: string; unit: string }[] = [
+  {
+    value: 'estimatedMax',
+    label: 'כוח משוער',
+    summary: 'כוח משוער (משקל + חזרות)',
+    unit: 'ק״ג',
+  },
+  { value: 'weight', label: 'משקל בפועל', summary: 'משקל בפועל', unit: 'ק״ג' },
+  { value: 'reps', label: 'חזרות', summary: 'מספר חזרות', unit: 'חזרות' },
 ]
 
 const DAY_MS = 86_400_000
@@ -62,6 +74,7 @@ function niceStep(span: number) {
 export function ExerciseWeightChart({ today, exercises, sessions }: Props) {
   const [exerciseId, setExerciseId] = useState(exercises[0]?.id ?? '')
   const [chosenRange, setChosenRange] = useState<Range | null>(null)
+  const [metric, setMetric] = useState<Metric>('estimatedMax')
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
 
   const selectedExercise =
@@ -99,6 +112,7 @@ export function ExerciseWeightChart({ today, exercises, sessions }: Props) {
   }, [allPoints, today])
 
   const range = chosenRange ?? autoRange
+  const metricConfig = METRICS.find((option) => option.value === metric)!
   const model = useMemo(() => {
     const todayDay = toDay(`${today}T00:00:00Z`)
     const visible =
@@ -110,18 +124,19 @@ export function ExerciseWeightChart({ today, exercises, sessions }: Props) {
     const minDay = visible[0].day
     const maxDay = visible[visible.length - 1].day
     const daySpan = Math.max(maxDay - minDay, 1)
-    let lo = Math.min(...visible.map((point) => point.estimatedMax))
-    let hi = Math.max(...visible.map((point) => point.estimatedMax))
-    if (hi - lo < 5) {
+    let lo = Math.min(...visible.map((point) => point[metric]))
+    let hi = Math.max(...visible.map((point) => point[metric]))
+    const minimumSpan = metric === 'reps' ? 2 : 5
+    if (hi - lo < minimumSpan) {
       const middle = (hi + lo) / 2
-      lo = middle - 2.5
-      hi = middle + 2.5
+      lo = middle - minimumSpan / 2
+      hi = middle + minimumSpan / 2
     }
     const padding = (hi - lo) * 0.08
     lo -= padding
     hi += padding
 
-    const step = niceStep(hi - lo)
+    const step = metric === 'reps' ? Math.max(1, niceStep(hi - lo)) : niceStep(hi - lo)
     const gridlines: number[] = []
     for (let value = Math.ceil(lo / step) * step; value <= hi; value += step) {
       gridlines.push(Math.round(value * 10) / 10)
@@ -132,7 +147,7 @@ export function ExerciseWeightChart({ today, exercises, sessions }: Props) {
     const dots = visible.map((point) => ({
       ...point,
       cx: x(point.day),
-      cy: y(point.estimatedMax),
+      cy: y(point[metric]),
     }))
 
     return {
@@ -141,12 +156,12 @@ export function ExerciseWeightChart({ today, exercises, sessions }: Props) {
         dots,
         line: dots.map((point) => `${point.cx},${point.cy}`).join(' '),
         gridlines: gridlines.map((value) => ({ value, y: y(value) })),
-        change: visible.at(-1)!.estimatedMax - visible[0].estimatedMax,
+        change: visible.at(-1)![metric] - visible[0][metric],
         first: visible[0],
         last: visible.at(-1)!,
       },
     }
-  }, [allPoints, range, today])
+  }, [allPoints, metric, range, today])
 
   if (!selectedExercise) return null
 
@@ -158,7 +173,7 @@ export function ExerciseWeightChart({ today, exercises, sessions }: Props) {
       <div className="exercise-chart-head">
         <div>
           <h3>משקלי חדר כושר לאורך זמן</h3>
-          <p>הסט החזק בכל אימון, לפי משקל × חזרות</p>
+          <p>בכל אימון נבחר הסט עם הכוח המשוער הגבוה ביותר. אפשר לבחור איזה נתון ממנו להשוות.</p>
         </div>
         <div className="weight-range" role="group" aria-label="טווח גרף משקלי חדר כושר">
           {RANGES.map((option) => (
@@ -196,13 +211,33 @@ export function ExerciseWeightChart({ today, exercises, sessions }: Props) {
         ))}
       </div>
 
+      <div className="exercise-chart-controls">
+        <span>מה להשוות:</span>
+        <div className="exercise-chart-picker" role="group" aria-label="בחירת נתון להשוואה">
+          {METRICS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={metric === option.value ? 'active' : undefined}
+              aria-pressed={metric === option.value}
+              onClick={() => setMetric(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="exercise-chart-summary">
         {selectedPoint ? (
           <>
             <strong>
-              <bdi>{format(selectedPoint.weight)}×{selectedPoint.reps}</bdi>
+              <bdi>{format(selectedPoint[metric])} {metricConfig.unit}</bdi>
             </strong>
             <span>{formatDate(selectedPoint.completedAt)}</span>
+            <span>
+              הסט שנבחר: <bdi>{format(selectedPoint.weight)} ק״ג × {selectedPoint.reps} חזרות</bdi>
+            </span>
             <span>כוח משוער: {format(selectedPoint.estimatedMax)} ק״ג</span>
           </>
         ) : model.chart ? (
@@ -210,9 +245,9 @@ export function ExerciseWeightChart({ today, exercises, sessions }: Props) {
             <strong>
               {Math.abs(model.chart.change) < 0.05
                 ? 'ללא שינוי'
-                : `${model.chart.change > 0 ? '+' : '−'}${format(Math.abs(model.chart.change))} ק״ג`}
+                : `${model.chart.change > 0 ? '+' : '−'}${format(Math.abs(model.chart.change))} ${metricConfig.unit}`}
             </strong>
-            <span>שינוי בכוח המשוער · {selectedExercise.name}</span>
+            <span>שינוי ב{metricConfig.summary} מהאימון הראשון לאחרון · {selectedExercise.name}</span>
           </>
         ) : (
           <strong>{selectedExercise.name}</strong>
@@ -225,7 +260,7 @@ export function ExerciseWeightChart({ today, exercises, sessions }: Props) {
             className="exercise-weight-chart"
             viewBox={`0 0 ${W} ${H}`}
             role="img"
-            aria-label={`גרף התקדמות ${selectedExercise.name}, ${model.visible.length} אימונים`}
+            aria-label={`גרף ${metricConfig.summary} לתרגיל ${selectedExercise.name}, ${model.visible.length} אימונים`}
           >
             {model.chart.gridlines.map((line) => (
               <g key={line.value}>
@@ -258,7 +293,7 @@ export function ExerciseWeightChart({ today, exercises, sessions }: Props) {
                   )
                 }
               >
-                <title>{`${formatDate(dot.completedAt)} · ${format(dot.weight)} ק״ג × ${dot.reps}`}</title>
+                <title>{`${formatDate(dot.completedAt)} · ${metricConfig.summary}: ${format(dot[metric])} ${metricConfig.unit} · סט: ${format(dot.weight)} ק״ג × ${dot.reps} חזרות`}</title>
               </circle>
             ))}
             <text className="weight-axis" x={LEFT} y={H - 6} textAnchor="start">
@@ -268,7 +303,9 @@ export function ExerciseWeightChart({ today, exercises, sessions }: Props) {
               {formatDate(model.chart.last.completedAt)}
             </text>
           </svg>
-          <p className="exercise-chart-legend">הקו משקלל גם משקל וגם חזרות (1RM משוער)</p>
+          <p className="exercise-chart-legend">
+            הסט החזק נקבע לפי 1RM משוער: משקל × (1 + חזרות ÷ 30). כרגע הקו מציג {metricConfig.summary}.
+          </p>
         </>
       ) : (
         <p className="weight-chart-empty">
