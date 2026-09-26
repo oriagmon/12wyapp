@@ -11,7 +11,7 @@ export interface TacticFormValues {
   weekdays: number[];
   startWeek: number;
   endWeek: number;
-  scope?: 'nextWeek' | 'restOfCycle';
+  scope?: 'currentWeek' | 'nextWeek' | 'restOfCycle';
 }
 
 export function TacticForm({
@@ -28,22 +28,22 @@ export function TacticForm({
   currentWeek: number;
 }) {
   const { t } = useTranslation();
-  const nextWeek = currentWeek + 1;
-  const upcomingOverride = initial?.overrides?.find((override) => override.week === nextWeek);
-  const [title, setTitle] = useState(upcomingOverride?.title ?? initial?.title ?? '');
+  const currentOverride = initial?.overrides?.find((override) => override.week === currentWeek);
+  const [title, setTitle] = useState(currentOverride?.title ?? initial?.title ?? '');
   const [weekdays, setWeekdays] = useState<number[]>(
-    upcomingOverride?.weekdays ?? initial?.weekdays ?? []
+    currentOverride?.weekdays ?? initial?.weekdays ?? []
   );
   const [startWeek, setStartWeek] = useState(initial?.startWeek ?? 1);
   const [endWeek, setEndWeek] = useState(initial?.endWeek ?? 12);
-  const [nextWeekOnly, setNextWeekOnly] = useState(true);
+  const [currentWeekOnly, setCurrentWeekOnly] = useState(true);
   const status = useAsyncStatus();
 
   const weekOptions = Array.from({ length: 12 }, (_, i) => i + 1);
   const rangeInvalid = endWeek < startWeek;
-  const hasFutureWeek = !initial || (nextWeek <= 12 && nextWeek <= initial.endWeek);
+  const currentWeekIsInRange =
+    !initial || (currentWeek >= initial.startWeek && currentWeek <= initial.endWeek);
   const canSubmit =
-    title.trim().length > 0 && weekdays.length > 0 && !rangeInvalid && hasFutureWeek;
+    title.trim().length > 0 && weekdays.length > 0 && !rangeInvalid && currentWeekIsInRange;
 
   const submit = async () => {
     if (!canSubmit) return;
@@ -53,7 +53,7 @@ export function TacticForm({
         weekdays,
         startWeek,
         endWeek,
-        scope: initial ? (nextWeekOnly ? 'nextWeek' : 'restOfCycle') : undefined,
+        scope: initial ? (currentWeekOnly ? 'currentWeek' : 'restOfCycle') : undefined,
       });
       onCancel();
     });
@@ -75,18 +75,18 @@ export function TacticForm({
         <label className={styles.scopeChoice}>
           <input
             type="checkbox"
-            checked={nextWeekOnly}
-            onChange={(event) => setNextWeekOnly(event.target.checked)}
-            disabled={!hasFutureWeek}
+            checked={currentWeekOnly}
+            onChange={(event) => setCurrentWeekOnly(event.target.checked)}
+            disabled={!currentWeekIsInRange}
           />
           <span>
-            <strong>{t('goals.form.nextWeekOnly')}</strong>
+            <strong>{t('goals.form.currentWeekOnly')}</strong>
             <small>
-              {hasFutureWeek
-                ? nextWeekOnly
-                  ? t('goals.form.nextWeekOnlyHint', { week: nextWeek })
-                  : t('goals.form.everyWeekHint', { week: nextWeek })
-                : t('goals.form.noFutureWeek')}
+              {currentWeekIsInRange
+                ? currentWeekOnly
+                  ? t('goals.form.currentWeekOnlyHint', { week: currentWeek })
+                  : t('goals.form.everyWeekHint', { week: currentWeek })
+                : t('goals.form.notActiveThisWeek')}
             </small>
           </span>
         </label>

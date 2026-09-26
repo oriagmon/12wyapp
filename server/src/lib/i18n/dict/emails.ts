@@ -35,6 +35,15 @@ export const emails: AreaDict = {
     'emails.broost.intro': '{name} sent you a BROOST:',
     'emails.broost.footer': 'This is an automated message from 12WY.',
 
+    // Punishment creation email
+    'emails.punishment.subject': 'A new WAM punishment was added',
+    'emails.punishment.eyebrow': 'WAM · New punishment',
+    'emails.punishment.title': 'A punishment was added in Week {week}',
+    'emails.punishment.preheader': '{author} added a new punishment.',
+    'emails.punishment.intro': '{author} added a punishment assigned to {assignee}.',
+    'emails.punishment.calloutTitle': 'The punishment',
+    'emails.punishment.footer': 'Sent to both accountability partners when a punishment is added.',
+
     // "First to 50%" email. The ten `line` variants are the whole point of this email — one is
     // picked at random per week and used as BOTH the subject and the headline, so the same
     // sentence never lands in the inbox two weeks running. Keep them short enough to survive
@@ -147,6 +156,15 @@ export const emails: AreaDict = {
     'emails.broost.preheader': 'מילה טובה מהשותף או השותפה שלך מחכה לך ב-12WY.',
     'emails.broost.intro': '{name} שלח/ה לך BROOST:',
     'emails.broost.footer': 'זוהי הודעה אוטומטית שנשלחה על ידי 12WY.',
+
+    // הודעה על יצירת עונש
+    'emails.punishment.subject': 'נוסף עונש חדש ב-WAM',
+    'emails.punishment.eyebrow': 'WAM · עונש חדש',
+    'emails.punishment.title': 'נוסף עונש בשבוע {week}',
+    'emails.punishment.preheader': '{author} הוסיף/ה עונש חדש.',
+    'emails.punishment.intro': '{author} הוסיף/ה עונש שמשויך ל-{assignee}.',
+    'emails.punishment.calloutTitle': 'העונש',
+    'emails.punishment.footer': 'נשלח לשני השותפים בכל פעם שנוסף עונש.',
 
     // ראו את ההערה בגרסה האנגלית: עשר הווריאציות הן כל העניין כאן, ונבחרת אחת אקראית בכל שבוע.
     // הניסוח מכוון לשני המינים (הגיע/ה) כי אין לנו מידע על המגדר של אף אחד מהשותפים.

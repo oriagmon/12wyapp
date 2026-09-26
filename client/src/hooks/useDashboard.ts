@@ -177,7 +177,7 @@ export function useDashboard(userId: number | null, navigation?: DashboardWeekNa
         weekdays: number[];
         startWeek: number;
         endWeek: number;
-        scope: 'nextWeek' | 'restOfCycle';
+        scope: 'currentWeek' | 'nextWeek' | 'restOfCycle';
       }>
     ) => {
       if (patch.scope) {

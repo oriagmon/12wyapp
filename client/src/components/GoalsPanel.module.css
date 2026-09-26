@@ -4,10 +4,26 @@
   gap: 16px;
 }
 
+.viewToggle {
+  align-self: flex-start;
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 16px;
+}
+
+.currentWeekEmpty {
+  padding: 24px;
+  color: var(--text-muted);
+  text-align: center;
 }
 
 .addGoal {
@@ -52,4 +68,3 @@
   box-shadow: none;
   border-style: dashed;
 }
-

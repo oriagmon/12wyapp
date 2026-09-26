@@ -26,6 +26,7 @@ import { sendWamCalendarInvitations } from '../lib/wamCalendarInvites.js';
 import { insertWamCompletionBackupIfAbsent } from '../lib/wamCompletionBackup.js';
 import { computeDuoStreak, classifyWamOutcome, type DuoStreakSummary } from '../lib/duoStreak.js';
 import { tReq } from '../lib/i18n/index.js';
+import { schedulePunishmentCreatedEmails } from '../lib/punishmentEmails.js';
 
 export const wamsRouter = Router();
 wamsRouter.use(requireAuth);
@@ -1013,6 +1014,13 @@ wamsRouter.post('/:id/punishments', (req, res) => {
   res
     .status(201)
     .json({ punishmentId: info.lastInsertRowid, wam: serializeWamDetail(db, wam, partnership, req.user!.id) });
+  schedulePunishmentCreatedEmails(db, {
+    participantIds: [partnership.initiatorId, partnership.inviteeId],
+    authorUserId: req.user!.id,
+    assignedUserId,
+    label,
+    week: wam.week,
+  });
 });
 
 /** PATCH /:id/punishments/:punishmentId — author-only edit of label and/or assignee, only

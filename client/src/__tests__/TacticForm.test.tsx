@@ -15,7 +15,7 @@ const tactic = {
 };
 
 describe('TacticForm adaptation scope', () => {
-  it('defaults to next week only and can apply through the rest of the cycle', async () => {
+  it('defaults to the current week only and can apply through the rest of the cycle', async () => {
     const onSubmit = vi.fn().mockResolvedValue({});
     const { rerender } = render(
       <TacticForm
@@ -28,7 +28,7 @@ describe('TacticForm adaptation scope', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'שמירה' }));
-    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ scope: 'nextWeek' })));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ scope: 'currentWeek' })));
 
     onSubmit.mockClear();
     rerender(
@@ -40,11 +40,30 @@ describe('TacticForm adaptation scope', () => {
         submitLabel="שמירה"
       />
     );
-    fireEvent.click(screen.getByRole('checkbox', { name: /להחיל רק בשבוע הבא/ }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /להחיל רק בשבוע הנוכחי/ }));
     fireEvent.click(screen.getByRole('button', { name: 'שמירה' }));
     await waitFor(() =>
       expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ scope: 'restOfCycle' }))
     );
+  });
+
+  it('initializes from the effective current-week override', () => {
+    render(
+      <TacticForm
+        initial={{
+          ...tactic,
+          overrides: [{ week: 3, title: 'Current version', weekdays: [2, 4] }],
+        }}
+        currentWeek={3}
+        onSubmit={vi.fn()}
+        onCancel={() => undefined}
+        submitLabel="שמירה"
+      />
+    );
+
+    expect(screen.getByRole('textbox', { name: 'שם הטקטיקה' })).toHaveValue('Current version');
+    expect(screen.getByRole('button', { name: 'ג׳' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'ה׳' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('closes after a successful void-returning adaptation save', async () => {

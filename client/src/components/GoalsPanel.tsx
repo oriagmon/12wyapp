@@ -75,6 +75,7 @@ export function GoalsPanel({
 }) {
   const { t } = useTranslation();
   const [showFirstGoalForm, setShowFirstGoalForm] = useState(false);
+  const [view, setView] = useState<'currentWeek' | 'allWeeks'>('currentWeek');
 
   if (goals.length === 0) {
     if (!isOwner) {
@@ -104,15 +105,44 @@ export function GoalsPanel({
     );
   }
 
+  const visibleGoals =
+    view === 'currentWeek'
+      ? goals.filter((goal) =>
+          goal.tactics.some(
+            (tactic) => currentWeek >= tactic.startWeek && currentWeek <= tactic.endWeek
+          )
+        )
+      : goals;
+
   return (
     <section className={styles.wrap}>
+      <div className={styles.viewToggle} role="group" aria-label={t('goals.view.label')}>
+        <button
+          type="button"
+          className={view === 'currentWeek' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'}
+          aria-pressed={view === 'currentWeek'}
+          onClick={() => setView('currentWeek')}
+        >
+          {t('goals.view.currentWeek', { week: currentWeek })}
+        </button>
+        <button
+          type="button"
+          className={view === 'allWeeks' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'}
+          aria-pressed={view === 'allWeeks'}
+          onClick={() => setView('allWeeks')}
+        >
+          {t('goals.view.allWeeks')}
+        </button>
+      </div>
+
       <div className={styles.grid}>
-        {goals.map((goal) => (
+        {visibleGoals.map((goal) => (
           <GoalCard
             key={goal.id}
             goal={goal}
             isOwner={isOwner}
             currentWeek={currentWeek}
+            currentWeekView={view === 'currentWeek'}
             onRename={(title) => onRenameGoal(goal.id, title)}
             onDelete={() => onDeleteGoal(goal.id)}
             onCreateTactic={(values) => onCreateTactic(goal.id, values)}
@@ -121,11 +151,16 @@ export function GoalsPanel({
           />
         ))}
       </div>
+      {visibleGoals.length === 0 && (
+        <div className={`card ${styles.currentWeekEmpty}`}>
+          {t('goals.view.currentWeekEmpty', { week: currentWeek })}
+        </div>
+      )}
 
-      {isOwner && goals.length < MAX_GOALS && (
+      {view === 'allWeeks' && isOwner && goals.length < MAX_GOALS && (
         <AddGoalForm goalsCount={goals.length} onCreateGoal={onCreateGoal} />
       )}
-      {goals.length >= MAX_GOALS && isOwner && (
+      {view === 'allWeeks' && goals.length >= MAX_GOALS && isOwner && (
         <p className={styles.limitNote}>{t('goals.limit')}</p>
       )}
     </section>

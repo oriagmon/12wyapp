@@ -138,6 +138,11 @@ The workout home also charts that same estimated-strength score over time for
 each tracked exercise, with 30-day, 90-day and all-history ranges; tapping a
 point reveals the actual strongest set's weight and repetitions.
 
+Creating a WAM punishment schedules a branded, recipient-localized email to
+both partnership members after the API response has been sent. The email names
+the author and assignee and includes the punishment text and source week.
+Editing or deleting an existing punishment does not send another email.
+
 Notes are stored in the existing per-user `gym_state` JSON, scoped to workout
 A/B/C. A note written during a session is hidden until the next session of that
 type; once visible it remains until explicitly dismissed with its close button.
@@ -1051,6 +1056,12 @@ weekly (1–12) meeting per partnership per cycle generation:
 - A compact "edit my goals/tactics" panel is embedded in the meeting, always
   scoped to the logged-in user's own data (reusing the same owner-only API —
   a partner can never edit the other's goals from here either).
+- The Goals tab defaults to a current-week view: only goals with tactics active
+  in that week are shown, and each tactic uses its exact-week override when one
+  exists. A segmented toggle restores the full-cycle plan. Editing from Goals
+  defaults to the current week and immediately recalculates that week's score;
+  the user can instead apply the edit from the current week through the end of
+  the tactic. The WAM planning flow remains explicitly next-week-only.
 - The tab also offers a weekly list, the latest meeting's summary, a simple
   substring search across notes/commitments, and a print/export view.
 

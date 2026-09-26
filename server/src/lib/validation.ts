@@ -88,7 +88,7 @@ export const tacticUpdateSchema = z
 export const tacticAdaptationSchema = z.object({
   title: z.string().trim().min(1, 'errors.validation.tacticTitleEmpty').max(160),
   weekdays: z.array(weekdaySchema).min(1, 'errors.validation.weekdaysRequired').max(7),
-  scope: z.enum(['nextWeek', 'restOfCycle']),
+  scope: z.enum(['currentWeek', 'nextWeek', 'restOfCycle']),
 });
 
 export const completionToggleSchema = z.object({

@@ -87,13 +87,19 @@ tacticsRouter.put('/:id/adaptation', (req, res) => {
     return;
   }
 
-  const nextWeek = tactic.cycle_current_week + 1;
-  if (nextWeek > 12 || nextWeek > tactic.end_week) {
+  const firstWeek =
+    parsed.data.scope === 'nextWeek'
+      ? tactic.cycle_current_week + 1
+      : tactic.cycle_current_week;
+  if (firstWeek > 12 || firstWeek < tactic.start_week || firstWeek > tactic.end_week) {
     res.status(400).json({ error: tReq(req, 'api.tactics.noFutureWeek') });
     return;
   }
 
-  const lastWeek = parsed.data.scope === 'nextWeek' ? nextWeek : tactic.end_week;
+  const lastWeek =
+    parsed.data.scope === 'currentWeek' || parsed.data.scope === 'nextWeek'
+      ? firstWeek
+      : tactic.end_week;
   const weekdays = JSON.stringify([...new Set(parsed.data.weekdays)].sort());
   const upsert = db.prepare(
     `INSERT INTO tactic_week_overrides (tactic_id, week, title, weekdays)
@@ -105,7 +111,7 @@ tacticsRouter.put('/:id/adaptation', (req, res) => {
        updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`
   );
   db.transaction(() => {
-    for (let week = nextWeek; week <= lastWeek; week++) {
+    for (let week = firstWeek; week <= lastWeek; week++) {
       upsert.run(tacticId, week, parsed.data.title, weekdays);
     }
   })();
@@ -119,7 +125,7 @@ tacticsRouter.put('/:id/adaptation', (req, res) => {
   res.json({
     tacticId,
     scope: parsed.data.scope,
-    fromWeek: nextWeek,
+    fromWeek: firstWeek,
     throughWeek: lastWeek,
     overrides: overrides.map((override) => ({
       week: override.week,

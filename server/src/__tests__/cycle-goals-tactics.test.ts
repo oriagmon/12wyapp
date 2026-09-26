@@ -143,7 +143,7 @@ describe('cycles, goals, tactics', () => {
       .set('Cookie', cookie)
       .send({ title: 'Permanent future', weekdays: [4], scope: 'restOfCycle' });
     expect(restOfCycle.status).toBe(200);
-    expect(restOfCycle.body.fromWeek).toBe(4);
+    expect(restOfCycle.body.fromWeek).toBe(3);
     expect(restOfCycle.body.throughWeek).toBe(12);
 
     dashboard = await request(app)
@@ -158,6 +158,49 @@ describe('cycles, goals, tactics', () => {
     );
     expect(dashboard.body.weekScores[2].scheduled).toBe(1);
     expect(dashboard.body.weekScores[3].scheduled).toBe(1);
+  });
+
+  it('immediately recalculates the current week when its tactic is edited', async () => {
+    const me = await request(app).get('/api/auth/me').set('Cookie', cookie);
+    await request(app).post('/api/cycle').set('Cookie', cookie).send({ name: 'A' });
+    const goal = await request(app).post('/api/goals').set('Cookie', cookie).send({ title: 'G1' });
+    const tactic = await request(app)
+      .post('/api/tactics')
+      .set('Cookie', cookie)
+      .send({ goalId: goal.body.id, title: 'Base', weekdays: [0, 1], startWeek: 1, endWeek: 12 });
+    for (const weekday of [0, 1]) {
+      await request(app)
+        .post('/api/completions/toggle')
+        .set('Cookie', cookie)
+        .send({ tacticId: tactic.body.id, week: 1, weekday, done: true });
+    }
+
+    const edit = await request(app)
+      .put(`/api/tactics/${tactic.body.id}/adaptation`)
+      .set('Cookie', cookie)
+      .send({ title: 'Current version', weekdays: [0], scope: 'currentWeek' });
+    expect(edit.status).toBe(200);
+    expect(edit.body.fromWeek).toBe(1);
+    expect(edit.body.throughWeek).toBe(1);
+
+    const dashboard = await request(app)
+      .get(`/api/dashboard/${me.body.id}`)
+      .set('Cookie', cookie);
+    expect(dashboard.body.goals[0].tactics[0].overrides).toContainEqual({
+      week: 1,
+      title: 'Current version',
+      weekdays: [0],
+    });
+    expect(dashboard.body.weekScores[0]).toMatchObject({
+      scheduled: 1,
+      completed: 1,
+      score: 100,
+    });
+    expect(dashboard.body.weekScores[1]).toMatchObject({
+      scheduled: 2,
+      completed: 0,
+      score: 0,
+    });
   });
 
   it('undoes only the upcoming week when an adaptation is taken back', async () => {

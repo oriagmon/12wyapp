@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Goal, Tactic } from '../lib/types';
 import { GOAL_COLOR_HEX } from '../lib/colors';
+import { effectiveTacticForWeek } from '../lib/scoring';
 
 import { TacticForm, type TacticFormValues } from './TacticForm';
 import { useAsyncStatus } from '../hooks/useAsyncStatus';
@@ -13,12 +14,14 @@ function TacticRow({
   tactic,
   isOwner,
   currentWeek,
+  currentWeekView,
   onUpdate,
   onDelete,
 }: {
   tactic: Tactic;
   isOwner: boolean;
   currentWeek: number;
+  currentWeekView: boolean;
   onUpdate: (values: TacticFormValues) => Promise<unknown>;
   onDelete: () => Promise<unknown>;
 }) {
@@ -30,6 +33,8 @@ function TacticRow({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const { t } = useTranslation();
   const del = useAsyncStatus();
+  const effectiveCurrent = effectiveTacticForWeek(tactic, currentWeek);
+  const displayedTactic = currentWeekView ? effectiveCurrent : tactic;
   const nextWeekOverride = tactic.overrides?.find(
     (override) => override.week === currentWeek + 1
   );
@@ -49,15 +54,15 @@ function TacticRow({
   return (
     <div className={styles.tacticRow}>
       <div className={styles.tacticInfo}>
-        <span className={styles.tacticTitle}>{tactic.title}</span>
+        <span className={styles.tacticTitle}>{displayedTactic.title}</span>
         <span className={styles.tacticMeta}>
           {t('goals.tactic.weeks', {
-            days: tactic.weekdays.map((d) => weekdayLabels.short[d]).join(', '),
+            days: displayedTactic.weekdays.map((d) => weekdayLabels.short[d]).join(', '),
             start: tactic.startWeek,
             end: tactic.endWeek,
           })}
         </span>
-        {nextWeekOverride && (
+        {!currentWeekView && nextWeekOverride && (
           <span className={styles.adaptation}>
             {t('goals.tactic.override', {
               week: nextWeekOverride.week,
@@ -110,6 +115,7 @@ export function GoalCard({
   goal,
   isOwner,
   currentWeek,
+  currentWeekView,
   onRename,
   onDelete,
   onCreateTactic,
@@ -119,6 +125,7 @@ export function GoalCard({
   goal: Goal;
   isOwner: boolean;
   currentWeek: number;
+  currentWeekView: boolean;
   onRename: (title: string) => Promise<unknown>;
   onDelete: () => Promise<unknown>;
   onCreateTactic: (values: TacticFormValues) => Promise<unknown>;
@@ -131,6 +138,11 @@ export function GoalCard({
   const [addingTactic, setAddingTactic] = useState(false);
   const rename = useAsyncStatus();
   const del = useAsyncStatus();
+  const visibleTactics = currentWeekView
+    ? goal.tactics.filter(
+        (tactic) => currentWeek >= tactic.startWeek && currentWeek <= tactic.endWeek
+      )
+    : goal.tactics;
 
   const commitRename = () => {
     if (!isOwner || title.trim() === goal.title || title.trim().length === 0) return;
@@ -179,20 +191,21 @@ export function GoalCard({
       )}
 
       <div className={styles.tactics}>
-        {goal.tactics.length === 0 && <p className={styles.emptyTactics}>{t('goals.tactic.none')}</p>}
-        {goal.tactics.map((goalTactic) => (
+        {visibleTactics.length === 0 && <p className={styles.emptyTactics}>{t('goals.tactic.none')}</p>}
+        {visibleTactics.map((goalTactic) => (
           <TacticRow
             key={goalTactic.id}
             tactic={goalTactic}
             isOwner={isOwner}
             currentWeek={currentWeek}
+            currentWeekView={currentWeekView}
             onUpdate={(values) => onUpdateTactic(goalTactic.id, values)}
             onDelete={() => onDeleteTactic(goalTactic.id)}
           />
         ))}
       </div>
 
-      {isOwner && (
+      {isOwner && !currentWeekView && (
         <div className={styles.addTacticSection}>
           {addingTactic ? (
             <TacticForm

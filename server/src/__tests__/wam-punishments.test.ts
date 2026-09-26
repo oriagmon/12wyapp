@@ -1,7 +1,15 @@
-import { describe, it, expect, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import { freshApp, extractCookie } from './helpers.js';
 import { closeDb, getDb } from '../db.js';
+
+vi.mock('../lib/punishmentEmails.js', () => ({
+  schedulePunishmentCreatedEmails: vi.fn(),
+}));
+
+import { schedulePunishmentCreatedEmails } from '../lib/punishmentEmails.js';
+
+const schedulePunishmentEmailsMock = vi.mocked(schedulePunishmentCreatedEmails);
 
 async function registerAndLogin(app: ReturnType<typeof freshApp>, email: string) {
   const res = await request(app).post('/api/auth/register').send({ email, password: 'password123' });
@@ -28,6 +36,7 @@ describe('WAM Punishments', () => {
   let app: ReturnType<typeof freshApp>;
 
   beforeEach(() => {
+    schedulePunishmentEmailsMock.mockReset();
     app = freshApp();
   });
 
@@ -56,6 +65,21 @@ describe('WAM Punishments', () => {
     const authored = partnerAssignedByB.body.wam.punishments.find((p: { label: string }) => p.label === 'לקפל כביסה');
     expect(authored.authorUserId).toBe(b.userId);
     expect(authored.assignedUserId).toBe(a.userId);
+    expect(schedulePunishmentEmailsMock).toHaveBeenCalledTimes(2);
+    expect(schedulePunishmentEmailsMock.mock.calls[0][1]).toMatchObject({
+      participantIds: [a.userId, b.userId],
+      authorUserId: a.userId,
+      assignedUserId: a.userId,
+      label: 'לנקות את המטבח',
+      week: 1,
+    });
+    expect(schedulePunishmentEmailsMock.mock.calls[1][1]).toMatchObject({
+      participantIds: [a.userId, b.userId],
+      authorUserId: b.userId,
+      assignedUserId: a.userId,
+      label: 'לקפל כביסה',
+      week: 1,
+    });
 
     // Author is always derived from the session (a.userId/b.userId above, via each cookie),
     // never from the request body — the strict schema outright rejects any attempt to send
@@ -1094,4 +1118,3 @@ describe('WAM Punishments', () => {
     });
   });
 });
-
