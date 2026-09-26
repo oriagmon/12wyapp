@@ -72,6 +72,13 @@ describe('gym: workout state', () => {
         },
       ],
       active: null,
+      notes: {
+        A: {
+          text: 'Keep the shoulders down',
+          createdInSessionId: 'session-1',
+          createdAt: '2026-09-07T07:00:00.000Z',
+        },
+      },
     };
 
     const put = await request(app).put('/api/gym/state').set('Cookie', user.cookie).send(payload);

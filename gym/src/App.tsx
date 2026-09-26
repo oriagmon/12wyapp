@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import { NotSignedInError, fetchState, saveState, saveWeight, type WeightEntry } from './api'
+import { Fireworks } from './Fireworks'
+import { beatsPreviousSet, isAllTimeHighWeight } from './progress'
 import { WeightChart } from './WeightChart'
 import { WeightPanel } from './WeightPanel'
 
@@ -62,9 +64,19 @@ type CompletedSession = ActiveSession & {
   completedAt: string
 }
 
+type WorkoutNote = {
+  text: string
+  createdInSessionId: string | null
+  createdAt: string
+  dismissedAt?: string
+}
+
+type WorkoutNotes = Partial<Record<WorkoutId, WorkoutNote>>
+
 type AppData = {
   sessions: CompletedSession[]
   active: ActiveSession | null
+  notes: WorkoutNotes
 }
 
 type SetDraft = {
@@ -325,7 +337,7 @@ const WORKOUTS: Record<WorkoutId, Workout> = {
   },
 }
 
-const EMPTY_DATA: AppData = { sessions: [], active: null }
+const EMPTY_DATA: AppData = { sessions: [], active: null, notes: {} }
 
 function totalSets(workout: Workout) {
   return workout.trackingSteps.length
@@ -434,6 +446,7 @@ function parseStoredData(raw: string): ParsedStore {
     data: {
       sessions: parsed.sessions as CompletedSession[],
       active: (parsed.active as ActiveSession | null) ?? null,
+      notes: parseWorkoutNotes(parsed.notes),
     },
   }
 }
@@ -501,11 +514,59 @@ function getExerciseName(exerciseId: string) {
 }
 
 function getLastExerciseSets(sessions: CompletedSession[], exerciseId: string) {
+  return getLastExercisePerformance(sessions, exerciseId)?.sets ?? []
+}
+
+function getLastExercisePerformance(sessions: CompletedSession[], exerciseId: string) {
   for (let index = sessions.length - 1; index >= 0; index -= 1) {
     const sets = sessions[index].sets.filter((set) => set.exerciseId === exerciseId)
-    if (sets.length > 0) return sets
+    if (sets.length > 0) return { session: sessions[index], sets }
   }
-  return []
+  return null
+}
+
+function parseWorkoutNotes(value: unknown): WorkoutNotes {
+  if (!value || typeof value !== 'object') return {}
+
+  const notes: WorkoutNotes = {}
+  for (const workoutId of WORKOUT_ORDER) {
+    const candidate = (value as Record<string, unknown>)[workoutId]
+    if (!candidate || typeof candidate !== 'object') continue
+    const note = candidate as Partial<WorkoutNote>
+    if (
+      typeof note.text !== 'string' ||
+      typeof note.createdAt !== 'string' ||
+      !(typeof note.createdInSessionId === 'string' || note.createdInSessionId === null)
+    ) continue
+    notes[workoutId] = {
+      text: note.text,
+      createdAt: note.createdAt,
+      createdInSessionId: note.createdInSessionId,
+      ...(typeof note.dismissedAt === 'string' ? { dismissedAt: note.dismissedAt } : {}),
+    }
+  }
+  return notes
+}
+
+function mergeWorkoutNotes(local: WorkoutNotes, remote: WorkoutNotes): WorkoutNotes {
+  const merged: WorkoutNotes = {}
+  for (const workoutId of WORKOUT_ORDER) {
+    const localNote = local[workoutId]
+    const remoteNote = remote[workoutId]
+    if (!localNote) {
+      if (remoteNote) merged[workoutId] = remoteNote
+      continue
+    }
+    if (!remoteNote) {
+      merged[workoutId] = localNote
+      continue
+    }
+
+    const localChangedAt = localNote.dismissedAt ?? localNote.createdAt
+    const remoteChangedAt = remoteNote.dismissedAt ?? remoteNote.createdAt
+    merged[workoutId] = localChangedAt >= remoteChangedAt ? localNote : remoteNote
+  }
+  return merged
 }
 
 /**
@@ -541,7 +602,69 @@ function mergeLogs(local: AppData, remote: Partial<AppData> | null | undefined):
         : remoteActive
       : (local.active ?? remoteActive)
 
-  return { sessions, active }
+  return {
+    sessions,
+    active,
+    notes: mergeWorkoutNotes(local.notes, parseWorkoutNotes(remote?.notes)),
+  }
+}
+
+function WorkoutNoteCard({
+  note,
+  onDismiss,
+}: {
+  note: WorkoutNote
+  onDismiss: () => void
+}) {
+  return (
+    <aside className="workout-note" aria-label="הערה מהאימון הקודם">
+      <button type="button" onClick={onDismiss} aria-label="סגור הערה">
+        ×
+      </button>
+      <span>הערה מהאימון הקודם</span>
+      <p>{note.text}</p>
+    </aside>
+  )
+}
+
+function WorkoutNoteEditor({
+  workout,
+  onSave,
+}: {
+  workout: Workout
+  onSave: (text: string) => void
+}) {
+  const [text, setText] = useState('')
+
+  useEffect(() => setText(''), [workout.id])
+
+  return (
+    <details className="workout-note-editor">
+      <summary>הוסף הערה ל{workout.label} הבא</summary>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault()
+          const trimmed = text.trim()
+          if (!trimmed) return
+          onSave(trimmed)
+          setText('')
+          event.currentTarget.closest('details')?.removeAttribute('open')
+        }}
+      >
+        <textarea
+          value={text}
+          maxLength={500}
+          rows={3}
+          placeholder="מה חשוב לזכור בפעם הבאה?"
+          aria-label={`הערה ל${workout.label} הבא`}
+          onChange={(event) => setText(event.target.value)}
+        />
+        <button type="submit" disabled={!text.trim()}>
+          שמור לאימון הבא
+        </button>
+      </form>
+    </details>
+  )
 }
 
 /**
@@ -646,6 +769,7 @@ function App() {
   const [restUntil, setRestUntil] = useState<number | null>(null)
   const [clock, setClock] = useState(0)
   const [notice, setNotice] = useState<string | null>(null)
+  const [celebration, setCelebration] = useState<{ id: string; message: string } | null>(null)
 
   // Server sync. Local storage stays in place as a cache so a dropped connection mid-workout
   // never costs you a set, but the server is what actually survives a new phone.
@@ -783,8 +907,12 @@ function App() {
     setSavingWeight(true)
     setSyncError(null)
     try {
+      const reachedAllTimeHigh = isAllTimeHighWeight(weights, measuredOn, kg)
       const result = await saveWeight(measuredOn, kg, condition)
       setWeights(Array.isArray(result?.weights) ? result.weights : [])
+      if (reachedAllTimeHigh) {
+        setCelebration({ id: createId(), message: 'שיא משקל חדש!' })
+      }
       return true
     } catch (error: unknown) {
       setSyncError(
@@ -878,6 +1006,35 @@ function App() {
     navigator.vibrate?.(30)
   }
 
+  function saveWorkoutNote(workoutId: WorkoutId, text: string, createdInSessionId: string | null) {
+    setData((current) => ({
+      ...current,
+      notes: {
+        ...current.notes,
+        [workoutId]: {
+          text,
+          createdInSessionId,
+          createdAt: new Date().toISOString(),
+        },
+      },
+    }))
+    setNotice(`ההערה תופיע ב${WORKOUTS[workoutId].label} הבא.`)
+  }
+
+  function dismissWorkoutNote(workoutId: WorkoutId) {
+    setData((current) => {
+      const note = current.notes[workoutId]
+      if (!note) return current
+      return {
+        ...current,
+        notes: {
+          ...current.notes,
+          [workoutId]: { ...note, dismissedAt: new Date().toISOString() },
+        },
+      }
+    })
+  }
+
   function completeSet() {
     if (
       !data.active ||
@@ -896,6 +1053,14 @@ function App() {
       rir: draftRir,
       completedAt: new Date().toISOString(),
     }
+    const priorSets = getLastExerciseSets(data.sessions, currentExercise.id)
+    const comparablePriorSet = priorSets[currentSetNumber - 1] ?? priorSets.at(-1)
+    if (comparablePriorSet && beatsPreviousSet(loggedSet, comparablePriorSet)) {
+      setCelebration({
+        id: createId(),
+        message: `שיפור חדש ב${currentExercise.name}!`,
+      })
+    }
     const updatedSets = [...data.active.sets, loggedSet]
     const workoutIsComplete = updatedSets.length === totalSets(activeWorkout)
 
@@ -906,6 +1071,7 @@ function App() {
         completedAt: loggedSet.completedAt,
       }
       setData((current) => ({
+        ...current,
         sessions: [...current.sessions, completedSession],
         active: null,
       }))
@@ -954,6 +1120,7 @@ function App() {
     if (!completedSession) return
     const remainingSets = completedSession.sets.slice(0, -1)
     setData((current) => ({
+      ...current,
       sessions: current.sessions.slice(0, -1),
       active: {
         id: completedSession.id,
@@ -988,14 +1155,26 @@ function App() {
   }
 
   if (data.active && activeWorkout && currentExercise && currentStep) {
-    const priorSets = getLastExerciseSets(data.sessions, currentExercise.id)
-    const priorSummary = priorSets.length
-      ? priorSets.map((set) => `${set.weight}×${set.reps}`).join(' · ')
+    const priorPerformance = getLastExercisePerformance(data.sessions, currentExercise.id)
+    const priorSummary = priorPerformance
+      ? priorPerformance.sets.map((set) => `${set.weight}×${set.reps}`).join(' · ')
       : 'אין עדיין תיעוד קודם'
+    const activeNote = data.notes[activeWorkout.id]
+    const showActiveNote =
+      activeNote &&
+      !activeNote.dismissedAt &&
+      activeNote.createdInSessionId !== data.active.id
     const remainingRest = restUntil ? Math.max(0, restUntil - clock) : 0
 
     return (
       <main className="app-shell active-shell" dir="rtl">
+        {celebration && (
+          <Fireworks
+            key={celebration.id}
+            message={celebration.message}
+            onDone={() => setCelebration(null)}
+          />
+        )}
         <header className="active-header">
           <div>
             <span className="eyebrow">{activeWorkout.label}</span>
@@ -1013,6 +1192,18 @@ function App() {
         </div>
 
         <PlanSheet workout={activeWorkout} />
+
+        {showActiveNote && (
+          <WorkoutNoteCard
+            note={activeNote}
+            onDismiss={() => dismissWorkoutNote(activeWorkout.id)}
+          />
+        )}
+
+        <WorkoutNoteEditor
+          workout={activeWorkout}
+          onSave={(text) => saveWorkoutNote(activeWorkout.id, text, data.active!.id)}
+        />
 
         {restUntil && (
           <aside className="rest-timer" aria-live="polite">
@@ -1044,7 +1235,11 @@ function App() {
             סט {currentSetNumber}/{currentExercise.sets} · יעד {currentExercise.repMin}–
             {currentExercise.repMax} חזרות · {currentExercise.targetRir} RIR
           </p>
-          <p className="previous-line">קודם: {priorSummary}</p>
+          <p className="previous-line">
+            {priorPerformance
+              ? `בפעם הקודמת (${formatDate(priorPerformance.session.completedAt)}): ${priorSummary}`
+              : priorSummary}
+          </p>
 
           <div className="control-grid">
             <div className="number-control">
@@ -1184,9 +1379,19 @@ function App() {
   }
 
   const selectedPlan = WORKOUTS[selectedWorkout]
+  const selectedNote = data.notes[selectedWorkout]
+  const showSelectedNote =
+    selectedNote && !selectedNote.dismissedAt && selectedNote.createdInSessionId !== null
 
   return (
     <main className="app-shell" dir="rtl">
+      {celebration && (
+        <Fireworks
+          key={celebration.id}
+          message={celebration.message}
+          onDone={() => setCelebration(null)}
+        />
+      )}
       <header className="home-header">
         <div>
           <span className="eyebrow">GYM LOG</span>
@@ -1292,6 +1497,18 @@ function App() {
               <span>כל הנתונים הקודמים כבר בפנים</span>
             </button>
 
+            {showSelectedNote && (
+              <WorkoutNoteCard
+                note={selectedNote}
+                onDismiss={() => dismissWorkoutNote(selectedWorkout)}
+              />
+            )}
+
+            <WorkoutNoteEditor
+              workout={selectedPlan}
+              onSave={(text) => saveWorkoutNote(selectedWorkout, text, null)}
+            />
+
             <PlanSheet workout={selectedPlan} />
           </section>
 
@@ -1299,8 +1516,7 @@ function App() {
             <h3>מה מתעדים היום</h3>
             <p className="tracking-note">רק 3 תרגילים. סדר ומנוחות לפי ה־PDF; כאן רק מתעדים.</p>
             {trackedExercises(selectedPlan).map((exercise) => {
-              const previous = getLastExerciseSets(data.sessions, exercise.id)
-              const lastLoad = previous.at(-1)?.weight
+              const previous = getLastExercisePerformance(data.sessions, exercise.id)
               return (
                 <div className="preview-row" key={exercise.id}>
                   <div>
@@ -1310,7 +1526,11 @@ function App() {
                     </span>
                   </div>
                   <span className="last-load">
-                    {lastLoad ? `${lastLoad} ק״ג` : exercise.initialWeight ? `${exercise.initialWeight} ק״ג` : 'פעם ראשונה'}
+                    {previous
+                      ? `${previous.sets.map((set) => `${set.weight}×${set.reps}`).join(' · ')} (${formatDate(previous.session.completedAt)})`
+                      : exercise.initialWeight
+                        ? `${exercise.initialWeight} ק״ג · פעם ראשונה`
+                        : 'פעם ראשונה'}
                   </span>
                 </div>
               )

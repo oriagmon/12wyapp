@@ -128,6 +128,19 @@ The gym tracker is mounted at `/gym` on the main server, but it can also answer
 on a dedicated hostname so it installs to a phone as its own app with its own
 icon. Both are the same process and the same database; only the URL differs.
 
+Workout progress is compared set-for-set with the most recent earlier session
+that contains the same exercise. Because weight and repetitions can move in
+opposite directions, the tracker compares Epley estimated one-rep max
+(`weight * (1 + reps / 30)`) rather than weight or volume alone. A strictly
+higher score triggers the in-workout celebration. Morning weigh-ins celebrate
+only a strictly new all-time high after at least one earlier reading.
+
+Notes are stored in the existing per-user `gym_state` JSON, scoped to workout
+A/B/C. A note written during a session is hidden until the next session of that
+type; once visible it remains until explicitly dismissed with its close button.
+Dismissals are retained as timestamps so syncing an older device cannot
+resurrect the note.
+
 Point a subdomain of the dashboard's domain at the same machine
 (`gym.example.com` alongside `example.com`), then map that host's root onto the
 `/gym/` mount:
