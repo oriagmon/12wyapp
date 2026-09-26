@@ -21,6 +21,16 @@ export function beatsPreviousSet(current: PerformanceSet, previous: PerformanceS
   return estimatedOneRepMax(current) > estimatedOneRepMax(previous) + 0.000_001
 }
 
+export function strongestPerformanceSet<T extends PerformanceSet>(sets: T[]) {
+  return sets.reduce<T | null>(
+    (strongest, set) =>
+      strongest === null || estimatedOneRepMax(set) > estimatedOneRepMax(strongest)
+        ? set
+        : strongest,
+    null,
+  )
+}
+
 export function isAllTimeHighWeight(
   readings: WeightReading[],
   measuredOn: string,

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import { NotSignedInError, fetchState, saveState, saveWeight, type WeightEntry } from './api'
+import { ExerciseWeightChart } from './ExerciseWeightChart'
 import { Fireworks } from './Fireworks'
 import { beatsPreviousSet, isAllTimeHighWeight } from './progress'
 import { WeightChart } from './WeightChart'
@@ -1536,6 +1537,12 @@ function App() {
               )
             })}
           </section>
+
+          <ExerciseWeightChart
+            today={today}
+            exercises={trackedExercises(selectedPlan)}
+            sessions={data.sessions}
+          />
 
           {lastSession && (
             <section className="last-workout">

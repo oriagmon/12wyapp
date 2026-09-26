@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { beatsPreviousSet, estimatedOneRepMax, isAllTimeHighWeight } from './progress'
+import {
+  beatsPreviousSet,
+  estimatedOneRepMax,
+  isAllTimeHighWeight,
+  strongestPerformanceSet,
+} from './progress'
 
 describe('exercise progress', () => {
   it('counts more repetitions at the same weight as progress', () => {
@@ -20,6 +25,15 @@ describe('exercise progress', () => {
 
   it('does not celebrate an identical set', () => {
     expect(beatsPreviousSet({ weight: 60, reps: 8 }, { weight: 60, reps: 8 })).toBe(false)
+  })
+
+  it('selects the strongest set for a session using weight and repetitions', () => {
+    const strongest = strongestPerformanceSet([
+      { weight: 62.5, reps: 6 },
+      { weight: 60, reps: 9 },
+      { weight: 60, reps: 8 },
+    ])
+    expect(strongest).toEqual({ weight: 60, reps: 9 })
   })
 })
 

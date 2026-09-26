@@ -134,6 +134,9 @@ opposite directions, the tracker compares Epley estimated one-rep max
 (`weight * (1 + reps / 30)`) rather than weight or volume alone. A strictly
 higher score triggers the in-workout celebration. Morning weigh-ins celebrate
 only a strictly new all-time high after at least one earlier reading.
+The workout home also charts that same estimated-strength score over time for
+each tracked exercise, with 30-day, 90-day and all-history ranges; tapping a
+point reveals the actual strongest set's weight and repetitions.
 
 Notes are stored in the existing per-user `gym_state` JSON, scoped to workout
 A/B/C. A note written during a session is hidden until the next session of that

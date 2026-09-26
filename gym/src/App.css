@@ -229,6 +229,118 @@
   font-weight: 700;
 }
 
+.exercise-weight-chart-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--cp-border);
+  border-radius: 16px;
+  background: var(--cp-surface);
+  box-shadow: var(--cp-card-shadow);
+}
+
+.exercise-chart-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.exercise-chart-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.exercise-chart-head p {
+  margin: 4px 0 0;
+  color: var(--cp-text-muted);
+  font-size: 0.75rem;
+}
+
+.exercise-chart-picker {
+  display: flex;
+  gap: 6px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.exercise-chart-picker button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 7px 11px;
+  border: 1px solid var(--cp-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cp-text-muted);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.exercise-chart-picker button.active {
+  border-color: var(--cp-accent);
+  background: var(--cp-accent-soft);
+  color: var(--cp-accent);
+}
+
+.exercise-chart-summary {
+  display: flex;
+  min-height: 24px;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.exercise-chart-summary strong {
+  color: var(--cp-text);
+  font-size: 1.25rem;
+}
+
+.exercise-chart-summary span {
+  color: var(--cp-text-muted);
+  font-size: 0.75rem;
+}
+
+.exercise-weight-chart {
+  display: block;
+  width: 100%;
+  max-width: 440px;
+  height: auto;
+  margin-inline: auto;
+  overflow: visible;
+}
+
+.exercise-progress-line {
+  fill: none;
+  stroke: var(--cp-accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.exercise-dot {
+  fill: var(--cp-accent);
+  stroke: var(--cp-surface);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.exercise-dot.selected {
+  stroke-width: 3;
+}
+
+.exercise-chart-legend {
+  margin: -4px 0 0;
+  color: var(--cp-text-muted);
+  font-size: 0.7rem;
+  text-align: center;
+}
+
 .last-workout {
   margin-top: 16px;
   padding: 14px 16px;
