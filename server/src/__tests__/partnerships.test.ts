@@ -55,6 +55,7 @@ describe('direct pairing and cross-user authorization', () => {
     const res = await request(app).post('/api/partnerships/pair').set('Cookie', a.cookie).send({ targetUserId: b.userId });
     expect(res.status).toBe(201);
     expect(res.body.partner.email).toBe('b@a.com');
+    expect(res.body.partner).toMatchObject({ hasAvatar: false, avatarVersion: 0 });
 
     // Immediately visible and mutual from both sides, with no pending state at all.
     const fromA = await request(app).get('/api/partnerships').set('Cookie', a.cookie);

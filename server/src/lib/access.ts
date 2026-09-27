@@ -26,6 +26,8 @@ export interface PartnerInfo {
   /** Empty when never set. Callers render it through the app-wide "display name, falling
    *  back to the email" convention rather than treating the email as the primary label. */
   displayName: string;
+  hasAvatar: boolean;
+  avatarVersion: number;
   partnershipId: number;
 }
 
@@ -33,13 +35,14 @@ export interface PartnerInfo {
 export function getAcceptedPartner(db: Database.Database, userId: number): PartnerInfo | undefined {
   const row = db
     .prepare(
-      `SELECT u.id as id, u.email as email, COALESCE(u.display_name, '') as displayName, p.id as partnershipId
+      `SELECT u.id as id, u.email as email, COALESCE(u.display_name, '') as displayName,
+              (u.avatar_mime IS NOT NULL) as hasAvatar, u.avatar_version as avatarVersion,
+              p.id as partnershipId
        FROM partnerships p
        JOIN users u ON u.id = (CASE WHEN p.initiator_id = ? THEN p.invitee_id ELSE p.initiator_id END)
        WHERE p.initiator_id = ? OR p.invitee_id = ?
        LIMIT 1`
     )
-    .get(userId, userId, userId) as PartnerInfo | undefined;
-  return row;
+    .get(userId, userId, userId) as (Omit<PartnerInfo, 'hasAvatar'> & { hasAvatar: number }) | undefined;
+  return row ? { ...row, hasAvatar: row.hasAvatar === 1 } : undefined;
 }
-

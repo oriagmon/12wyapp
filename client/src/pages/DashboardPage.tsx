@@ -24,6 +24,7 @@ import { CycleProgressCard } from '../components/CycleProgressCard';
 import { CycleWrapUpCard } from '../components/CycleWrapUpCard';
 import { PrimaryGoalHero } from '../components/PrimaryGoalHero';
 import { StreakBanner } from '../components/StreakBanner';
+import { CompetitionBanner } from '../components/CompetitionBanner';
 import { WeeklyPlanningRitualPanel } from '../components/WeeklyPlanningRitualPanel';
 import { WeeklyPlanningRitualHomeCard } from '../components/WeeklyPlanningRitualHomeCard';
 import { ExecutionRecoveryCard } from '../components/ExecutionRecoveryCard';
@@ -57,6 +58,9 @@ export function DashboardPage() {
   // Weekly Accountability Meeting flow can offer "edit my own goals/tactics" no
   // matter which dashboard is currently being viewed.
   const ownDash = useDashboard(user!.id);
+  const partnerDash = useDashboard(
+    viewingOwn && activeSection === 'week' ? partner?.id ?? null : null
+  );
   const [newCycleName, setNewCycleName] = useState('');
   const createStatus = useAsyncStatus();
 
@@ -128,6 +132,15 @@ export function DashboardPage() {
                     ))}
                   </select>
                 </div>
+
+                {partner && week === cycle.currentWeek && (
+                  <CompetitionBanner
+                    user={user!}
+                    partner={partner}
+                    ownAverage={(viewingOwn ? dash.bundle : ownDash.bundle)?.averageScore ?? null}
+                    partnerAverage={(viewingOwn ? partnerDash.bundle : dash.bundle)?.averageScore ?? null}
+                  />
+                )}
 
                 <ScoreSummary week={week} score={weekScore} />
 

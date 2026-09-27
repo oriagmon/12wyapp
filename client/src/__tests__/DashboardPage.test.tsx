@@ -221,6 +221,7 @@ describe('DashboardPage: personal planning and WAM share one destination', () =>
       ...EMPTY_BUNDLE,
       access: userId === 1 ? 'owner' : 'partner',
       targetEmail: userId === 1 ? AUTH_USER.email : 'partner@example.test',
+      averageScore: userId === 1 ? 72.5 : 81,
       cycle: currentWeek === null ? null : {
         id: userId * 10, name: `cycle-${userId}`, currentWeek, isActive: true,
         vision: '', successDefinition: '', whyItMatters: '', blockers: '', risks: '', lagMeasures: '', leadMeasures: '', notes: '',
@@ -302,6 +303,28 @@ describe('DashboardPage: personal planning and WAM share one destination', () =>
   function openCombinedPage() {
     fireEvent.click(within(screen.getByRole('navigation', { name: 'ניווט ראשי' })).getByRole('button', { name: 'פגישה משותפת' }));
   }
+
+  it('shows the competition only on the current Week view', async () => {
+    setup();
+    renderDashboard();
+
+    const navigation = await screen.findByRole('navigation', { name: 'ניווט ראשי' });
+    fireEvent.click(
+      within(navigation).getByRole('button', {
+        name: 'השבוע',
+      })
+    );
+
+    expect(await screen.findByRole('region', { name: 'תחרות הצלחה' })).toBeInTheDocument();
+    expect(screen.getByText('72.5%')).toBeInTheDocument();
+    expect(screen.getByText('81%')).toBeInTheDocument();
+
+    fireEvent.change(
+      screen.getByLabelText('בחירת שבוע לצפייה (ניווט היסטורי, לא משנה נתונים)'),
+      { target: { value: '2' } }
+    );
+    expect(screen.queryByRole('region', { name: 'תחרות הצלחה' })).not.toBeInTheDocument();
+  });
 
   it.each([
     ['home', 'בית', false], ['week', 'השבוע', false], ['goals', 'מטרות', false],

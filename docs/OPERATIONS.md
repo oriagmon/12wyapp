@@ -1062,6 +1062,10 @@ weekly (1–12) meeting per partnership per cycle generation:
   defaults to the current week and immediately recalculates that week's score;
   the user can instead apply the edit from the current week through the end of
   the tactic. The WAM planning flow remains explicitly next-week-only.
+- The current Week view shows a friendly competition banner for paired users.
+  It always renders the signed-in user against their current partner, including
+  both profile images and each active cycle's current success average. The
+  leader and exact gap drive the prompt; historical week views omit the banner.
 - Gym lifting charts explain that each workout contributes its strongest set
   by Epley estimated 1RM (`weight × (1 + reps / 30)`). The chart can plot that
   estimated strength, the actual lifted weight, or repetitions from the same

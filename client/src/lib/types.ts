@@ -97,6 +97,8 @@ export interface PartnerInfo {
   email: string;
   /** Empty when never set — always render via personLabel() in lib/people.ts. */
   displayName: string;
+  hasAvatar?: boolean;
+  avatarVersion?: number;
   partnershipId: number;
 }
 
