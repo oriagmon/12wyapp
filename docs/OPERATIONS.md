@@ -1070,6 +1070,9 @@ weekly (1–12) meeting per partnership per cycle generation:
   by Epley estimated 1RM (`weight × (1 + reps / 30)`). The chart can plot that
   estimated strength, the actual lifted weight, or repetitions from the same
   selected set; tapping a point always shows all three values.
+- The gym home header links to the bundled Ninja Speedi high-protein recipe
+  book. It is served as a same-origin static PDF and opened in the browser's
+  native viewer in a new tab; the link intentionally has no download attribute.
 - The tab also offers a weekly list, the latest meeting's summary, a simple
   substring search across notes/commitments, and a print/export view.
 

@@ -23,6 +23,12 @@
   margin-bottom: 24px;
 }
 
+.home-header-actions {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
 .eyebrow {
   display: block;
   margin-bottom: 4px;
@@ -52,6 +58,30 @@
   color: var(--cp-text-muted);
   font-size: 0.76rem;
   font-weight: 700;
+}
+
+.recipe-pdf-button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border: 1px solid var(--cp-accent);
+  border-radius: 999px;
+  background: var(--cp-accent-soft);
+  color: var(--cp-accent);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.recipe-pdf-button:hover {
+  filter: brightness(1.08);
+}
+
+.recipe-pdf-button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--cp-accent) 38%, transparent);
+  outline-offset: 2px;
 }
 
 .next-workout-card,

@@ -1398,15 +1398,26 @@ function App() {
           <span className="eyebrow">GYM LOG</span>
           <h1>האימון שלך</h1>
         </div>
-        <span className="local-badge">
-          {syncState === 'ready'
-            ? 'נשמר בענן'
-            : syncState === 'signed-out'
-              ? 'לא מחובר'
-              : syncState === 'error'
-                ? 'נשמר במכשיר'
-                : 'מסנכרן…'}
-        </span>
+        <div className="home-header-actions">
+          <span className="local-badge">
+            {syncState === 'ready'
+              ? 'נשמר בענן'
+              : syncState === 'signed-out'
+                ? 'לא מחובר'
+                : syncState === 'error'
+                  ? 'נשמר במכשיר'
+                  : 'מסנכרן…'}
+          </span>
+          <a
+            className="recipe-pdf-button"
+            href="./ninja_speedi_40_high_protein_recipes.pdf"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <span aria-hidden="true">📖</span>
+            הצגת ספר המתכונים
+          </a>
+        </div>
       </header>
 
       {handedOverCount > 0 && (
