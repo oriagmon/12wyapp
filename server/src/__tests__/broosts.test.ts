@@ -232,7 +232,7 @@ describe('BROOST: API — sending', () => {
     expect(sendEmailMock).not.toHaveBeenCalled();
   });
 
-  it('applies the existing cooldown to replies rather than creating an unlimited send path', async () => {
+  it('allows consecutive replies while retaining the rolling send cap', async () => {
     const partnershipId = await pair(app, a, b);
     const originalId = insertBroostRow(getDb(), {
       senderId: b.userId, recipientId: a.userId, partnershipId, emailStatus: 'sent',
@@ -240,8 +240,8 @@ describe('BROOST: API — sending', () => {
     await request(app).post('/api/broosts').set('Cookie', a.cookie)
       .send({ replyToBroostId: originalId, customMessage: 'תגובה ראשונה' }).expect(201);
     await request(app).post('/api/broosts').set('Cookie', a.cookie)
-      .send({ replyToBroostId: originalId, customMessage: 'תגובה חוזרת' }).expect(429);
-    expect((getDb().prepare('SELECT COUNT(*) AS count FROM partner_broosts WHERE sender_id = ?').get(a.userId) as { count: number }).count).toBe(1);
+      .send({ replyToBroostId: originalId, customMessage: 'תגובה חוזרת' }).expect(201);
+    expect((getDb().prepare('SELECT COUNT(*) AS count FROM partner_broosts WHERE sender_id = ?').get(a.userId) as { count: number }).count).toBe(2);
   });
 
   it('rejects both a preset and a custom message together', async () => {
@@ -311,7 +311,7 @@ describe('BROOST: API — sending', () => {
   });
 });
 
-describe('BROOST: anti-spam (rolling 24h cap + 60s cooldown)', () => {
+describe('BROOST: rolling 24h cap with consecutive sends', () => {
   let app: ReturnType<typeof freshApp>;
   let a: { cookie: string; userId: number; email: string };
   let b: { cookie: string; userId: number; email: string };
@@ -327,11 +327,9 @@ describe('BROOST: anti-spam (rolling 24h cap + 60s cooldown)', () => {
 
   afterAll(() => closeDb());
 
-  it('allows exactly MAX_BROOSTS_PER_PAIR_PER_WINDOW sends when spaced beyond the cooldown, then blocks the next one with 429', async () => {
+  it('allows exactly MAX_BROOSTS_PER_PAIR_PER_WINDOW sends, then blocks the next one with 429', async () => {
     const db = getDb();
     for (let i = 0; i < MAX_BROOSTS_PER_PAIR_PER_WINDOW; i++) {
-      // Directly insert rather than going through the 60s cooldown in real time — this test
-      // isolates the *count* boundary from the cooldown boundary (covered separately below).
       insertBroostRow(db, { senderId: a.userId, recipientId: b.userId, partnershipId: null, createdAt: new Date(Date.now() - (i + 10) * 60_000).toISOString() });
     }
     const res = await request(app).post('/api/broosts').set('Cookie', a.cookie).send({ presetKey: 'great_job' });
@@ -365,47 +363,29 @@ describe('BROOST: anti-spam (rolling 24h cap + 60s cooldown)', () => {
     expect(res.status).toBe(201);
   });
 
-  it('blocks a second send within the 60s cooldown, even well under the count cap', async () => {
+  it('allows several immediate consecutive sends up to the rolling cap', async () => {
     const first = await request(app).post('/api/broosts').set('Cookie', a.cookie).send({ presetKey: 'great_job' });
     expect(first.status).toBe(201);
-    const second = await request(app).post('/api/broosts').set('Cookie', a.cookie).send({ presetKey: 'crushing_it' });
-    expect(second.status).toBe(429);
-  });
-
-  it('allows a second send once the cooldown has elapsed', async () => {
-    const first = await request(app).post('/api/broosts').set('Cookie', a.cookie).send({ presetKey: 'great_job' });
-    expect(first.status).toBe(201);
-    const db = getDb();
-    db.prepare('UPDATE partner_broosts SET created_at = ? WHERE id = ?').run(
-      new Date(Date.now() - 61_000).toISOString(),
-      first.body.id
-    );
     const second = await request(app).post('/api/broosts').set('Cookie', a.cookie).send({ presetKey: 'crushing_it' });
     expect(second.status).toBe(201);
+    const third = await request(app).post('/api/broosts').set('Cookie', a.cookie).send({ presetKey: 'keep_going' });
+    expect(third.status).toBe(201);
   });
 
-  it('CONCURRENCY (60s cooldown boundary): several near-simultaneous sends from a cold start all race the *cooldown*, not the count cap — exactly one succeeds', async () => {
-    // With no prior BROOSTs between this pair, every one of these fires within the same
-    // 60-second cooldown window of each other (they're all issued concurrently) — so the
-    // cooldown, not the 24h count cap (which is nowhere near its limit), is what bounds the
-    // outcome down to exactly one success, proving the two checks compose correctly under a
-    // real race rather than one silently masking the other.
+  it('CONCURRENCY: near-simultaneous sends fill but never exceed the rolling cap', async () => {
     const attempts = MAX_BROOSTS_PER_PAIR_PER_WINDOW + 3;
     const results = await Promise.all(
       Array.from({ length: attempts }, () => request(app).post('/api/broosts').set('Cookie', a.cookie).send({ presetKey: 'great_job' }))
     );
     const succeeded = results.filter((r) => r.status === 201).length;
     const rateLimited = results.filter((r) => r.status === 429).length;
-    expect(succeeded).toBe(1);
+    expect(succeeded).toBe(MAX_BROOSTS_PER_PAIR_PER_WINDOW);
     expect(succeeded + rateLimited).toBe(attempts);
     const countRow = getDb().prepare('SELECT COUNT(*) as count FROM partner_broosts').get() as { count: number };
-    expect(countRow.count).toBe(1);
+    expect(countRow.count).toBe(MAX_BROOSTS_PER_PAIR_PER_WINDOW);
   });
 
-  it('CONCURRENCY (24h count-cap boundary): with the cooldown already satisfied by 4 pre-seeded sends, only one more concurrent attempt succeeds out of many', async () => {
-    // Pre-seed MAX-1 sends, all safely outside the 60s cooldown, so the *count cap* (not the
-    // cooldown) is the only thing standing between these concurrent attempts and success —
-    // exactly one of them should win the race to become the 5th (and last allowed) send.
+  it('CONCURRENCY: with 4 pre-seeded sends, only one more attempt succeeds', async () => {
     const db = getDb();
     for (let i = 0; i < MAX_BROOSTS_PER_PAIR_PER_WINDOW - 1; i++) {
       insertBroostRow(db, {

@@ -95,7 +95,6 @@ export const api: AreaDict = {
     'api.broosts.presetNotFound': 'That preset message does not exist.',
     'api.broosts.customTooLong': 'That message is too long.',
     'api.broosts.dailyLimitReached': 'You have reached the daily BROOST limit for this partner. Try again later.',
-    'api.broosts.cooldownRequired': 'Please wait a moment before sending another BROOST.',
     'api.broosts.recipientNotFound': 'Recipient not found.',
 
     // reminders
@@ -316,7 +315,6 @@ export const api: AreaDict = {
     'api.broosts.presetNotFound': 'ההודעה המוכנה שנבחרה אינה קיימת',
     'api.broosts.customTooLong': 'ההודעה האישית ארוכה מדי',
     'api.broosts.dailyLimitReached': 'הגעת למגבלת ה-BROOST היומית לשותף/ה הזה/ה. נסה/י שוב מאוחר יותר',
-    'api.broosts.cooldownRequired': 'יש להמתין בין BROOST אחד למשנהו',
     'api.broosts.recipientNotFound': 'הנמען לא נמצא',
 
     // reminders

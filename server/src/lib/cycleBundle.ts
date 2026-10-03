@@ -6,7 +6,7 @@ import {
   getCompletionsForTactics,
   type CycleRow,
 } from './repo.js';
-import { computeWeekScores, averageScore, type TacticWithCompletions } from './scoring.js';
+import { computeWeekScores, finishedWeeksAverage, type TacticWithCompletions } from './scoring.js';
 import { getEvidenceKeysForTactics } from './tacticEvidence.js';
 
 export interface CycleBundle {
@@ -95,7 +95,7 @@ export function buildCycleBundle(db: Database.Database, cycle: CycleRow): CycleB
   );
 
   const weekScores = computeWeekScores(tacticsWithCompletions);
-  const avg = averageScore(weekScores);
+  const avg = finishedWeeksAverage(weekScores, cycle.current_week, cycle.is_active === 1);
 
   const goals = goalRows.map((g) => ({
     id: g.id,

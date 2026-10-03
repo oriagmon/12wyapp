@@ -78,6 +78,7 @@ type AppData = {
   sessions: CompletedSession[]
   active: ActiveSession | null
   notes: WorkoutNotes
+  deletedSessionIds: string[]
 }
 
 type SetDraft = {
@@ -338,7 +339,7 @@ const WORKOUTS: Record<WorkoutId, Workout> = {
   },
 }
 
-const EMPTY_DATA: AppData = { sessions: [], active: null, notes: {} }
+const EMPTY_DATA: AppData = { sessions: [], active: null, notes: {}, deletedSessionIds: [] }
 
 function totalSets(workout: Workout) {
   return workout.trackingSteps.length
@@ -448,6 +449,9 @@ function parseStoredData(raw: string): ParsedStore {
       sessions: parsed.sessions as CompletedSession[],
       active: (parsed.active as ActiveSession | null) ?? null,
       notes: parseWorkoutNotes(parsed.notes),
+      deletedSessionIds: Array.isArray(parsed.deletedSessionIds)
+        ? parsed.deletedSessionIds.filter((id): id is string => typeof id === 'string')
+        : [],
     },
   }
 }
@@ -585,9 +589,20 @@ function mergeWorkoutNotes(local: WorkoutNotes, remote: WorkoutNotes): WorkoutNo
  */
 function mergeLogs(local: AppData, remote: Partial<AppData> | null | undefined): AppData {
   const remoteSessions = Array.isArray(remote?.sessions) ? remote.sessions : []
+  const deletedSessionIds = [
+    ...new Set([
+      ...local.deletedSessionIds,
+      ...(Array.isArray(remote?.deletedSessionIds)
+        ? remote.deletedSessionIds.filter((id): id is string => typeof id === 'string')
+        : []),
+    ]),
+  ]
+  const deleted = new Set(deletedSessionIds)
   const byId = new Map<string, CompletedSession>()
   for (const session of [...remoteSessions, ...local.sessions]) {
-    if (session && typeof session.id === 'string') byId.set(session.id, session)
+    if (session && typeof session.id === 'string' && !deleted.has(session.id)) {
+      byId.set(session.id, session)
+    }
   }
   const sessions = [...byId.values()].sort((a, b) =>
     String(a.completedAt ?? '').localeCompare(String(b.completedAt ?? '')),
@@ -607,6 +622,7 @@ function mergeLogs(local: AppData, remote: Partial<AppData> | null | undefined):
     sessions,
     active,
     notes: mergeWorkoutNotes(local.notes, parseWorkoutNotes(remote?.notes)),
+    deletedSessionIds,
   }
 }
 

@@ -72,6 +72,7 @@ describe('gym: workout state', () => {
         },
       ],
       active: null,
+      deletedSessionIds: ['removed-session'],
       notes: {
         A: {
           text: 'Keep the shoulders down',

@@ -135,6 +135,7 @@ export const bodyWeightSchema = z.object({
 export const gymStateSchema = z.object({
   sessions: z.array(z.object({}).passthrough()).max(5000),
   active: z.union([z.object({}).passthrough(), z.null()]),
+  deletedSessionIds: z.array(z.string().min(1).max(200)).max(5000).optional(),
   notes: z
     .object({
       A: z.object({}).passthrough().optional(),

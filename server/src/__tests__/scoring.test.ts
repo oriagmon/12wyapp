@@ -4,6 +4,7 @@ import {
   remainingToTarget,
   isGoldWeek,
   averageScore,
+  finishedWeeksAverage,
   type TacticWithCompletions,
 } from '../lib/scoring.js';
 
@@ -98,5 +99,35 @@ describe('scoring', () => {
       { week: 2, scheduled: 0, completed: 0, score: null },
     ]);
     expect(avg).toBeNull();
+  });
+
+  it('averages only weeks finished before the active current week', () => {
+    const scores = [
+      { week: 1, scheduled: 2, completed: 2, score: 100 },
+      { week: 2, scheduled: 2, completed: 1, score: 50 },
+      { week: 3, scheduled: 2, completed: 0, score: 0 },
+      { week: 4, scheduled: 2, completed: 0, score: 0 },
+    ];
+
+    expect(finishedWeeksAverage(scores, 3, true)).toBe(75);
+  });
+
+  it('includes the final scored week for an archived cycle', () => {
+    const scores = [
+      { week: 11, scheduled: 2, completed: 2, score: 100 },
+      { week: 12, scheduled: 2, completed: 1, score: 50 },
+    ];
+
+    expect(finishedWeeksAverage(scores, 12, false)).toBe(75);
+  });
+
+  it('has no finished-week average during an active first week', () => {
+    expect(
+      finishedWeeksAverage(
+        [{ week: 1, scheduled: 2, completed: 1, score: 50 }],
+        1,
+        true
+      )
+    ).toBeNull();
   });
 });

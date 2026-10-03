@@ -149,6 +149,10 @@ type; once visible it remains until explicitly dismissed with its close button.
 Dismissals are retained as timestamps so syncing an older device cannot
 resurrect the note.
 
+Deliberately removed workout sessions use stable-ID tombstones in the same
+JSON blob. Every device merges those tombstones before sessions, preventing an
+older browser-local copy from resurrecting a removed duplicate.
+
 Point a subdomain of the dashboard's domain at the same machine
 (`gym.example.com` alongside `example.com`), then map that host's root onto the
 `/gym/` mount:
@@ -410,11 +414,10 @@ sends the other — a pick-me-up, not a task. Reachable from the "BROOST" tab
   are supportive/playful, never insulting. Every BROOST's `message` column
   is a fully **rendered, immutable snapshot** taken at send time — editing a
   preset's copy later never rewrites history.
-- **Anti-spam**: at most 5 BROOSTs from one sender to one recipient in a
-  rolling 24-hour window, plus a 60-second cooldown between consecutive
-  sends — both checked (and the row inserted) inside one `db.transaction()`,
-  so overlapping requests can never both slip past the same limit. Exceeding
-  either returns a clear `429` Hebrew error.
+- **Send limit**: at most 5 BROOSTs from one sender to one recipient in a
+  rolling 24-hour window. Consecutive sends are allowed with no cooldown.
+  The count check and row insert share one `db.transaction()`, so overlapping
+  requests cannot exceed the cap. Exceeding it returns a clear `429` error.
 - **Delivery**: the `POST /api/broosts` response returns `201` with
   `emailStatus: 'pending'` the instant the in-app row is committed — the
   actual send attempt is scheduled via `setImmediate` to run strictly
@@ -1066,6 +1069,10 @@ weekly (1–12) meeting per partnership per cycle generation:
   It always renders the signed-in user against their current partner, including
   both profile images and each active cycle's current success average. The
   leader and exact gap drive the prompt; historical week views omit the banner.
+- The active-cycle `averageScore` includes only finished weeks (`week <
+  currentWeek`); the in-progress week and every future week are excluded.
+  Archived cycles include all scored weeks. Home displays this value prominently
+  and states how many completed weeks contribute to it.
 - Gym lifting charts explain that each workout contributes its strongest set
   by Epley estimated 1RM (`weight × (1 + reps / 30)`). The chart can plot that
   estimated strength, the actual lifted weight, or repetitions from the same

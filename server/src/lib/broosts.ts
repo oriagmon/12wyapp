@@ -8,7 +8,7 @@ import type { Locale } from './i18n/core.js';
 /**
  * BROOST ("Bro" + "Boost"): a short supportive/playful message one partner sends the other.
  * See migration 014_partner_broosts.sql for the schema/immutability contract. This module is
- * the single source of truth for: the preset catalog, message validation, anti-spam rate
+ * the single source of truth for: the preset catalog, message validation, rolling rate
  * limiting, profile-safe participant serialization, and the delivery worker (claim/send/
  * retry/backoff) shared by both the immediate post-insert send attempt (routes/broosts.ts)
  * and the periodic CLI worker (sendBroostEmails.ts) — sharing one claim function is what
@@ -21,9 +21,6 @@ export const MAX_ATTEMPTS = 5;
  *  24-hour window. */
 export const MAX_BROOSTS_PER_PAIR_PER_WINDOW = 5;
 export const RATE_LIMIT_WINDOW_HOURS = 24;
-/** Anti-spam: minimum seconds between consecutive BROOSTs from one sender to one recipient,
- *  independent of the rolling-window cap above (closes the "5 instantly, back to back" gap). */
-export const COOLDOWN_SECONDS = 60;
 const STALE_LEASE_MINUTES = 10;
 // Bounded exponential-ish backoff (minutes) indexed by attempt number (1-based), mirroring
 // scheduled_email_reminders' own schedule exactly (see lib/scheduledReminders.ts).
@@ -109,9 +106,9 @@ export interface BroostRateLimitResult {
   error?: string;
 }
 
-/** Anti-spam check for one (sender, recipient) directed pair — both the rolling 24h count cap
- *  and the 60s cooldown since the most recent BROOST from this sender to this recipient. The
- *  caller (routes/broosts.ts) runs this *and* the subsequent INSERT inside one
+/** Rolling-window check for one (sender, recipient) directed pair. Consecutive sends are
+ *  intentionally allowed; only the 24-hour total remains bounded. The caller
+ *  (routes/broosts.ts) runs this *and* the subsequent INSERT inside one
  *  `db.transaction()`, so the two can never observe/act on stale state relative to each other
  *  even under overlapping requests. */
 export function checkBroostRateLimit(
@@ -120,8 +117,9 @@ export function checkBroostRateLimit(
   recipientId: number,
   now: Date = new Date()
 ): BroostRateLimitResult {
-  const nowMs = now.getTime();
-  const windowStartIso = new Date(nowMs - RATE_LIMIT_WINDOW_HOURS * 60 * 60_000).toISOString();
+  const windowStartIso = new Date(
+    now.getTime() - RATE_LIMIT_WINDOW_HOURS * 60 * 60_000
+  ).toISOString();
   const countRow = db
     .prepare(
       `SELECT COUNT(*) as count FROM partner_broosts WHERE sender_id = ? AND recipient_id = ? AND created_at >= ?`
@@ -132,15 +130,6 @@ export function checkBroostRateLimit(
       limited: true,
       error: 'api.broosts.dailyLimitReached',
     };
-  }
-  const lastRow = db
-    .prepare(`SELECT created_at FROM partner_broosts WHERE sender_id = ? AND recipient_id = ? ORDER BY created_at DESC LIMIT 1`)
-    .get(senderId, recipientId) as { created_at: string } | undefined;
-  if (lastRow) {
-    const elapsedMs = nowMs - new Date(lastRow.created_at).getTime();
-    if (elapsedMs < COOLDOWN_SECONDS * 1000) {
-      return { limited: true, error: 'api.broosts.cooldownRequired' };
-    }
   }
   return { limited: false };
 }

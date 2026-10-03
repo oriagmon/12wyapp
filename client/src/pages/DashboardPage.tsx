@@ -25,6 +25,7 @@ import { CycleWrapUpCard } from '../components/CycleWrapUpCard';
 import { PrimaryGoalHero } from '../components/PrimaryGoalHero';
 import { StreakBanner } from '../components/StreakBanner';
 import { CompetitionBanner } from '../components/CompetitionBanner';
+import { FinishedWeeksAverageCard } from '../components/FinishedWeeksAverageCard';
 import { WeeklyPlanningRitualPanel } from '../components/WeeklyPlanningRitualPanel';
 import { WeeklyPlanningRitualHomeCard } from '../components/WeeklyPlanningRitualHomeCard';
 import { ExecutionRecoveryCard } from '../components/ExecutionRecoveryCard';
@@ -428,6 +429,13 @@ export function DashboardPage() {
             onRename={(name) => dash.updateCycle({ name })}
             onWeekChange={(w) => dash.updateCycle({ currentWeek: w })}
             onReset={(name) => dash.resetCycle(name)}
+          />
+          <FinishedWeeksAverageCard
+            average={dash.bundle!.averageScore}
+            currentWeek={cycle.currentWeek}
+            measuredWeeks={dash.bundle!.weekScores.filter(
+              (item) => item.week < cycle.currentWeek && item.score !== null
+            ).length}
           />
           <StreakBanner userId={targetUserId} refreshKey={dash.bundle} />
           <PrimaryGoalHero

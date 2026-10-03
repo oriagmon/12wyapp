@@ -221,7 +221,16 @@ describe('DashboardPage: personal planning and WAM share one destination', () =>
       ...EMPTY_BUNDLE,
       access: userId === 1 ? 'owner' : 'partner',
       targetEmail: userId === 1 ? AUTH_USER.email : 'partner@example.test',
-      averageScore: userId === 1 ? 72.5 : 81,
+      averageScore: userId === 1 ? 66.7 : 81,
+      weekScores:
+        currentWeek === 4
+          ? [
+              { week: 1, scheduled: 4, completed: 3, score: 75 },
+              { week: 2, scheduled: 4, completed: 3, score: 75 },
+              { week: 3, scheduled: 4, completed: 2, score: 50 },
+              { week: 4, scheduled: 4, completed: 1, score: 25 },
+            ]
+          : [],
       cycle: currentWeek === null ? null : {
         id: userId * 10, name: `cycle-${userId}`, currentWeek, isActive: true,
         vision: '', successDefinition: '', whyItMatters: '', blockers: '', risks: '', lagMeasures: '', leadMeasures: '', notes: '',
@@ -304,6 +313,17 @@ describe('DashboardPage: personal planning and WAM share one destination', () =>
     fireEvent.click(within(screen.getByRole('navigation', { name: 'ניווט ראשי' })).getByRole('button', { name: 'פגישה משותפת' }));
   }
 
+  it('shows the completed-week average on Home and excludes the active week in its copy', async () => {
+    setup(4);
+    renderDashboard();
+
+    expect(await screen.findByRole('region', { name: 'ממוצע השבועות שהסתיימו' })).toBeInTheDocument();
+    expect(screen.getByText('66.7%')).toBeInTheDocument();
+    expect(
+      screen.getByText('שבוע 4 עדיין בעיצומו ולכן לא נכלל.', { exact: false })
+    ).toBeInTheDocument();
+  });
+
   it('shows the competition only on the current Week view', async () => {
     setup();
     renderDashboard();
@@ -316,7 +336,7 @@ describe('DashboardPage: personal planning and WAM share one destination', () =>
     );
 
     expect(await screen.findByRole('region', { name: 'תחרות הצלחה' })).toBeInTheDocument();
-    expect(screen.getByText('72.5%')).toBeInTheDocument();
+    expect(screen.getByText('66.7%')).toBeInTheDocument();
     expect(screen.getByText('81%')).toBeInTheDocument();
 
     fireEvent.change(

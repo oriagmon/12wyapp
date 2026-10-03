@@ -101,8 +101,8 @@ broostsRouter.get('/unread', (req, res) => {
 /** POST / — sends a BROOST to the caller's *current* accepted partner only (never an
  *  arbitrary recipient, and never to self). An optional reply reference must belong to the
  *  caller's received history and its sender must still be the current partner. Requires
- *  exactly one of a valid preset key or a non-empty custom message. Anti-spam (rolling 24h
- *  cap + 60s cooldown) is checked and the row inserted inside one transaction, so overlapping
+ *  exactly one of a valid preset key or a non-empty custom message. The rolling 24h
+ *  cap is checked and the row inserted inside one transaction, so overlapping
  *  requests can never both slip past the same limit.
  *
  *  Responds `201` with `emailStatus: 'pending'` the instant the in-app row is committed —

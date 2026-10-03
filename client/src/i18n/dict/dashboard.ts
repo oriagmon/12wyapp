@@ -67,6 +67,18 @@ export const dashboard: AreaDict = {
     'dashboard.competition.ahead': 'You lead by {gap} points. Do not let them catch you.',
     'dashboard.competition.behind': 'You are {gap} points behind. Close the gap this week.',
     'dashboard.competition.averageNote': 'Current cycle success average',
+    'dashboard.average.label': 'Completed weeks average',
+    'dashboard.average.eyebrow': 'Current performance average',
+    'dashboard.average.title': 'Your average across completed weeks',
+    'dashboard.average.explanation_one':
+      'Based on {count} completed week. Week {week} is still in progress and is not included.',
+    'dashboard.average.explanation_other':
+      'Based on {count} completed weeks. Week {week} is still in progress and is not included.',
+    'dashboard.average.noFinishedWeeks':
+      'Week {week} is still in progress. Your average will begin when it finishes.',
+    'dashboard.average.pending': 'Waiting for a completed week',
+    'dashboard.average.aboveTarget': 'Above the {target}% target 🏆',
+    'dashboard.average.belowTarget': '{gap} points to the {target}% target',
 
     'dashboard.duo.current': 'Duo streak',
     'dashboard.duo.best': 'Best ever',
@@ -215,6 +227,18 @@ export const dashboard: AreaDict = {
     'dashboard.competition.ahead': 'יש לך יתרון של {gap} נקודות. לא לתת להם להשיג אותך.',
     'dashboard.competition.behind': 'חסרות לך {gap} נקודות. זה השבוע לסגור את הפער.',
     'dashboard.competition.averageNote': 'ממוצע ההצלחה במחזור הנוכחי',
+    'dashboard.average.label': 'ממוצע השבועות שהסתיימו',
+    'dashboard.average.eyebrow': 'ממוצע הביצוע הנוכחי',
+    'dashboard.average.title': 'הממוצע שלך בשבועות שהסתיימו',
+    'dashboard.average.explanation_one':
+      'מבוסס על שבוע {count} שהסתיים. שבוע {week} עדיין בעיצומו ולכן לא נכלל.',
+    'dashboard.average.explanation_other':
+      'מבוסס על {count} שבועות שהסתיימו. שבוע {week} עדיין בעיצומו ולכן לא נכלל.',
+    'dashboard.average.noFinishedWeeks':
+      'שבוע {week} עדיין בעיצומו. הממוצע יתחיל אחרי שהשבוע יסתיים.',
+    'dashboard.average.pending': 'ממתין לשבוע שהסתיים',
+    'dashboard.average.aboveTarget': 'מעל יעד {target}% 🏆',
+    'dashboard.average.belowTarget': 'חסרות {gap} נקודות ליעד {target}%',
 
     'dashboard.duo.current': 'רצף Duo נוכחי',
     'dashboard.duo.best': 'השיא',

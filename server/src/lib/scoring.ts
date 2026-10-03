@@ -98,3 +98,15 @@ export function averageScore(weekScores: WeekScore[]): number | null {
   const sum = withScore.reduce((acc, w) => acc + w.score, 0);
   return Math.round((sum / withScore.length) * 10) / 10;
 }
+
+/** The live cycle average must describe settled performance, not a current week whose
+ * denominator is complete while its work is still underway. Archived cycles are finished,
+ * so all of their scored weeks participate. */
+export function finishedWeeksAverage(
+  weekScores: WeekScore[],
+  currentWeek: number,
+  isActive: boolean
+): number | null {
+  const lastFinishedWeek = isActive ? currentWeek - 1 : 12;
+  return averageScore(weekScores.filter((week) => week.week <= lastFinishedWeek));
+}

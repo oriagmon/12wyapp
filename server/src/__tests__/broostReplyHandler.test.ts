@@ -117,11 +117,11 @@ describe('BROOST reply handler: offline transaction coverage', () => {
     expect(scheduleImmediateBroostSend).not.toHaveBeenCalled();
   });
 
-  it('accepts 500 characters and enforces the same cooldown on a repeated reply', () => {
+  it('accepts 500 characters and allows an immediate repeated reply', () => {
     expect(post({ replyToBroostId: originalId, customMessage: 'x'.repeat(500) }).status).toBe(201);
-    expect(post({ replyToBroostId: originalId, customMessage: 'Again' }).status).toBe(429);
-    expect(db.prepare('SELECT COUNT(*) AS count FROM partner_broosts WHERE sender_id = 1').get()).toEqual({ count: 1 });
-    expect(scheduleImmediateBroostSend).toHaveBeenCalledTimes(1);
+    expect(post({ replyToBroostId: originalId, customMessage: 'Again' }).status).toBe(201);
+    expect(db.prepare('SELECT COUNT(*) AS count FROM partner_broosts WHERE sender_id = 1').get()).toEqual({ count: 2 });
+    expect(scheduleImmediateBroostSend).toHaveBeenCalledTimes(2);
   });
 
   it('rolls back and does not schedule delivery when insertion fails', () => {
